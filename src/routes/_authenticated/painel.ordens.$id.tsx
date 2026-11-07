@@ -1,6 +1,6 @@
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, BellRing, FileText, MessageCircle, Printer, Trash2 } from "lucide-react";
+import { ArrowLeft, BellRing, MessageCircle, Printer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { OrderForm, type OrderFormValues } from "@/components/painel/order-form";
@@ -84,7 +84,7 @@ function OrdemPage() {
 
   const info = orderStatusInfo(order.status);
   const siteUrl = typeof window !== "undefined" ? window.location.origin : undefined;
-  const quoteHref = waLink(order.phone, quoteMessage(order));
+  const quoteText = quoteMessage(order);
   const statusHref = waLink(order.phone, statusMessage(order, siteUrl));
 
   async function remove() {
@@ -117,14 +117,9 @@ function OrdemPage() {
           <MessageCircle className="size-5 text-success" />
           <p className="font-display text-sm uppercase">WhatsApp do cliente</p>
         </div>
-        <div className="mb-3 flex flex-wrap gap-2"><QuotePdfActions order={order} /></div>
-        {quoteHref && statusHref ? (
+        <div className="mb-3 flex flex-wrap gap-2"><QuotePdfActions order={order} message={quoteText} /></div>
+        {statusHref ? (
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Button asChild variant="outline" className="h-11">
-              <a href={quoteHref} target="_blank" rel="noopener noreferrer">
-                <FileText /> Enviar orçamento
-              </a>
-            </Button>
             <Button asChild variant="outline" className="h-11">
               <a href={statusHref} target="_blank" rel="noopener noreferrer">
                 <BellRing /> Avisar status: {info.label}
