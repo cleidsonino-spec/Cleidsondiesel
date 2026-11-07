@@ -13,6 +13,7 @@ import { readApproval } from "@/lib/approval.functions";
 import { readPartItems } from "@/lib/parts";
 import { formatBRL, orderTotal } from "@/lib/status";
 import { formatPlate } from "@/lib/plate";
+import { formatCpf, isFullName, isValidCpf } from "@/lib/customer-identity";
 
 type Quote = { number: number; customer_name: string; plate: string; vehicle: string; complaint: string; diagnosis: string | null; parts: string | null; part_items: unknown; parts_value: number; labor_value: number };
 type Result = { quote: Quote; state: string; approved_at: string | null; approved_by: string | null };
@@ -39,13 +40,14 @@ function QuotePage() {
   const { data } = useSuspenseQuery(options(token));
   const qc = useQueryClient();
   const [name, setName] = useState("");
+  const [cpf, setCpf] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   async function approve() {
-    if (!accepted || name.trim().length < 2) return;
+    if (!accepted || !isFullName(name) || !isValidCpf(cpf)) return;
     setBusy(true);
-    const { error } = await supabase.rpc("approve_quote", { _token: token, _name: name.trim() });
+    const { error } = await supabase.rpc("approve_quote_identified", { _token: token, _name: name.trim(), _cpf: cpf });
     setBusy(false);
     if (error) { toast.error("O orçamento pode ter sido alterado ou vencido. Solicite um novo link à oficina."); await qc.invalidateQueries({ queryKey: ["public-approval", token] }); return; }
     setConfirmed(true);
@@ -63,8 +65,11 @@ function QuotePage() {
       <div className="space-y-2"><p className="flex justify-between">Peças <strong>{formatBRL(Number(o.parts_value))}</strong></p><p className="flex justify-between">Mão de obra <strong>{formatBRL(Number(o.labor_value))}</strong></p><p className="flex flex-wrap justify-between gap-2 border-t border-border pt-3 text-xl font-bold">Total <span>{formatBRL(orderTotal(o.parts_value, o.labor_value))}</span></p></div>
       {data.state === "approved" || confirmed ? <p role="status" className="flex items-center gap-2 text-success"><Check /> Orçamento aprovado{data.approved_by ? ` por ${data.approved_by}` : ""}.</p> : <form className="space-y-4 border-t border-border pt-6" onSubmit={(e) => { e.preventDefault(); void approve(); }}>
         <Label htmlFor="approver">Seu nome completo</Label><Input id="approver" autoComplete="name" maxLength={120} minLength={2} required value={name} onChange={(e) => setName(e.target.value)} />
+        {name && !isFullName(name) && <p className="text-sm text-destructive">Informe nome e sobrenome completos.</p>}
+        <Label htmlFor="approver-cpf">CPF do cliente</Label><Input id="approver-cpf" inputMode="numeric" maxLength={14} required value={cpf} onChange={(e) => setCpf(formatCpf(e.target.value))} placeholder="000.000.000-00" aria-invalid={Boolean(cpf && !isValidCpf(cpf))} />
+        {cpf && !isValidCpf(cpf) && <p className="text-sm text-destructive">Informe um CPF válido.</p>}
         <div className="flex items-start gap-3"><Checkbox id="authorize" checked={accepted} onCheckedChange={(v) => setAccepted(v === true)} /><Label htmlFor="authorize" className="leading-6">Li o orçamento e autorizo o serviço pelo total de {formatBRL(orderTotal(o.parts_value, o.labor_value))}.</Label></div>
-        <Button type="submit" size="lg" disabled={busy || !accepted || name.trim().length < 2}>{busy ? <Loader2 className="animate-spin" /> : <Check />} Aprovar orçamento</Button>
+        <Button type="submit" size="lg" disabled={busy || !accepted || !isFullName(name) || !isValidCpf(cpf)}>{busy ? <Loader2 className="animate-spin" /> : <Check />} Aprovar orçamento</Button>
       </form>}
     </div>}
   </section></PublicLayout>;

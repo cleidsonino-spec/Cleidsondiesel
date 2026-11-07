@@ -63,6 +63,7 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          approved_cpf: string | null
           created_at: string
           expires_at: string
           id: string
@@ -74,6 +75,7 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          approved_cpf?: string | null
           created_at?: string
           expires_at?: string
           id?: string
@@ -85,6 +87,7 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          approved_cpf?: string | null
           created_at?: string
           expires_at?: string
           id?: string
@@ -210,6 +213,10 @@ export type Database = {
     }
     Functions: {
       approve_quote: { Args: { _name: string; _token: string }; Returns: Json }
+      approve_quote_identified: {
+        Args: { _cpf: string; _name: string; _token: string }
+        Returns: Json
+      }
       booked_slots: { Args: { _date: string }; Returns: string[] }
       get_quote_approval: { Args: { _token: string }; Returns: Json }
       has_role: {
@@ -237,6 +244,7 @@ export type Database = {
         Args: { o: Database["public"]["Tables"]["service_orders"]["Row"] }
         Returns: Json
       }
+      valid_cpf: { Args: { _cpf: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { parseMoney, partsTotal, draftPartItems } from "@/lib/parts";
 import { quoteRows } from "@/lib/quote-pdf";
 import { approvalUrl } from "@/lib/approval";
+import { isFullName, isValidCpf } from "@/lib/customer-identity";
 import { formatPlate, isValidPlate, normalizePlate } from "@/lib/plate";
 import { availableSlots, getSlotsForDate } from "@/lib/schedule";
 import { orderTotal } from "@/lib/status";
@@ -40,6 +41,17 @@ describe("horários", () => {
 });
 
 describe("orçamento", () => {
+  it("aprovação exige nome completo, não apenas primeiro nome", () => {
+    expect(isFullName("João Silva")).toBe(true);
+    expect(isFullName("João")).toBe(false);
+    expect(isFullName("João 123")).toBe(false);
+  });
+  it("aprovação exige CPF com dígitos verificadores válidos", () => {
+    expect(isValidCpf("529.982.247-25")).toBe(true);
+    expect(isValidCpf("529.982.247-26")).toBe(false);
+    expect(isValidCpf("111.111.111-11")).toBe(false);
+    expect(isValidCpf("123")).toBe(false);
+  });
   it("PDF mantém os valores individuais das peças e mão de obra", () => {
     expect(quoteRows({ part_items: [{ description: "Kit", value: 125.50 }, { description: "Bico", value: 250.25 }], parts_value: 375.75, labor_value: 100 })).toEqual([{ description: "Kit", value: 125.50 }, { description: "Bico", value: 250.25 }, { description: "Mão de obra", value: 100 }]);
   });

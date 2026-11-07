@@ -22,6 +22,13 @@
       "when": 1794022122184,
       "tag": "0002_customer_quote_approval",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794022714939,
+      "tag": "0003_approval_identity_and_auto_status",
+      "breakpoints": true
     }
   ]
 }

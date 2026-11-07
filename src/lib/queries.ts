@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const ordersQuery = () =>
   queryOptions({
     queryKey: ["orders"],
+    refetchInterval: 15000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("service_orders")
@@ -19,6 +20,7 @@ export const ordersQuery = () =>
 export const orderQuery = (id: string) =>
   queryOptions({
     queryKey: ["orders", id],
+    refetchInterval: 15000,
     queryFn: async () => {
       const { data, error } = await supabase.from("service_orders").select("*").eq("id", id).maybeSingle();
       if (error) throw error;
