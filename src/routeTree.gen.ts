@@ -10,33 +10,159 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AgendarRouteImport } from './routes/agendar'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ConsultaRouteImport } from './routes/consulta'
+import { Route as ServicosRouteImport } from './routes/servicos'
+import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
+import { Route as AuthenticatedPainelIndexRouteImport } from './routes/_authenticated/painel.index'
+import { Route as AuthenticatedPainelAgendamentosRouteImport } from './routes/_authenticated/painel.agendamentos'
+import { Route as AuthenticatedPainelOrdensIdRouteImport } from './routes/_authenticated/painel.ordens.$id'
+import { Route as AuthenticatedPainelOrdensNovaRouteImport } from './routes/_authenticated/painel.ordens.nova'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgendarRoute = AgendarRouteImport.update({
+  id: '/agendar',
+  path: '/agendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConsultaRoute = ConsultaRouteImport.update({
+  id: '/consulta',
+  path: '/consulta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServicosRoute = ServicosRouteImport.update({
+  id: '/servicos',
+  path: '/servicos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
+  id: '/painel',
+  path: '/painel',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPainelIndexRoute =
+  AuthenticatedPainelIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedPainelRoute,
+  } as any)
+const AuthenticatedPainelAgendamentosRoute =
+  AuthenticatedPainelAgendamentosRouteImport.update({
+    id: '/agendamentos',
+    path: '/agendamentos',
+    getParentRoute: () => AuthenticatedPainelRoute,
+  } as any)
+const AuthenticatedPainelOrdensIdRoute =
+  AuthenticatedPainelOrdensIdRouteImport.update({
+    id: '/ordens/$id',
+    path: '/ordens/$id',
+    getParentRoute: () => AuthenticatedPainelRoute,
+  } as any)
+const AuthenticatedPainelOrdensNovaRoute =
+  AuthenticatedPainelOrdensNovaRouteImport.update({
+    id: '/ordens/nova',
+    path: '/ordens/nova',
+    getParentRoute: () => AuthenticatedPainelRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agendar': typeof AgendarRoute
+  '/auth': typeof AuthRoute
+  '/consulta': typeof ConsultaRoute
+  '/servicos': typeof ServicosRoute
+  '/painel': typeof AuthenticatedPainelRouteWithChildren
+  '/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
+  '/painel/': typeof AuthenticatedPainelIndexRoute
+  '/painel/ordens/$id': typeof AuthenticatedPainelOrdensIdRoute
+  '/painel/ordens/nova': typeof AuthenticatedPainelOrdensNovaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agendar': typeof AgendarRoute
+  '/auth': typeof AuthRoute
+  '/consulta': typeof ConsultaRoute
+  '/servicos': typeof ServicosRoute
+  '/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
+  '/painel': typeof AuthenticatedPainelIndexRoute
+  '/painel/ordens/$id': typeof AuthenticatedPainelOrdensIdRoute
+  '/painel/ordens/nova': typeof AuthenticatedPainelOrdensNovaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/agendar': typeof AgendarRoute
+  '/auth': typeof AuthRoute
+  '/consulta': typeof ConsultaRoute
+  '/servicos': typeof ServicosRoute
+  '/_authenticated/painel': typeof AuthenticatedPainelRouteWithChildren
+  '/_authenticated/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
+  '/_authenticated/painel/': typeof AuthenticatedPainelIndexRoute
+  '/_authenticated/painel/ordens/$id': typeof AuthenticatedPainelOrdensIdRoute
+  '/_authenticated/painel/ordens/nova': typeof AuthenticatedPainelOrdensNovaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/agendar'
+    | '/auth'
+    | '/consulta'
+    | '/servicos'
+    | '/painel'
+    | '/painel/agendamentos'
+    | '/painel/'
+    | '/painel/ordens/$id'
+    | '/painel/ordens/nova'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/agendar'
+    | '/auth'
+    | '/consulta'
+    | '/servicos'
+    | '/painel/agendamentos'
+    | '/painel'
+    | '/painel/ordens/$id'
+    | '/painel/ordens/nova'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/agendar'
+    | '/auth'
+    | '/consulta'
+    | '/servicos'
+    | '/_authenticated/painel'
+    | '/_authenticated/painel/agendamentos'
+    | '/_authenticated/painel/'
+    | '/_authenticated/painel/ordens/$id'
+    | '/_authenticated/painel/ordens/nova'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AgendarRoute: typeof AgendarRoute
+  AuthRoute: typeof AuthRoute
+  ConsultaRoute: typeof ConsultaRoute
+  ServicosRoute: typeof ServicosRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +174,114 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agendar': {
+      id: '/agendar'
+      path: '/agendar'
+      fullPath: '/agendar'
+      preLoaderRoute: typeof AgendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/consulta': {
+      id: '/consulta'
+      path: '/consulta'
+      fullPath: '/consulta'
+      preLoaderRoute: typeof ConsultaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/servicos': {
+      id: '/servicos'
+      path: '/servicos'
+      fullPath: '/servicos'
+      preLoaderRoute: typeof ServicosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/painel': {
+      id: '/_authenticated/painel'
+      path: '/painel'
+      fullPath: '/painel'
+      preLoaderRoute: typeof AuthenticatedPainelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/painel/': {
+      id: '/_authenticated/painel/'
+      path: '/'
+      fullPath: '/painel/'
+      preLoaderRoute: typeof AuthenticatedPainelIndexRouteImport
+      parentRoute: typeof AuthenticatedPainelRoute
+    }
+    '/_authenticated/painel/agendamentos': {
+      id: '/_authenticated/painel/agendamentos'
+      path: '/agendamentos'
+      fullPath: '/painel/agendamentos'
+      preLoaderRoute: typeof AuthenticatedPainelAgendamentosRouteImport
+      parentRoute: typeof AuthenticatedPainelRoute
+    }
+    '/_authenticated/painel/ordens/$id': {
+      id: '/_authenticated/painel/ordens/$id'
+      path: '/ordens/$id'
+      fullPath: '/painel/ordens/$id'
+      preLoaderRoute: typeof AuthenticatedPainelOrdensIdRouteImport
+      parentRoute: typeof AuthenticatedPainelRoute
+    }
+    '/_authenticated/painel/ordens/nova': {
+      id: '/_authenticated/painel/ordens/nova'
+      path: '/ordens/nova'
+      fullPath: '/painel/ordens/nova'
+      preLoaderRoute: typeof AuthenticatedPainelOrdensNovaRouteImport
+      parentRoute: typeof AuthenticatedPainelRoute
+    }
   }
 }
 
+interface AuthenticatedPainelRouteChildren {
+  AuthenticatedPainelAgendamentosRoute: typeof AuthenticatedPainelAgendamentosRoute
+  AuthenticatedPainelIndexRoute: typeof AuthenticatedPainelIndexRoute
+  AuthenticatedPainelOrdensIdRoute: typeof AuthenticatedPainelOrdensIdRoute
+  AuthenticatedPainelOrdensNovaRoute: typeof AuthenticatedPainelOrdensNovaRoute
+}
+
+const AuthenticatedPainelRouteChildren: AuthenticatedPainelRouteChildren = {
+  AuthenticatedPainelAgendamentosRoute: AuthenticatedPainelAgendamentosRoute,
+  AuthenticatedPainelIndexRoute: AuthenticatedPainelIndexRoute,
+  AuthenticatedPainelOrdensIdRoute: AuthenticatedPainelOrdensIdRoute,
+  AuthenticatedPainelOrdensNovaRoute: AuthenticatedPainelOrdensNovaRoute,
+}
+
+const AuthenticatedPainelRouteWithChildren =
+  AuthenticatedPainelRoute._addFileChildren(AuthenticatedPainelRouteChildren)
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedPainelRoute: typeof AuthenticatedPainelRouteWithChildren
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedPainelRoute: AuthenticatedPainelRouteWithChildren,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AgendarRoute: AgendarRoute,
+  AuthRoute: AuthRoute,
+  ConsultaRoute: ConsultaRoute,
+  ServicosRoute: ServicosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
