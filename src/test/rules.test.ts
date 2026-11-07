@@ -7,7 +7,7 @@ import { isFullName, isValidCpf } from "@/lib/customer-identity";
 import { formatPlate, isValidPlate, normalizePlate } from "@/lib/plate";
 import { availableSlots, getSlotsForDate } from "@/lib/schedule";
 import { orderTotal } from "@/lib/status";
-import { quoteMessage, toWhatsAppNumber, SHOP_WHATSAPP } from "@/lib/whatsapp";
+import { quoteMessage, toWhatsAppNumber, SHOP_WHATSAPP, appointmentShopLink, approvalShopLink } from "@/lib/whatsapp";
 
 describe("placas", () => {
   it("aceita placa antiga e Mercosul, com ou sem traço", () => {
@@ -88,6 +88,15 @@ describe("orçamento", () => {
 });
 
 describe("WhatsApp", () => {
+  it("encaminha o agendamento para o WhatsApp 71986571661", () => {
+    const link = appointmentShopLink({ name: "João Silva", date: "2026-11-09", time: "09:00", plate: "ABC1234", vehicle: "Hilux", service: "Bomba injetora" });
+    expect(link && new URL(link).pathname).toBe("/5571986571661");
+  });
+  it("encaminha a aprovação para o WhatsApp 71986571661 sem CPF ou token", () => {
+    const link = approvalShopLink({ number: 12, plate: "ABC1234", vehicle: "Hilux" }, "João Silva");
+    expect(link && new URL(link).pathname).toBe("/5571986571661");
+    expect(link && [...new URL(link).searchParams.keys()]).toEqual(["text"]);
+  });
   it("link de aprovação abre o orçamento privado no site", () => {
     const token = "a".repeat(64);
     expect(approvalUrl(token)).toBe(`https://cleidsondiesel.lovable.app/orcamento/${token}`);

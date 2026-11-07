@@ -21,6 +21,22 @@ export function waLink(phone: string | null | undefined, text: string): string |
   return `https://wa.me/${n}?text=${encodeURIComponent(text)}`;
 }
 
+export function appointmentShopLink(a: { name: string; date: string; time: string; plate: string; vehicle: string; service: string }): string | null {
+  return waLink(SHOP_PHONE, [
+    `Olá, Cleidson Diesel! Sou ${a.name} e fiz um agendamento pelo site.`,
+    `Data: ${formatDateBR(a.date)} às ${a.time.slice(0, 5)}.`,
+    `Veículo: ${a.vehicle} (${formatPlate(a.plate)}).`,
+    `Serviço: ${a.service}.`,
+  ].join("\n"));
+}
+
+export function approvalShopLink(o: { number: number; plate: string; vehicle: string }, name: string): string | null {
+  return waLink(SHOP_PHONE, [
+    `Olá, Cleidson Diesel! Sou ${name} e aprovei o orçamento da OS nº ${o.number} pelo site.`,
+    `Veículo: ${o.vehicle} (${formatPlate(o.plate)}).`,
+  ].join("\n"));
+}
+
 type OrderLike = {
   number: number;
   plate: string;

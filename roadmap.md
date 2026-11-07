@@ -13,3 +13,4 @@
 - [x] Aprovação do orçamento no site por link privado enviado pelo WhatsApp
 - [x] Exigir nome completo e CPF válido e atualizar status automaticamente após aprovação
 - [ ] Notificar o dono no WhatsApp de todo agendamento e aprovação — aguardando conexão WhatsApp Business
+- [x] Encaminhar o cliente ao WhatsApp da oficina após agendamento e aprovação de orçamento

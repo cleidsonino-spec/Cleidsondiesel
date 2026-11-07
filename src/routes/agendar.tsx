@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CalendarCheck, CheckCircle2, Loader2 } from "lucide-react";
+import { CalendarCheck, CheckCircle2, Loader2, MessageCircle } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
@@ -15,6 +15,7 @@ import { formatPlate, isValidPlate, normalizePlate } from "@/lib/plate";
 import { availableSlots, formatDateBR, getSlotsForDate, todayISO } from "@/lib/schedule";
 import { SERVICE_OPTIONS } from "@/lib/services";
 import { cn } from "@/lib/utils";
+import { appointmentShopLink } from "@/lib/whatsapp";
 
 export const Route = createFileRoute("/agendar")({
   head: () => ({
@@ -35,7 +36,7 @@ function AgendarPage() {
   const [time, setTime] = useState("");
   const [service, setService] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState<{ date: string; time: string; plate: string } | null>(null);
+  const [done, setDone] = useState<{ date: string; time: string; plate: string; whatsapp: string | null } | null>(null);
 
   const booked = useQuery({
     queryKey: ["booked-slots", date],
@@ -89,7 +90,9 @@ function AgendarPage() {
       }
       return;
     }
-    setDone({ date, time, plate });
+    const whatsapp = appointmentShopLink({ name, date, time, plate, vehicle, service });
+    setDone({ date, time, plate, whatsapp });
+    if (whatsapp) window.location.assign(whatsapp);
   }
 
   if (done) {
@@ -104,6 +107,7 @@ function AgendarPage() {
           </p>
           <p className="mt-6 rounded-md border border-border bg-card px-5 py-3 plate text-2xl">{formatPlate(done.plate)}</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            {done.whatsapp && <Button asChild><a href={done.whatsapp} rel="noreferrer"><MessageCircle /> Falar no WhatsApp</a></Button>}
             <Button asChild>
               <Link to="/consulta">Acompanhar pela placa</Link>
             </Button>

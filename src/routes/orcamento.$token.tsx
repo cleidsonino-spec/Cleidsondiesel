@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { PublicLayout } from "@/components/site/public-layout";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { readPartItems } from "@/lib/parts";
 import { formatBRL, orderTotal } from "@/lib/status";
 import { formatPlate } from "@/lib/plate";
 import { formatCpf, isFullName, isValidCpf } from "@/lib/customer-identity";
+import { approvalShopLink } from "@/lib/whatsapp";
 
 type Quote = { number: number; customer_name: string; plate: string; vehicle: string; complaint: string; diagnosis: string | null; parts: string | null; part_items: unknown; parts_value: number; labor_value: number };
 type Result = { quote: Quote; state: string; approved_at: string | null; approved_by: string | null };
@@ -51,7 +52,9 @@ function QuotePage() {
     setBusy(false);
     if (error) { toast.error("O orçamento pode ter sido alterado ou vencido. Solicite um novo link à oficina."); await qc.invalidateQueries({ queryKey: ["public-approval", token] }); return; }
     setConfirmed(true);
-    await qc.invalidateQueries({ queryKey: ["public-approval", token] });
+    const whatsapp = data?.quote ? approvalShopLink(data.quote, name.trim()) : null;
+    void qc.invalidateQueries({ queryKey: ["public-approval", token] });
+    if (whatsapp) window.location.assign(whatsapp);
   }
   const o = data?.quote;
   return <PublicLayout><section className="mx-auto max-w-3xl px-4 py-12">
@@ -63,7 +66,7 @@ function QuotePage() {
       {o.parts && <p className="whitespace-pre-wrap break-words">{o.parts}</p>}
       <table className="w-full table-fixed text-left"><thead><tr className="border-b border-border"><th className="w-2/3 py-3">Peças</th><th className="py-3 text-right">Valor</th></tr></thead><tbody>{readPartItems(o.part_items).map((p, i) => <tr key={i} className="border-b border-border"><td className="break-words py-3 pr-3">{p.description}</td><td className="text-right">{formatBRL(p.value)}</td></tr>)}</tbody></table>
       <div className="space-y-2"><p className="flex justify-between">Peças <strong>{formatBRL(Number(o.parts_value))}</strong></p><p className="flex justify-between">Mão de obra <strong>{formatBRL(Number(o.labor_value))}</strong></p><p className="flex flex-wrap justify-between gap-2 border-t border-border pt-3 text-xl font-bold">Total <span>{formatBRL(orderTotal(o.parts_value, o.labor_value))}</span></p></div>
-      {data.state === "approved" || confirmed ? <p role="status" className="flex items-center gap-2 text-success"><Check /> Orçamento aprovado{data.approved_by ? ` por ${data.approved_by}` : ""}.</p> : <form className="space-y-4 border-t border-border pt-6" onSubmit={(e) => { e.preventDefault(); void approve(); }}>
+      {data.state === "approved" || confirmed ? <div className="space-y-4"><p role="status" className="flex items-center gap-2 text-success"><Check /> Orçamento aprovado{data.approved_by ? ` por ${data.approved_by}` : ""}.</p><Button asChild><a href={approvalShopLink(o, data.approved_by || name || o.customer_name) ?? undefined} rel="noreferrer"><MessageCircle /> Falar no WhatsApp</a></Button></div> : <form className="space-y-4 border-t border-border pt-6" onSubmit={(e) => { e.preventDefault(); void approve(); }}>
         <Label htmlFor="approver">Seu nome completo</Label><Input id="approver" autoComplete="name" maxLength={120} minLength={2} required value={name} onChange={(e) => setName(e.target.value)} />
         {name && !isFullName(name) && <p className="text-sm text-destructive">Informe nome e sobrenome completos.</p>}
         <Label htmlFor="approver-cpf">CPF do cliente</Label><Input id="approver-cpf" inputMode="numeric" maxLength={14} required value={cpf} onChange={(e) => setCpf(formatCpf(e.target.value))} placeholder="000.000.000-00" aria-invalid={Boolean(cpf && !isValidCpf(cpf))} />
