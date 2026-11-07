@@ -239,6 +239,13 @@ export type Database = {
           vehicle: string
         }[]
       }
+      lookup_vehicle: {
+        Args: { _plate: string }
+        Returns: {
+          vehicle: string
+          vehicle_year: string
+        }[]
+      }
       normalize_plate: { Args: { _p: string }; Returns: string }
       quote_snapshot: {
         Args: { o: Database["public"]["Tables"]["service_orders"]["Row"] }

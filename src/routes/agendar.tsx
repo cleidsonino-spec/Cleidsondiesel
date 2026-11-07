@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CalendarCheck, CheckCircle2, Loader2, MessageCircle } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import { PageHeading, PublicLayout } from "@/components/site/public-layout";
@@ -35,8 +35,32 @@ function AgendarPage() {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [service, setService] = useState("");
+  const [plate, setPlate] = useState("");
+  const [vehicle, setVehicle] = useState("");
+  const vehicleAuto = useRef<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<{ date: string; time: string; plate: string; whatsapp: string | null } | null>(null);
+
+  const knownVehicle = useQuery({
+    queryKey: ["lookup-vehicle", plate],
+    enabled: isValidPlate(plate),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("lookup_vehicle", { _plate: normalizePlate(plate) });
+      if (error) throw error;
+      return data?.[0] ?? null;
+    },
+  });
+
+  useEffect(() => {
+    const row = knownVehicle.data;
+    if (!row?.vehicle) return;
+    const label = row.vehicle_year ? `${row.vehicle} ${row.vehicle_year}` : row.vehicle;
+    setVehicle((current) => {
+      if (current && current !== vehicleAuto.current) return current;
+      vehicleAuto.current = label;
+      return label;
+    });
+  }, [knownVehicle.data]);
 
   const booked = useQuery({
     queryKey: ["booked-slots", date],
@@ -57,7 +81,6 @@ function AgendarPage() {
     const plate = normalizePlate(String(fd.get("plate") ?? ""));
     const name = String(fd.get("name") ?? "").trim();
     const phone = String(fd.get("phone") ?? "").trim();
-    const vehicle = String(fd.get("vehicle") ?? "").trim();
     const notes = String(fd.get("notes") ?? "").trim();
 
     if (name.length < 2) { toast.error("Informe seu nome."); return; }
@@ -140,10 +163,33 @@ function AgendarPage() {
           <fieldset className="grid gap-5 rounded-md border border-border bg-card p-5 md:grid-cols-2 md:p-6">
             <legend className="px-2 font-display text-sm uppercase text-primary">Veículo</legend>
             <Field label="Placa" htmlFor="plate">
-              <Input id="plate" name="plate" placeholder="ABC1D23" required maxLength={8} className="plate uppercase" />
+              <Input
+                id="plate"
+                name="plate"
+                placeholder="ABC1D23"
+                required
+                maxLength={8}
+                className="plate uppercase"
+                value={plate}
+                onChange={(e) => setPlate(e.target.value.toUpperCase())}
+              />
             </Field>
             <Field label="Modelo / ano" htmlFor="vehicle">
-              <Input id="vehicle" name="vehicle" placeholder="Ex: Hilux 3.0 2010" required maxLength={120} />
+              <Input
+                id="vehicle"
+                name="vehicle"
+                placeholder="Ex: Hilux 3.0 2010"
+                required
+                maxLength={120}
+                value={vehicle}
+                onChange={(e) => setVehicle(e.target.value)}
+              />
+              {knownVehicle.isLoading && isValidPlate(plate) && (
+                <p className="text-xs text-muted-foreground">Buscando veículo pela placa…</p>
+              )}
+              {knownVehicle.data?.vehicle && (
+                <p className="text-xs text-success">Veículo encontrado pelo histórico da placa.</p>
+              )}
             </Field>
             <div className="md:col-span-2">
               <Field label="Serviço" htmlFor="service">

@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Check, Loader2, Search } from "lucide-react";
 import { useState, type FormEvent } from "react";
@@ -34,6 +35,16 @@ function ConsultaPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ plate: string; rows: LookupRow[] } | null>(null);
+
+  const knownVehicle = useQuery({
+    queryKey: ["lookup-vehicle", plate],
+    enabled: isValidPlate(plate),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("lookup_vehicle", { _plate: normalizePlate(plate) });
+      if (error) throw error;
+      return data?.[0] ?? null;
+    },
+  });
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -74,6 +85,17 @@ function ConsultaPage() {
           </Button>
         </form>
         {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+
+        {isValidPlate(plate) && knownVehicle.data?.vehicle && (
+          <p className="mt-3 rounded-md border border-border bg-card px-4 py-3 text-sm">
+            Veículo: <strong>{knownVehicle.data.vehicle}</strong>
+            {knownVehicle.data.vehicle_year && (
+              <>
+                {" "}• Ano: <strong>{knownVehicle.data.vehicle_year}</strong>
+              </>
+            )}
+          </p>
+        )}
 
         {result && (
           <div className="mt-10 space-y-5">

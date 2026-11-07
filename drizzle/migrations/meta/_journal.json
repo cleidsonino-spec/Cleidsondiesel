@@ -29,6 +29,13 @@
       "when": 1794022714939,
       "tag": "0003_approval_identity_and_auto_status",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794024638740,
+      "tag": "0004_lookup_vehicle_by_plate",
+      "breakpoints": true
     }
   ]
 }
