@@ -59,6 +59,50 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_approvals: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          order_id: string
+          snapshot: Json
+          state: string
+          token: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          order_id: string
+          snapshot: Json
+          state?: string
+          token?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          order_id?: string
+          snapshot?: Json
+          state?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_approvals_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_orders: {
         Row: {
           appointment_id: string | null
@@ -165,7 +209,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_quote: { Args: { _name: string; _token: string }; Returns: Json }
       booked_slots: { Args: { _date: string }; Returns: string[] }
+      get_quote_approval: { Args: { _token: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -173,6 +219,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      issue_quote_approval: { Args: { _order_id: string }; Returns: Json }
       lookup_plate: {
         Args: { _plate: string }
         Returns: {
@@ -186,6 +233,10 @@ export type Database = {
         }[]
       }
       normalize_plate: { Args: { _p: string }; Returns: string }
+      quote_snapshot: {
+        Args: { o: Database["public"]["Tables"]["service_orders"]["Row"] }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "user"

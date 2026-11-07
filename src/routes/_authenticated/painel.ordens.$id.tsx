@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { OrderForm, type OrderFormValues } from "@/components/painel/order-form";
 import { QuotePdfActions } from "@/components/painel/quote-pdf-actions";
+import { ApprovalActions } from "@/components/painel/approval-actions";
 import { StatusBadge } from "@/components/site/status-badge";
 import {
   AlertDialog,
@@ -110,6 +111,7 @@ function OrdemPage() {
       </div>
 
       {/* WhatsApp */}
+      <ApprovalActions order={order} />
       <div className="rounded-md border border-success/40 bg-success/10 p-4 print:hidden">
         <div className="mb-3 flex items-center gap-2">
           <MessageCircle className="size-5 text-success" />

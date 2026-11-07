@@ -55,7 +55,7 @@ export function statusMessage(o: OrderLike, siteUrl?: string): string {
   return lines.join("\n");
 }
 
-export function quoteMessage(o: OrderLike): string {
+export function quoteMessage(o: OrderLike, approvalLink?: string): string {
   const total = orderTotal(o.parts_value, o.labor_value);
   const lines = [
     `Olá, ${firstName(o.customer_name)}! Aqui é da ${SHOP}.`,
@@ -74,7 +74,7 @@ export function quoteMessage(o: OrderLike): string {
     `*Total: ${formatBRL(total)}*`,
   );
   if (o.due_date) lines.push(`Previsão de entrega: ${formatDateBR(o.due_date)}`);
-  lines.push(``, `Podemos seguir com o serviço? Responda *SIM* para aprovar.`);
+  lines.push(``, approvalLink ? `Confira e aprove o orçamento pelo site: ${approvalLink}` : `Podemos seguir com o serviço? Responda *SIM* para aprovar.`);
   return lines.join("\n");
 }
 

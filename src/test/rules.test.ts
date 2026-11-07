@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { parseMoney, partsTotal, draftPartItems } from "@/lib/parts";
 import { quoteRows } from "@/lib/quote-pdf";
+import { approvalUrl } from "@/lib/approval";
 import { formatPlate, isValidPlate, normalizePlate } from "@/lib/plate";
 import { availableSlots, getSlotsForDate } from "@/lib/schedule";
 import { orderTotal } from "@/lib/status";
@@ -75,6 +76,11 @@ describe("orçamento", () => {
 });
 
 describe("WhatsApp", () => {
+  it("link de aprovação abre o orçamento privado no site", () => {
+    const token = "a".repeat(64);
+    expect(approvalUrl(token)).toBe(`https://cleidsondiesel.lovable.app/orcamento/${token}`);
+    expect(() => approvalUrl("ABC1234")).toThrow();
+  });
   it("usa o número informado pelo dono", () => {
     expect(SHOP_WHATSAPP?.split("?")[0]).toBe("https://wa.me/5571986571661");
   });

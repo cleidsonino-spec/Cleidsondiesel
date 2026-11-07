@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ConsultaRouteImport } from './routes/consulta'
 import { Route as ServicosRouteImport } from './routes/servicos'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
+import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
 import { Route as AuthenticatedPainelIndexRouteImport } from './routes/_authenticated/painel.index'
 import { Route as AuthenticatedPainelAgendamentosRouteImport } from './routes/_authenticated/painel.agendamentos'
 import { Route as AuthenticatedPainelOrdensIdRouteImport } from './routes/_authenticated/painel.ordens.$id'
@@ -55,6 +56,11 @@ const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
   path: '/painel',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const OrcamentoTokenRoute = OrcamentoTokenRouteImport.update({
+  id: '/orcamento/$token',
+  path: '/orcamento/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedPainelIndexRoute =
   AuthenticatedPainelIndexRouteImport.update({
     id: '/',
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/consulta': typeof ConsultaRoute
   '/servicos': typeof ServicosRoute
   '/painel': typeof AuthenticatedPainelRouteWithChildren
+  '/orcamento/$token': typeof OrcamentoTokenRoute
   '/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/painel/': typeof AuthenticatedPainelIndexRoute
   '/painel/ordens/$id': typeof AuthenticatedPainelOrdensIdRoute
@@ -98,6 +105,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/consulta': typeof ConsultaRoute
   '/servicos': typeof ServicosRoute
+  '/orcamento/$token': typeof OrcamentoTokenRoute
   '/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/painel': typeof AuthenticatedPainelIndexRoute
   '/painel/ordens/$id': typeof AuthenticatedPainelOrdensIdRoute
@@ -112,6 +120,7 @@ export interface FileRoutesById {
   '/consulta': typeof ConsultaRoute
   '/servicos': typeof ServicosRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRouteWithChildren
+  '/orcamento/$token': typeof OrcamentoTokenRoute
   '/_authenticated/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/_authenticated/painel/': typeof AuthenticatedPainelIndexRoute
   '/_authenticated/painel/ordens/$id': typeof AuthenticatedPainelOrdensIdRoute
@@ -126,6 +135,7 @@ export interface FileRouteTypes {
     | '/consulta'
     | '/servicos'
     | '/painel'
+    | '/orcamento/$token'
     | '/painel/agendamentos'
     | '/painel/'
     | '/painel/ordens/$id'
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/consulta'
     | '/servicos'
+    | '/orcamento/$token'
     | '/painel/agendamentos'
     | '/painel'
     | '/painel/ordens/$id'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/consulta'
     | '/servicos'
     | '/_authenticated/painel'
+    | '/orcamento/$token'
     | '/_authenticated/painel/agendamentos'
     | '/_authenticated/painel/'
     | '/_authenticated/painel/ordens/$id'
@@ -163,6 +175,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ConsultaRoute: typeof ConsultaRoute
   ServicosRoute: typeof ServicosRoute
+  OrcamentoTokenRoute: typeof OrcamentoTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -215,6 +228,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/painel'
       preLoaderRoute: typeof AuthenticatedPainelRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/orcamento/$token': {
+      id: '/orcamento/$token'
+      path: '/orcamento/$token'
+      fullPath: '/orcamento/$token'
+      preLoaderRoute: typeof OrcamentoTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/painel/': {
       id: '/_authenticated/painel/'
@@ -282,6 +302,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ConsultaRoute: ConsultaRoute,
   ServicosRoute: ServicosRoute,
+  OrcamentoTokenRoute: OrcamentoTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

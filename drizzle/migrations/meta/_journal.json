@@ -15,6 +15,13 @@
       "when": 1794020558990,
       "tag": "0001_order_parts_and_shop_hours",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794022122184,
+      "tag": "0002_customer_quote_approval",
+      "breakpoints": true
     }
   ]
 }
