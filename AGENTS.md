@@ -36,3 +36,4 @@ use the editor.
 - Business rules (plate format, opening slots, totals, WhatsApp message text) live in `src/lib/*.ts` and are covered by `src/test/rules.test.ts`. Why: keep them pure and testable.
 - WhatsApp messages are sent via `wa.me` links built in `src/lib/whatsapp.ts`, not an API. Why: works immediately without a WhatsApp Business account.
 - Itemized parts are stored on each order as JSON, with pure helpers in `src/lib/parts.ts` and a database trigger deriving the aggregate; null lists retain legacy totals. Why: keep editing, printing and quotes consistent without losing existing orders.
+- Quote PDFs are generated client-side from saved orders and shared through native file sharing or downloads, never public storage or wa.me attachments. Why: keep customer data private and preserve file-sharing user activation.

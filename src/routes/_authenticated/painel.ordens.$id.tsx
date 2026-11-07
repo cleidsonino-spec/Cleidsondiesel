@@ -4,6 +4,7 @@ import { ArrowLeft, BellRing, FileText, MessageCircle, Printer, Trash2 } from "l
 import { toast } from "sonner";
 
 import { OrderForm, type OrderFormValues } from "@/components/painel/order-form";
+import { QuotePdfActions } from "@/components/painel/quote-pdf-actions";
 import { StatusBadge } from "@/components/site/status-badge";
 import {
   AlertDialog,
@@ -114,6 +115,7 @@ function OrdemPage() {
           <MessageCircle className="size-5 text-success" />
           <p className="font-display text-sm uppercase">WhatsApp do cliente</p>
         </div>
+        <div className="mb-3 flex flex-wrap gap-2"><QuotePdfActions order={order} /></div>
         {quoteHref && statusHref ? (
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button asChild variant="outline" className="h-11">

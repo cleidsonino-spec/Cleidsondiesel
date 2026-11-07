@@ -9,3 +9,4 @@
 - [ ] Endereço e cidade da oficina no site — aguardando o dono informar
 - [x] Atualizar atendimento para seg–sex 08h–17h e WhatsApp informado
 - [x] Peças com valores individuais, soma, impressão e orçamento
+- [x] Orçamento PDF inspirado na foto, identificado como Cleidson Diesel, com download e compartilhamento nativo
