@@ -18,6 +18,13 @@ import { appointmentMessage, waLink } from "@/lib/whatsapp";
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 
 export const Route = createFileRoute("/_authenticated/painel/agendamentos")({
+  head: () => ({ meta: [
+    { title: "Agendamentos da oficina — Cleidson Diesel" },
+    { name: "description", content: "Gerencie os agendamentos recebidos pela Cleidson Diesel." },
+    { property: "og:title", content: "Agendamentos da oficina — Cleidson Diesel" },
+    { property: "og:description", content: "Agenda de atendimento da oficina Cleidson Diesel." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(appointmentsQuery()),
   component: AgendamentosPage,
 });

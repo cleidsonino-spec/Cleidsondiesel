@@ -1,8 +1,11 @@
 import { formatPlate } from "./plate";
+import { readPartItems } from "./parts";
 import { formatDateBR } from "./schedule";
 import { formatBRL, orderStatusInfo, orderTotal, type OrderStatus } from "./status";
 
 const SHOP = "Cleidson Diesel";
+export const SHOP_PHONE = "71986571661";
+export const SHOP_WHATSAPP = waLink(SHOP_PHONE, "Olá! Gostaria de falar com a Cleidson Diesel.");
 
 /** Converte telefone brasileiro para o formato do WhatsApp (55 + DDD + número). */
 export function toWhatsAppNumber(phone: string | null | undefined): string | null {
@@ -27,6 +30,7 @@ type OrderLike = {
   complaint: string;
   diagnosis: string | null;
   parts: string | null;
+  part_items?: unknown;
   parts_value: number | string;
   labor_value: number | string;
   due_date: string | null;
@@ -61,6 +65,8 @@ export function quoteMessage(o: OrderLike): string {
   ];
   if (o.diagnosis) lines.push(``, `Diagnóstico: ${o.diagnosis}`);
   if (o.parts) lines.push(``, `Peças/serviços: ${o.parts}`);
+  const items = readPartItems(o.part_items);
+  if (items.length) lines.push(``, `*Peças:*`, ...items.map((item) => `${item.description}: ${formatBRL(item.value)}`));
   lines.push(
     ``,
     `Peças: ${formatBRL(Number(o.parts_value ?? 0))}`,

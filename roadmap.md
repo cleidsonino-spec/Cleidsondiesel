@@ -6,4 +6,6 @@
 - [x] Login da oficina + painel (ordens de serviço, agendamentos, busca por placa)
 - [x] Avisos e orçamentos para o cliente pelo WhatsApp (botões que abrem o WhatsApp com mensagem pronta)
 - [ ] Envio automático pelo WhatsApp Business — aguardando o dono decidir (exige conta WhatsApp Business e aprovação da Meta)
-- [ ] Endereço, cidade e WhatsApp da oficina no site — aguardando o dono informar
+- [ ] Endereço e cidade da oficina no site — aguardando o dono informar
+- [x] Atualizar atendimento para seg–sex 08h–17h e WhatsApp informado
+- [x] Peças com valores individuais, soma, impressão e orçamento

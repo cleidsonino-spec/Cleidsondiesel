@@ -119,7 +119,7 @@ function AgendarPage() {
   return (
     <PublicLayout>
       <PageHeading eyebrow="Agendamento online" title="Agendar serviço">
-        Preencha os dados e escolha um horário livre. Atendemos de segunda a sábado.
+        Atendimento de segunda a sexta, das 08h às 17h.
       </PageHeading>
       <section className="mx-auto max-w-3xl px-4 py-12">
         <form onSubmit={onSubmit} className="space-y-8">
@@ -180,7 +180,7 @@ function AgendarPage() {
               />
             </Field>
             {date && allSlots.length === 0 && (
-              <p className="text-sm text-destructive">Não atendemos aos domingos. Escolha outro dia.</p>
+              <p className="text-sm text-destructive">Atendemos de segunda a sexta. Escolha um dia útil.</p>
             )}
             {date && allSlots.length > 0 && (
               <div>

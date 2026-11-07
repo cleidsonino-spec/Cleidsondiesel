@@ -1,5 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { Logo } from "./logo";
+import { MessageCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { SHOP_WHATSAPP } from "@/lib/whatsapp";
 
 export function SiteFooter() {
   return (
@@ -14,8 +17,8 @@ export function SiteFooter() {
         </div>
         <div className="space-y-2 text-sm">
           <p className="font-display uppercase">Atendimento</p>
-          <p className="text-muted-foreground">Seg a sex · 08h às 18h</p>
-          <p className="text-muted-foreground">Sábado · 08h às 12h</p>
+          <p className="text-muted-foreground">Seg a sex · 08h às 17h</p>
+          {SHOP_WHATSAPP && <Button asChild variant="outline"><a href={SHOP_WHATSAPP} target="_blank" rel="noopener noreferrer"><MessageCircle /> (71) 98657-1661</a></Button>}
         </div>
         <div className="flex flex-col gap-2 text-sm">
           <p className="font-display uppercase">Acesso rápido</p>

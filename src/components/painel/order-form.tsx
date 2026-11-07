@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from "react";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Database } from "@/integrations/supabase/types";
 import { isValidPlate, normalizePlate } from "@/lib/plate";
 import { formatBRL, ORDER_STATUSES, orderTotal, type OrderStatus } from "@/lib/status";
+import { draftPartItems, parseMoney, partsTotal, type PartDraft } from "@/lib/parts";
+export { parseMoney } from "@/lib/parts";
 
 export type OrderInput = Database["public"]["Tables"]["service_orders"]["Insert"];
 
@@ -23,7 +25,7 @@ export type OrderFormValues = {
   complaint: string;
   diagnosis: string;
   parts: string;
-  parts_value: string;
+  part_items: PartDraft[];
   labor_value: string;
   status: OrderStatus;
   entry_date: string;
@@ -42,22 +44,14 @@ export function toOrderInput(v: OrderFormValues): OrderInput {
     complaint: v.complaint.trim(),
     diagnosis: v.diagnosis.trim() || null,
     parts: v.parts.trim() || null,
-    parts_value: parseMoney(v.parts_value),
+    part_items: draftPartItems(v.part_items),
+    parts_value: partsTotal(draftPartItems(v.part_items)),
     labor_value: parseMoney(v.labor_value),
     status: v.status,
     entry_date: v.entry_date,
     due_date: v.due_date || null,
     notes: v.notes.trim() || null,
   };
-}
-
-/** Aceita "1.234,56", "1234.56" ou "1234". */
-export function parseMoney(s: string): number {
-  const t = s.trim();
-  if (!t) return 0;
-  const normalized = t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : t;
-  const n = Number(normalized.replace(/[^0-9.-]/g, ""));
-  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : 0;
 }
 
 export function OrderForm({
@@ -81,6 +75,7 @@ export function OrderForm({
     if (!v.customer_name.trim()) { toast.error("Informe o nome do cliente."); return; }
     if (!v.vehicle.trim()) { toast.error("Informe o veículo."); return; }
     if (!v.complaint.trim()) { toast.error("Descreva o serviço / reclamação."); return; }
+    if (draftPartItems(v.part_items).some((item) => !item.description)) { toast.error("Informe o nome de cada peça com valor."); return; }
     setSaving(true);
     try {
       await onSubmit(toOrderInput(v));
@@ -89,7 +84,9 @@ export function OrderForm({
     }
   }
 
-  const total = orderTotal(parseMoney(v.parts_value), parseMoney(v.labor_value));
+  const piecesTotal = partsTotal(draftPartItems(v.part_items));
+  const total = orderTotal(piecesTotal, parseMoney(v.labor_value));
+  const updatePart = (index: number, key: keyof PartDraft, value: string) => set("part_items", v.part_items.map((item, i) => i === index ? { ...item, [key]: value } : item));
 
   return (
     <form onSubmit={handle} className="space-y-6">
@@ -126,10 +123,23 @@ export function OrderForm({
         </F>
       </Section>
 
+      <Section title="Peças e valores">
+        <div className="space-y-3 sm:col-span-2 lg:col-span-3">
+          {v.part_items.map((item, index) => (
+            <div key={index} className="grid grid-cols-[minmax(0,1fr)_minmax(90px,130px)_40px] items-end gap-2">
+              <div className="space-y-2"><Label htmlFor={`part-${index}`}>Peça {index + 1}</Label><Input id={`part-${index}`} value={item.description} onChange={(e) => updatePart(index, "description", e.target.value)} placeholder="Nome da peça" /></div>
+              <div className="space-y-2"><Label htmlFor={`part-value-${index}`}>Valor (R$)</Label><Input id={`part-value-${index}`} inputMode="decimal" value={item.value} onChange={(e) => updatePart(index, "value", e.target.value)} placeholder="0,00" /></div>
+              <Button type="button" variant="ghost" size="icon" aria-label={`Remover peça ${index + 1}`} title="Remover peça" onClick={() => set("part_items", v.part_items.filter((_, i) => i !== index))}><Trash2 className="text-destructive" /></Button>
+            </div>
+          ))}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Button type="button" variant="outline" onClick={() => set("part_items", [...v.part_items, { description: "", value: "" }])}><Plus /> Adicionar peça</Button>
+            <p className="text-sm">Total das peças: <strong className="text-primary">{formatBRL(piecesTotal)}</strong></p>
+          </div>
+        </div>
+      </Section>
+
       <Section title="Valores e prazos">
-        <F label="Valor das peças (R$)">
-          <Input value={v.parts_value} onChange={(e) => set("parts_value", e.target.value)} inputMode="decimal" placeholder="0,00" />
-        </F>
         <F label="Mão de obra (R$)">
           <Input value={v.labor_value} onChange={(e) => set("labor_value", e.target.value)} inputMode="decimal" placeholder="0,00" />
         </F>

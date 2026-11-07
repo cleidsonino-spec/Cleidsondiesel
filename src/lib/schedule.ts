@@ -1,19 +1,16 @@
 /**
  * Horários de atendimento da oficina.
  * Segunda a sexta: 08h às 17h (sem 12h, almoço).
- * Sábado: 08h às 11h.
- * Domingo: fechado.
+ * Sábado e domingo: fechado.
  */
 const WEEKDAY_SLOTS = ["08:00", "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
-const SATURDAY_SLOTS = ["08:00", "09:00", "10:00", "11:00"];
 
 /** date no formato YYYY-MM-DD */
 export function getSlotsForDate(date: string): string[] {
   const [y, m, d] = date.split("-").map(Number);
   if (!y || !m || !d) return [];
   const dow = new Date(y, m - 1, d).getDay();
-  if (dow === 0) return [];
-  if (dow === 6) return SATURDAY_SLOTS;
+  if (dow === 0 || dow === 6) return [];
   return WEEKDAY_SLOTS;
 }
 

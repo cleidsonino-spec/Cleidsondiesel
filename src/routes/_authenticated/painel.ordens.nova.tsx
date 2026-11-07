@@ -10,6 +10,13 @@ import { todayISO } from "@/lib/schedule";
 type Search = { agendamento?: string };
 
 export const Route = createFileRoute("/_authenticated/painel/ordens/nova")({
+  head: () => ({ meta: [
+    { title: "Nova ordem de serviço — Cleidson Diesel" },
+    { name: "description", content: "Registre clientes, serviços e peças na Cleidson Diesel." },
+    { property: "og:title", content: "Nova ordem de serviço — Cleidson Diesel" },
+    { property: "og:description", content: "Cadastro de ordens de serviço da oficina." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
   validateSearch: (s: Record<string, unknown>): Search =>
     typeof s["agendamento"] === "string" ? { agendamento: s["agendamento"] } : {},
   loaderDeps: ({ search }) => ({ agendamento: search.agendamento }),
@@ -57,7 +64,7 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
     complaint: "",
     diagnosis: "",
     parts: "",
-    parts_value: "",
+    part_items: [{ description: "", value: "" }],
     labor_value: "",
     status: "recebido",
     entry_date: todayISO(),

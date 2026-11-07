@@ -74,6 +74,7 @@ export type Database = {
           mileage: string | null
           notes: string | null
           number: number
+          part_items: Json | null
           parts: string | null
           parts_value: number
           phone: string | null
@@ -97,6 +98,7 @@ export type Database = {
           mileage?: string | null
           notes?: string | null
           number?: number
+          part_items?: Json | null
           parts?: string | null
           parts_value?: number
           phone?: string | null
@@ -120,6 +122,7 @@ export type Database = {
           mileage?: string | null
           notes?: string | null
           number?: number
+          part_items?: Json | null
           parts?: string | null
           parts_value?: number
           phone?: string | null

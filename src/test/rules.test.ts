@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { parseMoney } from "@/components/painel/order-form";
+import { parseMoney, partsTotal, draftPartItems } from "@/lib/parts";
 import { formatPlate, isValidPlate, normalizePlate } from "@/lib/plate";
 import { availableSlots, getSlotsForDate } from "@/lib/schedule";
 import { orderTotal } from "@/lib/status";
-import { quoteMessage, toWhatsAppNumber } from "@/lib/whatsapp";
+import { quoteMessage, toWhatsAppNumber, SHOP_WHATSAPP } from "@/lib/whatsapp";
 
 describe("placas", () => {
   it("aceita placa antiga e Mercosul, com ou sem traço", () => {
@@ -23,8 +23,8 @@ describe("horários", () => {
   it("domingo fechado", () => {
     expect(getSlotsForDate("2026-11-08")).toEqual([]);
   });
-  it("sábado só de manhã, até 11h", () => {
-    expect(getSlotsForDate("2026-11-07")).toEqual(["08:00", "09:00", "10:00", "11:00"]);
+  it("sábado fechado", () => {
+    expect(getSlotsForDate("2026-11-07")).toEqual([]);
   });
   it("dia útil sem horário de almoço", () => {
     const slots = getSlotsForDate("2026-11-09");
@@ -33,11 +33,17 @@ describe("horários", () => {
     expect(slots.at(-1)).toBe("17:00");
   });
   it("remove horários ocupados", () => {
-    expect(availableSlots("2026-11-07", ["09:00:00"])).toEqual(["08:00", "10:00", "11:00"]);
+    expect(availableSlots("2026-11-09", ["09:00:00"])).toEqual(["08:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"]);
   });
 });
 
 describe("orçamento", () => {
+  it("soma todas as peças em centavos e recalcula ao remover", () => {
+    const items = draftPartItems([{ description: "Kit", value: "125,50" }, { description: "Bico", value: "250,25" }, { description: "", value: "" }]);
+    expect(partsTotal(items)).toBe(375.75);
+    expect(partsTotal(items.slice(1))).toBe(250.25);
+    expect(partsTotal([{ description: "A", value: 0.1 }, { description: "B", value: 0.2 }])).toBe(0.3);
+  });
   it("total = peças + mão de obra", () => {
     expect(orderTotal(1250.5, "300")).toBe(1550.5);
   });
@@ -65,6 +71,9 @@ describe("orçamento", () => {
 });
 
 describe("WhatsApp", () => {
+  it("usa o número informado pelo dono", () => {
+    expect(SHOP_WHATSAPP?.split("?")[0]).toBe("https://wa.me/5571986571661");
+  });
   it("adiciona código do Brasil", () => {
     expect(toWhatsAppNumber("(71) 99999-0000")).toBe("5571999990000");
     expect(toWhatsAppNumber("+55 71 99999-0000")).toBe("5571999990000");

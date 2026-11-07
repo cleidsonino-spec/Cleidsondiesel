@@ -20,6 +20,13 @@ import {
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/painel/")({
+  head: () => ({ meta: [
+    { title: "Ordens de serviço — Cleidson Diesel" },
+    { name: "description", content: "Histórico e acompanhamento das ordens de serviço da oficina." },
+    { property: "og:title", content: "Ordens de serviço — Cleidson Diesel" },
+    { property: "og:description", content: "Histórico de veículos e serviços da Cleidson Diesel." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(ordersQuery()),

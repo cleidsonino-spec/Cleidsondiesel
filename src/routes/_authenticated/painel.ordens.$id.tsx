@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { formatPlate } from "@/lib/plate";
+import { readPartItems } from "@/lib/parts";
 import { orderQuery } from "@/lib/queries";
 import { formatDateBR } from "@/lib/schedule";
 import { formatBRL, orderStatusInfo, orderTotal } from "@/lib/status";
@@ -28,6 +29,13 @@ import { quoteMessage, statusMessage, waLink } from "@/lib/whatsapp";
 type Order = Database["public"]["Tables"]["service_orders"]["Row"];
 
 export const Route = createFileRoute("/_authenticated/painel/ordens/$id")({
+  head: () => ({ meta: [
+    { title: "Editar ordem de serviço — Cleidson Diesel" },
+    { name: "description", content: "Consulte e atualize a ordem de serviço na Cleidson Diesel." },
+    { property: "og:title", content: "Editar ordem de serviço — Cleidson Diesel" },
+    { property: "og:description", content: "Peças, orçamento e acompanhamento da ordem de serviço." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
   loader: ({ context, params }) => context.queryClient.ensureQueryData(orderQuery(params.id)),
   component: OrdemPage,
 });
@@ -44,7 +52,9 @@ function toForm(o: Order): OrderFormValues {
     complaint: o.complaint,
     diagnosis: o.diagnosis ?? "",
     parts: o.parts ?? "",
-    parts_value: money(o.parts_value),
+    part_items: o.part_items == null
+      ? (Number(o.parts_value) ? [{ description: o.parts || "Peças (valor anterior)", value: money(o.parts_value) }] : [{ description: "", value: "" }])
+      : readPartItems(o.part_items).map((item) => ({ description: item.description, value: money(item.value) })),
     labor_value: money(o.labor_value),
     status: o.status,
     entry_date: o.entry_date,
@@ -210,6 +220,10 @@ function PrintSheet({ order: o }: { order: Order }) {
           <p className="whitespace-pre-wrap">{v || "—"}</p>
         </div>
       ))}
+      {readPartItems(o.part_items).length > 0 && <table className="mt-4 w-full text-left">
+        <thead><tr className="border-b border-foreground"><th className="py-2">Peça</th><th className="py-2 text-right">Valor</th></tr></thead>
+        <tbody>{readPartItems(o.part_items).map((item, index) => <tr key={index}><td className="py-1">{item.description}</td><td className="text-right">{formatBRL(item.value)}</td></tr>)}</tbody>
+      </table>}
       <div className="mt-6 ml-auto w-64 space-y-1 border-t border-foreground pt-2">
         <p className="flex justify-between">
           <span>Peças</span> <span>{formatBRL(Number(o.parts_value))}</span>

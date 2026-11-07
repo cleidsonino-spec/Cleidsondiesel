@@ -35,3 +35,4 @@ use the editor.
 - Public plate lookup and free-slot lookup go only through SECURITY DEFINER RPCs (`lookup_plate`, `booked_slots`) that return limited fields; anon has INSERT-only on `appointments` and no access to `service_orders`. Why: customers must never read phones or prices of other vehicles.
 - Business rules (plate format, opening slots, totals, WhatsApp message text) live in `src/lib/*.ts` and are covered by `src/test/rules.test.ts`. Why: keep them pure and testable.
 - WhatsApp messages are sent via `wa.me` links built in `src/lib/whatsapp.ts`, not an API. Why: works immediately without a WhatsApp Business account.
+- Itemized parts are stored on each order as JSON, with pure helpers in `src/lib/parts.ts` and a database trigger deriving the aggregate; null lists retain legacy totals. Why: keep editing, printing and quotes consistent without losing existing orders.
