@@ -11,6 +11,8 @@ import type { Database } from "@/integrations/supabase/types";
 import { isValidPlate, normalizePlate } from "@/lib/plate";
 import { formatBRL, ORDER_STATUSES, orderTotal, type OrderStatus } from "@/lib/status";
 import { draftPartItems, parseMoney, partsTotal, type PartDraft } from "@/lib/parts";
+import { InspectionChecklist } from "@/components/painel/inspection-checklist";
+import type { InspectionItem } from "@/lib/inspection";
 export { parseMoney } from "@/lib/parts";
 
 export type OrderInput = Database["public"]["Tables"]["service_orders"]["Insert"];
@@ -31,6 +33,7 @@ export type OrderFormValues = {
   entry_date: string;
   due_date: string;
   notes: string;
+  inspection_checklist: InspectionItem[];
 };
 
 export function toOrderInput(v: OrderFormValues): OrderInput {
@@ -51,6 +54,7 @@ export function toOrderInput(v: OrderFormValues): OrderInput {
     entry_date: v.entry_date,
     due_date: v.due_date || null,
     notes: v.notes.trim() || null,
+    inspection_checklist: v.inspection_checklist.map((item) => ({ ...item, label: item.label.trim(), notes: item.notes.trim() })),
   };
 }
 
@@ -76,6 +80,7 @@ export function OrderForm({
     if (!v.vehicle.trim()) { toast.error("Informe o veículo."); return; }
     if (!v.complaint.trim()) { toast.error("Descreva o serviço / reclamação."); return; }
     if (draftPartItems(v.part_items).some((item) => !item.description)) { toast.error("Informe o nome de cada peça com valor."); return; }
+    if (v.inspection_checklist.some((item) => !item.label.trim())) { toast.error("Informe o nome de cada item de inspeção."); return; }
     setSaving(true);
     try {
       await onSubmit(toOrderInput(v));
@@ -122,6 +127,8 @@ export function OrderForm({
           <Textarea value={v.parts} onChange={(e) => set("parts", e.target.value)} rows={3} placeholder="Ex: kit reparo bomba, 4 bicos, calibração..." />
         </F>
       </Section>
+
+      <InspectionChecklist items={v.inspection_checklist} onChange={(items) => set("inspection_checklist", items)} />
 
       <Section title="Peças e valores">
         <div className="space-y-3 sm:col-span-2 lg:col-span-3">

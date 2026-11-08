@@ -117,6 +117,7 @@ export type Database = {
           due_date: string | null
           entry_date: string
           id: string
+          inspection_checklist: Json
           labor_value: number
           mileage: string | null
           notes: string | null
@@ -141,6 +142,7 @@ export type Database = {
           due_date?: string | null
           entry_date?: string
           id?: string
+          inspection_checklist?: Json
           labor_value?: number
           mileage?: string | null
           notes?: string | null
@@ -165,6 +167,7 @@ export type Database = {
           due_date?: string | null
           entry_date?: string
           id?: string
+          inspection_checklist?: Json
           labor_value?: number
           mileage?: string | null
           notes?: string | null

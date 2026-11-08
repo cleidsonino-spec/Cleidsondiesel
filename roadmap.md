@@ -1,5 +1,8 @@
 # Roadmap — Cleidson Diesel
 
+- [ ] Checklist de inspeção salvo na ordem de serviço
+- [ ] Logo no orçamento PDF e como marca d’água
+
 - [x] Site público (início, serviços)
 - [x] Agendamento online com horários livres
 - [x] Consulta pública por placa

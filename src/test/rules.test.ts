@@ -1,4 +1,17 @@
 import { describe, expect, it } from "vitest";
+import { newInspection, readInspection } from "@/lib/inspection";
+
+describe("inspeção", () => {
+  it("não marca itens novos como inspecionados", () => {
+    expect(newInspection().length).toBe(8);
+    expect(newInspection().every((item) => item.status === "pending")).toBe(true);
+  });
+  it("preserva resultado e observações salvos e não inventa resultados", () => {
+    expect(readInspection([{ id: "pump", label: "Bomba", status: "attention", notes: "Vazamento" }])).toEqual([{ id: "pump", label: "Bomba", status: "attention", notes: "Vazamento" }]);
+    expect(readInspection(null)).toEqual([]);
+    expect(readInspection([{ id: "pump", label: "Bomba", status: "unknown" }])[0]?.status).toBe("pending");
+  });
+});
 
 import { parseMoney, partsTotal, draftPartItems } from "@/lib/parts";
 import { quoteRows } from "@/lib/quote-pdf";

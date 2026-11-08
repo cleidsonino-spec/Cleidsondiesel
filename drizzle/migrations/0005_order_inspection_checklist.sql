@@ -1,0 +1,3 @@
+ALTER TABLE public.service_orders ADD COLUMN inspection_checklist jsonb NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE public.service_orders ADD CONSTRAINT service_orders_inspection_array CHECK (jsonb_typeof(inspection_checklist) = 'array');
+COMMENT ON COLUMN public.service_orders.inspection_checklist IS 'Internal inspection items with id, label, status and notes; protected by existing admin-only service order policies.';

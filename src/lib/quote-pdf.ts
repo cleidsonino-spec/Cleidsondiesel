@@ -3,6 +3,7 @@ import { readPartItems } from "./parts";
 import { formatBRL, orderTotal } from "./status";
 import { formatPlate } from "./plate";
 import { formatDateBR } from "./schedule";
+import logoAsset from "@/assets/logo-cleidson-diesel.png.asset.json";
 
 type Order = Database["public"]["Tables"]["service_orders"]["Row"];
 
@@ -15,6 +16,24 @@ export function quoteRows(o: Pick<Order, "part_items" | "parts_value" | "labor_v
 /** Runs only after hydration. PDFs stay private on the owner's device. */
 export async function createQuotePdf(o: Order): Promise<File> {
   const { jsPDF } = await import("jspdf");
+  const image = new Image();
+  image.crossOrigin = "anonymous";
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve();
+    image.onerror = () => reject(new Error("Não foi possível carregar a logo."));
+    image.src = logoAsset.url;
+  });
+  const canvas = document.createElement("canvas");
+  canvas.width = 600; canvas.height = Math.round(600 * image.naturalHeight / image.naturalWidth);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Não foi possível preparar a logo.");
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+  const logo = canvas.toDataURL("image/png");
+  ctx.fillStyle = "white"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.globalAlpha = 0.07;
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+  const watermark = canvas.toDataURL("image/png");
+  const ratio = canvas.height / canvas.width;
   const pdf = new jsPDF({ unit: "mm", format: "a4" });
   const left = 16, right = 194;
   let y = 20;
@@ -25,12 +44,16 @@ export async function createQuotePdf(o: Order): Promise<File> {
   };
   const line = (top: number) => { pdf.setDrawColor(90); pdf.line(left, top, right, top); };
   function header(continued = false) {
+    const markWidth = Math.min(130, 130 / ratio);
+    pdf.addImage(watermark, "PNG", (210 - markWidth) / 2, (297 - markWidth * ratio) / 2, markWidth, markWidth * ratio, "watermark", "FAST");
     pdf.setDrawColor(150); pdf.setLineWidth(0.4);
     pdf.roundedRect(10, 10, 190, 277, 4, 4);
-    text("CLEIDSON DIESEL", left, 23, 21, true);
-    text("Bomba injetora e injeção diesel", left, 30, 10);
-    text("WhatsApp: (71) 98657-1661", left, 37, 10);
-    text("Segunda a sexta • 08h às 17h", left, 43, 9);
+    const logoWidth = Math.min(30, 30 / ratio);
+    pdf.addImage(logo, "PNG", left, 15, logoWidth, logoWidth * ratio, "shop-logo", "FAST");
+    text("CLEIDSON DIESEL", 52, 23, 18, true);
+    text("Bomba injetora e injeção diesel", 52, 30, 10);
+    text("WhatsApp: (71) 98657-1661", 52, 37, 10);
+    text("Segunda a sexta • 08h às 17h", 52, 43, 9);
     line(48);
     text(continued ? "ORÇAMENTO — CONTINUAÇÃO" : "ORÇAMENTO", left, 59, 18, true);
     text(`OS nº ${o.number}`, 158, 59, 11, true);

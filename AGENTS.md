@@ -31,6 +31,9 @@ use the editor.
 
 ## Project rules
 
+- Internal inspection checklists are stored as JSON on service orders, edited with the shared order form and printed with the OS, never exposed through public plate lookup. Why: keep inspection records private and tied to the serviced vehicle.
+- Quote PDFs embed the existing shop logo and a faint raster watermark on every page. Why: brand shared files without publishing customer documents or relying on remote images inside a PDF viewer.
+
 - Panel access is decided by `public.user_roles` (`has_role(uid,'admin')`); a signup trigger makes the first account admin, later accounts get `user` and see a no-access screen. Why: shop has a single owner and no user-management UI.
 - Public plate lookup and free-slot lookup go only through SECURITY DEFINER RPCs (`lookup_plate`, `lookup_vehicle`, `booked_slots`) that return limited fields; anon has INSERT-only on `appointments` and no access to `service_orders`. Why: customers must never read phones or prices of other vehicles.
 - Business rules (plate format, opening slots, totals, WhatsApp message text) live in `src/lib/*.ts` and are covered by `src/test/rules.test.ts`. Why: keep them pure and testable.
