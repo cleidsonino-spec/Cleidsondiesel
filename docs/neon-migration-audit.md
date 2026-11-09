@@ -38,3 +38,18 @@ O arquivo `database/diagnostics/inspect_neon_schema.sql` lista apenas nomes e me
 5. Só então integrar as rotas ao Neon e testar em ambiente separado.
 
 O aplicativo publicado e o login atual devem permanecer intactos até a conclusão dos testes.
+
+
+## Rascunho aditivo preparado
+
+Foi criado `database/migrations/0002_legacy_compatibility_draft.sql` na branch de testes.
+
+O rascunho:
+- mantém as cinco tabelas existentes e seus campos atuais;
+- acrescenta à `service_orders` os campos que o aplicativo antigo espera;
+- cria `appointments` e `quote_approvals`;
+- adiciona índices e vínculo opcional entre ordem e agendamento;
+- não cria autenticação, permissões ou endpoints;
+- não copia automaticamente dados entre os modelos novo e antigo.
+
+**Não executar ainda no Neon.** Antes disso, precisamos definir a autenticação independente e revisar como os registros atuais serão associados aos clientes e veículos. A aplicação continua usando Supabase e nada foi publicado.
