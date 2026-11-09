@@ -6,7 +6,7 @@ on:
       - feat/cloudflare-neon-runtime
   pull_request:
     branches:
-      - feat/cloudflare-neon-runtime
+      - feat/independent-platform-foundation
 
 jobs:
   build:
