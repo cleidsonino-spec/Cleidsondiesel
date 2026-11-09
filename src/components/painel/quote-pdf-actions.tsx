@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Download, FileText, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { createQuotePdf, downloadQuote } from "@/lib/quote-pdf";
 import { waLink } from "@/lib/whatsapp";
@@ -12,7 +14,6 @@ type Order = Database["public"]["Tables"]["service_orders"]["Row"];
 export function QuotePdfActions({ order, message }: { order: Order; message?: string }) {
   const [file, setFile] = useState<File | null>(null);
   const [failed, setFailed] = useState(false);
-  const [canShare, setCanShare] = useState(false);
   const [preparedBy, setPreparedBy] = useState("");
 
   useEffect(() => {
@@ -42,7 +43,6 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
       .then((pdf) => {
         if (!active) return;
         setFile(pdf);
-        setCanShare(Boolean(navigator.canShare?.({ files: [pdf] })));
       })
       .catch(() => {
         if (active) {
@@ -89,6 +89,17 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
 
   return (
     <>
+      <div className="mb-3 space-y-2">
+        <Label htmlFor="quote-prepared-by">Orçamento preparado por</Label>
+        <Input
+          id="quote-prepared-by"
+          value={preparedBy}
+          onChange={(event) => setPreparedBy(event.target.value)}
+          placeholder="Digite o nome de quem está preparando o orçamento"
+          maxLength={100}
+        />
+        <p className="text-xs text-muted-foreground">Esse nome aparecerá no PDF e na mensagem enviada ao cliente.</p>
+      </div>
       {message != null && (
         <Button type="button" className="h-11" disabled={!file} onClick={sendQuote}>
           {!file && !failed ? <Loader2 className="animate-spin" /> : <FileText />}
