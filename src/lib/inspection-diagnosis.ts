@@ -11,18 +11,11 @@ export const inspectionDiagnosisInput = z.object({
 });
 
 export const inspectionDiagnosisOutput = z.object({
-  diagnosis: z.string().trim().min(1).max(4000),
-  recommendations: z.array(z.string().trim().min(1).max(800)).min(1).max(8),
-  checks: z.array(z.string().trim().min(1).max(800)).max(8),
+  diagnosis: z.string().trim().min(1).max(1200),
 }).strict();
 
 export type InspectionDiagnosis = z.infer<typeof inspectionDiagnosisOutput>;
 
 export function diagnosisText(result: InspectionDiagnosis) {
-  return [
-    result.diagnosis,
-    "Recomendações:",
-    ...result.recommendations.map((r) => `• ${r}`),
-    ...(result.checks.length ? ["Verificações necessárias:", ...result.checks.map((c) => `• ${c}`)] : []),
-  ].join("\n");
+  return result.diagnosis;
 }
