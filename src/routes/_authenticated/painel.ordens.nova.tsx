@@ -6,7 +6,6 @@ import { OrderForm, type OrderFormValues } from "@/components/painel/order-form"
 import { supabase } from "@/integrations/supabase/client";
 import { appointmentQuery } from "@/lib/queries";
 import { todayISO } from "@/lib/schedule";
-import type { InspectionData } from "@/lib/inspection";
 
 type Search = { agendamento?: string };
 
