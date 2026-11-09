@@ -208,8 +208,6 @@ function PrintSheet({ order: o }: { order: OrderWithWarranty }) {
     ["Previsão", formatDateBR(o.due_date)],
     ["Início da garantia", formatDateBR(o.warranty_start_date ?? null)],
     ["Garantia até", formatDateBR(o.warranty_end_date ?? null)],
-    ["Início da garantia", formatDateBR(o.warranty_start_date)],
-    ["Garantia até", formatDateBR(o.warranty_end_date)],
     ["Status", orderStatusInfo(o.status).label],
   ];
   return (
