@@ -1,0 +1,12 @@
+{
+  "appId": "br.com.cleidsondiesel.painel",
+  "appName": "Cleidson Diesel",
+  "webDir": "public",
+  "server": {
+    "url": "https://cleidsondiesel.lovable.app",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
