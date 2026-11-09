@@ -6,7 +6,7 @@ import { OrderForm, type OrderFormValues } from "@/components/painel/order-form"
 import { supabase } from "@/integrations/supabase/client";
 import { appointmentQuery } from "@/lib/queries";
 import { todayISO } from "@/lib/schedule";
-import { newInspection } from "@/lib/inspection";
+import type { InspectionData } from "@/lib/inspection";
 
 type Search = { agendamento?: string };
 
@@ -71,7 +71,7 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
     entry_date: todayISO(),
     due_date: "",
     notes: "",
-    inspection_checklist: newInspection(),
+    inspection: { failedItems: "", observations: "" },
     ...prefill,
   };
 
