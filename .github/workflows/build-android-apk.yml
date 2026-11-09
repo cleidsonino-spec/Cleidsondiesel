@@ -51,7 +51,12 @@ jobs:
           cp assets/icon-only.png assets/splash.png
 
       - name: Install Capacitor and asset generator
-        run: npm install --no-save --package-lock=false @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/assets
+        run: |
+          mkdir -p /tmp/capacitor-tools
+          cd /tmp/capacitor-tools
+          npm init -y
+          npm install --no-audit --no-fund @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/assets
+          ln -s /tmp/capacitor-tools/node_modules "$GITHUB_WORKSPACE/node_modules"
 
       - name: Add Android project
         run: npx cap add android
