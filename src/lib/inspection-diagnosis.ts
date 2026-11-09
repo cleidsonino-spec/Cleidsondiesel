@@ -4,13 +4,10 @@ export const inspectionDiagnosisInput = z.object({
   vehicle: z.string().trim().max(200),
   vehicle_year: z.string().trim().max(20),
   complaint: z.string().trim().max(3000),
-  items: z.array(z.object({
-    label: z.string().trim().min(1).max(200),
-    status: z.enum(["pending", "ok", "attention", "failed", "na"]),
-    notes: z.string().trim().max(1500),
-  }).strict()).min(1).max(40),
-}).strict().refine((v) => v.items.some((i) => i.status === "failed" || i.status === "attention" || i.notes.length > 0), {
-  message: "Informe um item reprovado, uma atenção ou observações da inspeção.",
+  failed_items: z.string().trim().max(5000),
+  observations: z.string().trim().max(5000),
+}).strict().refine((v) => v.failed_items.length > 0 || v.observations.length > 0, {
+  message: "Informe pelo menos um item reprovado ou uma observação da inspeção.",
 });
 
 export const inspectionDiagnosisOutput = z.object({
@@ -22,6 +19,10 @@ export const inspectionDiagnosisOutput = z.object({
 export type InspectionDiagnosis = z.infer<typeof inspectionDiagnosisOutput>;
 
 export function diagnosisText(result: InspectionDiagnosis) {
-  return [result.diagnosis, "Recomendações:", ...result.recommendations.map((r) => `• ${r}`),
-    ...(result.checks.length ? ["Verificações necessárias:", ...result.checks.map((c) => `• ${c}`)] : [])].join("\n");
+  return [
+    result.diagnosis,
+    "Recomendações:",
+    ...result.recommendations.map((r) => `• ${r}`),
+    ...(result.checks.length ? ["Verificações necessárias:", ...result.checks.map((c) => `• ${c}`)] : []),
+  ].join("\n");
 }
