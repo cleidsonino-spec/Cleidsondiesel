@@ -82,7 +82,7 @@ export function quoteMessage(o: OrderLike, approvalLink?: string): string {
   if (o.diagnosis) lines.push(``, `Diagnóstico: ${o.diagnosis}`);
   if (o.parts) lines.push(``, `Peças/serviços: ${o.parts}`);
   const items = readPartItems(o.part_items);
-  if (items.length) lines.push(``, `*Peças:*`, ...items.map((item) => `${item.description}: ${formatBRL(item.value)}`));
+  if (items.length) lines.push(``, `*Peças:*`, ...items.map((item) => item.description + " — " + item.quantity + " x " + formatBRL(item.unit_value) + " = " + formatBRL(item.value)));
   lines.push(
     ``,
     `Peças: ${formatBRL(Number(o.parts_value ?? 0))}`,
