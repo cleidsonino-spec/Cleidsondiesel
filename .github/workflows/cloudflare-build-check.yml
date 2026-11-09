@@ -9,6 +9,30 @@ on:
       - feat/independent-platform-foundation
 
 jobs:
+  sync-lockfile:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/cloudflare-neon-runtime'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: feat/cloudflare-neon-runtime
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Refresh Bun lockfile
+        run: bun install --ignore-scripts
+      - name: Commit lockfile if changed
+        run: |
+          if ! git diff --quiet -- bun.lock; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add bun.lock
+            git commit -m "chore: sync Bun lockfile"
+            git push origin HEAD:feat/cloudflare-neon-runtime
+          fi
+
   build:
     runs-on: ubuntu-latest
     steps:
