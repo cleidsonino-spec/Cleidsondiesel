@@ -1,0 +1,46 @@
+name: Prepare Neon database schema
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_apply:
+        description: "Confirma que deseja criar as tabelas no projeto Neon deste repositório?"
+        required: true
+        type: choice
+        options:
+          - "no"
+          - "yes"
+
+permissions:
+  contents: read
+
+jobs:
+  apply-schema:
+    if: github.ref == 'refs/heads/feat/independent-platform-foundation' && inputs.confirm_apply == 'yes'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: feat/independent-platform-foundation
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Apply initial schema to Neon
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::O segredo DATABASE_URL não está configurado."
+            exit 1
+          fi
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/0001_initial_workshop_schema.sql
+
+      - name: Confirm schema creation
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('customers','vehicles','service_orders','payments','warranties') ORDER BY table_name;"
