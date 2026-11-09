@@ -8,7 +8,10 @@ import tsconfigPaths from "vite-tsconfig-paths";
 export default defineConfig({
   plugins: [
     cloudflare({ viteEnvironment: { name: "ssr" } }),
-    tanstackStart(),
+    tanstackStart({
+      // Preserve the existing custom SSR error wrapper.
+      server: { entry: "server" },
+    }),
     react(),
     tailwindcss(),
     tsconfigPaths(),
