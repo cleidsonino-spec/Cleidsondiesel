@@ -14,7 +14,7 @@ export function quoteRows(o: Pick<Order, "part_items" | "parts_value" | "labor_v
 }
 
 /** Runs only after hydration. PDFs stay private on the owner's device. */
-export async function createQuotePdf(o: Order): Promise<File> {
+export async function createQuotePdf(o: Order, preparedBy = ""): Promise<File> {
   const { jsPDF } = await import("jspdf");
   const image = new Image();
   image.crossOrigin = "anonymous";
@@ -74,6 +74,7 @@ export async function createQuotePdf(o: Order): Promise<File> {
   field("VEÍCULO / PLACA", `${o.vehicle}${o.vehicle_year ? ` • ${o.vehicle_year}` : ""} / ${formatPlate(o.plate)}`);
   field("ENTRADA / PREVISÃO DE ENTREGA", `${formatDateBR(o.entry_date)} / ${o.due_date ? formatDateBR(o.due_date) : "A combinar"}`);
   field("SERVIÇO SOLICITADO", o.complaint);
+  if (preparedBy.trim()) field("ORÇAMENTO PREPARADO POR", preparedBy.trim());
   if (o.diagnosis) field("DIAGNÓSTICO", o.diagnosis);
   if (o.parts) field("PEÇAS E SERVIÇOS", o.parts);
   function tableHeader() {
