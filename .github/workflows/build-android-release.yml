@@ -58,7 +58,10 @@ jobs:
           test -s assets/logo-cleidson-diesel.png
           identify assets/logo-cleidson-diesel.png
           convert assets/logo-cleidson-diesel.png -resize 1024x1024 -gravity center -background none -extent 1024x1024 assets/icon-only.png
+          convert assets/logo-cleidson-diesel.png -resize 680x680 -gravity center -background none -extent 1024x1024 assets/icon-foreground.png
+          convert -size 1024x1024 xc:'#FFFFFF' assets/icon-background.png
           cp assets/icon-only.png assets/splash.png
+          identify assets/icon-only.png assets/icon-foreground.png assets/icon-background.png
 
       - name: Install Capacitor and asset generator
         run: |
