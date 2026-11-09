@@ -18,7 +18,29 @@ O sistema deverá ter três perfis distintos:
 
 Os acessos de funcionários e secretária serão criados ou convidados pelo administrador. Não haverá cadastro público que permita a qualquer pessoa escolher o próprio perfil ou virar administrador.
 
-A matriz detalhada de permissões (por exemplo, visualizar valores, registrar pagamentos, editar diagnóstico, concluir OS e cancelar agendamentos) deverá ser confirmada antes de implementar as telas e regras. O servidor sempre validará as permissões; esconder botões no navegador não será considerado proteção.
+### Matriz inicial de permissões
+
+A política central foi registrada em `src/lib/authorization.ts` e possui testes em `src/lib/authorization.test.ts`.
+
+| Recurso/ação | Administrador | Funcionário | Secretária |
+|---|---:|---:|---:|
+| Gerenciar usuários e permissões | Sim | Não | Não |
+| Configurações do sistema | Sim | Não | Não |
+| Consultar/cadastrar clientes | Sim | Consultar | Sim |
+| Consultar veículos | Sim | Sim | Sim |
+| Cadastrar/editar veículos | Sim | Não | Sim |
+| Consultar/criar/editar agendamentos | Sim | Consultar | Sim |
+| Consultar/criar/editar ordens de serviço | Sim | Sim | Consultar |
+| Editar diagnóstico e concluir OS | Sim | Sim | Não |
+| Visualizar valores das OS | Sim | Não por padrão | Sim |
+| Consultar pagamentos | Sim | Não | Sim |
+| Criar/editar/estornar/excluir pagamentos | Sim | Não | Não |
+| Consultar garantias | Sim | Sim | Sim |
+| Gerenciar garantias | Sim | Não | Não |
+
+O servidor deverá validar cada permissão após resolver uma sessão válida e uma conta ativa. O papel enviado pelo navegador nunca será confiável. Contas inativas devem ser bloqueadas e ter sessões invalidadas.
+
+**Estado importante:** a política e seus testes foram adicionados à branch de testes, mas ainda não estão conectados ao login, às rotas ou às operações do banco. Portanto, as permissões ainda não estão ativas no aplicativo. A integração só será concluída junto com a autenticação independente e os testes server-side.
 
 ## Comportamentos atuais que precisam ser preservados
 
