@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { CalendarDays, ClipboardList, ExternalLink, LogOut, Plus, ShieldAlert } from "lucide-react";
+import { CalendarDays, ClipboardList, Download, ExternalLink, LogOut, Plus, ShieldAlert } from "lucide-react";
 
 import { Logo } from "@/components/site/logo";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,15 @@ function PainelLayout() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
           <Logo />
           <div className="flex items-center gap-1">
+            <Button asChild variant="outline" size="sm" className="shrink-0">
+              <a
+                href="https://github.com/cleidsonino-spec/Cleidsondiesel/releases/latest/download/cleidson-diesel.apk"
+                aria-label="Baixar aplicativo Cleidson Diesel para Android"
+              >
+                <Download /> <span className="hidden sm:inline">Baixar aplicativo</span>
+                <span className="sm:hidden">App</span>
+              </a>
+            </Button>
             <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
               <Link to="/">
                 <ExternalLink /> Ver site
