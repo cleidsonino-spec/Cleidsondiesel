@@ -39,8 +39,8 @@ export function InspectionDiagnosisAction({ vehicle, year, complaint, failedItem
   return <div className="space-y-4 border-t border-border pt-5">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div>
-        <h2 className="font-display text-sm uppercase text-primary">Diagnóstico com inteligência artificial</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Gere uma explicação clara e recomendações com base no que foi informado.</p>
+        <h2 className="font-display text-sm uppercase text-primary">Diagnóstico preliminar com IA</h2>
+        <p className="mt-1 text-sm text-muted-foreground">A IA gera apenas um resumo preliminar, com base nos dados informados.</p>
       </div>
       <Button type="button" variant="outline" disabled={busy} onClick={analyze}>
         {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
@@ -49,19 +49,13 @@ export function InspectionDiagnosisAction({ vehicle, year, complaint, failedItem
     </div>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     {suggestion && <div className="space-y-3 rounded-md border border-border bg-secondary/40 p-4" aria-live="polite">
-      <p className="text-sm font-semibold">Diagnóstico preliminar — revisão do mecânico pendente</p>
+      <p className="text-sm font-semibold">Diagnóstico preliminar — sujeito à confirmação do mecânico</p>
       <p className="whitespace-pre-wrap text-sm">{suggestion.result.diagnosis}</p>
-      <h3 className="text-sm font-semibold">Recomendações para o cliente</h3>
-      <ul className="list-disc space-y-1 pl-5 text-sm">{suggestion.result.recommendations.map((r, i) => <li key={i}>{r}</li>)}</ul>
-      {suggestion.result.checks.length > 0 && <>
-        <h3 className="text-sm font-semibold">Verificações necessárias</h3>
-        <ul className="list-disc space-y-1 pl-5 text-sm">{suggestion.result.checks.map((r, i) => <li key={i}>{r}</li>)}</ul>
-      </>}
       {stale && <p className="text-sm text-destructive">Os dados da inspeção mudaram. Gere novamente antes de aplicar.</p>}
       <Button type="button" disabled={stale || busy} onClick={() => { onApply(diagnosisText(suggestion.result)); setSuggestion(null); }}>
         <Check /> Aplicar ao diagnóstico da OS
       </Button>
-      <p className="text-xs text-muted-foreground">A sugestão só será salva depois da revisão e do salvamento da ordem de serviço.</p>
+      <p className="text-xs text-muted-foreground">O texto só será salvo depois da sua revisão e do salvamento da ordem de serviço.</p>
     </div>}
   </div>;
 }
