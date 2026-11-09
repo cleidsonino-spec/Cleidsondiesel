@@ -88,6 +88,7 @@ function OrdemPage() {
   const siteUrl = typeof window !== "undefined" ? window.location.origin : undefined;
   const quoteText = quoteMessage(order);
   const statusHref = waLink(order.phone, statusMessage(order, siteUrl));
+  const warrantyActive = !!order.warranty_end_date && order.warranty_end_date >= new Date().toISOString().slice(0, 10);
 
   async function remove() {
     const { error } = await supabase.from("service_orders").delete().eq("id", id);
@@ -192,6 +193,8 @@ function PrintSheet({ order: o }: { order: Order }) {
     ["Km", o.mileage],
     ["Entrada", formatDateBR(o.entry_date)],
     ["Previsão", formatDateBR(o.due_date)],
+    ["Início da garantia", formatDateBR(o.warranty_start_date)],
+    ["Garantia até", formatDateBR(o.warranty_end_date)],
     ["Status", orderStatusInfo(o.status).label],
   ];
   return (
