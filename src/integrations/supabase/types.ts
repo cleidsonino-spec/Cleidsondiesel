@@ -59,12 +59,6 @@ export type Database = {
         }
         Relationships: []
       }
-      customers: {
-        Row: { id: string; name: string; document: string | null; phone: string | null; email: string | null; address: string | null; notes: string | null; created_at: string; updated_at: string }
-        Insert: { id?: string; name: string; document?: string | null; phone?: string | null; email?: string | null; address?: string | null; notes?: string | null; created_at?: string; updated_at?: string }
-        Update: { id?: string; name?: string; document?: string | null; phone?: string | null; email?: string | null; address?: string | null; notes?: string | null; created_at?: string; updated_at?: string }
-        Relationships: []
-      }
       quote_approvals: {
         Row: {
           approved_at: string | null
@@ -114,9 +108,6 @@ export type Database = {
       }
       service_orders: {
         Row: {
-          customer_id: string | null
-          warranty_start_date: string | null
-          warranty_end_date: string | null
           appointment_id: string | null
           complaint: string
           created_at: string
@@ -142,12 +133,6 @@ export type Database = {
           vehicle_year: string | null
         }
         Insert: {
-          customer_id?: string | null
-          warranty_start_date?: string | null
-          warranty_end_date?: string | null
-          customer_id?: string | null
-          warranty_start_date?: string | null
-          warranty_end_date?: string | null
           appointment_id?: string | null
           complaint: string
           created_at?: string
@@ -198,13 +183,6 @@ export type Database = {
           vehicle_year?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "service_orders_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "service_orders_appointment_id_fkey"
             columns: ["appointment_id"]
