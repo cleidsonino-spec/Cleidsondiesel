@@ -78,7 +78,8 @@ jobs:
               activity = re.search(r'(<activity\b[^>]*android:name="[^"]*MainActivity"[^>]*>)', source)
               if not activity:
                   raise SystemExit("Could not find MainActivity in AndroidManifest.xml")
-              intent_filter = """\n            <intent-filter>
+              intent_filter = """
+            <intent-filter>
                   <action android:name="android.intent.action.VIEW" />
                   <category android:name="android.intent.category.DEFAULT" />
                   <category android:name="android.intent.category.BROWSABLE" />
