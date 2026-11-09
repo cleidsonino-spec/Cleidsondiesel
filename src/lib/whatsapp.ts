@@ -71,13 +71,14 @@ export function statusMessage(o: OrderLike, siteUrl?: string): string {
   return lines.join("\n");
 }
 
-export function quoteMessage(o: OrderLike, approvalLink?: string): string {
+export function quoteMessage(o: OrderLike, approvalLink?: string, preparedBy?: string): string {
   const total = orderTotal(o.parts_value, o.labor_value);
   const lines = [
     `Olá, ${firstName(o.customer_name)}! Aqui é da ${SHOP}.`,
     ``,
     `*Orçamento — OS nº ${o.number}*`,
     `Veículo: ${o.vehicle} (${formatPlate(o.plate)})`,
+    ...(preparedBy?.trim() ? [`Orçamento preparado por: ${preparedBy.trim()}`] : []),
   ];
   if (o.diagnosis) lines.push(``, `Diagnóstico: ${o.diagnosis}`);
   if (o.parts) lines.push(``, `Peças/serviços: ${o.parts}`);
