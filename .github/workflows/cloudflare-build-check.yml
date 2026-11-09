@@ -1,0 +1,24 @@
+name: Cloudflare build check
+
+on:
+  push:
+    branches:
+      - feat/cloudflare-neon-runtime
+  pull_request:
+    branches:
+      - feat/cloudflare-neon-runtime
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install
+      - name: Build application
+        run: bun run build
+      - name: Validate Worker bundle without deploying
+        run: bunx wrangler deploy --dry-run
