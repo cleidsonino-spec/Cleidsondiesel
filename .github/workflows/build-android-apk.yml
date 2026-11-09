@@ -75,7 +75,7 @@ jobs:
           manifest = Path("android/app/src/main/AndroidManifest.xml")
           source = manifest.read_text()
           if 'android:scheme="cleidsondiesel"' not in source:
-              activity = re.search(r'(<activity\\b[^>]*android:name="[^"]*MainActivity"[^>]*>)', source)
+              activity = re.search(r'(<activity\b[^>]*android:name="[^"]*MainActivity"[^>]*>)', source)
               if not activity:
                   raise SystemExit("Could not find MainActivity in AndroidManifest.xml")
               intent_filter = """\n            <intent-filter>
