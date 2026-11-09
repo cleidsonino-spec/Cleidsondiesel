@@ -11,9 +11,8 @@ import type { Database } from "@/integrations/supabase/types";
 import { isValidPlate, normalizePlate } from "@/lib/plate";
 import { formatBRL, ORDER_STATUSES, orderTotal, type OrderStatus } from "@/lib/status";
 import { draftPartItems, parseMoney, partsTotal, type PartDraft } from "@/lib/parts";
-import { InspectionChecklist } from "@/components/painel/inspection-checklist";
-import type { InspectionItem } from "@/lib/inspection";
 import { InspectionDiagnosisAction } from "@/components/painel/inspection-diagnosis";
+import { writeInspectionData, type InspectionData } from "@/lib/inspection";
 export { parseMoney } from "@/lib/parts";
 
 export type OrderInput = Database["public"]["Tables"]["service_orders"]["Insert"];
@@ -34,7 +33,7 @@ export type OrderFormValues = {
   entry_date: string;
   due_date: string;
   notes: string;
-  inspection_checklist: InspectionItem[];
+  inspection: InspectionData;
 };
 
 export function toOrderInput(v: OrderFormValues): OrderInput {
@@ -55,7 +54,7 @@ export function toOrderInput(v: OrderFormValues): OrderInput {
     entry_date: v.entry_date,
     due_date: v.due_date || null,
     notes: v.notes.trim() || null,
-    inspection_checklist: v.inspection_checklist.map((item) => ({ ...item, label: item.label.trim(), notes: item.notes.trim() })),
+    inspection_checklist: writeInspectionData(v.inspection),
   };
 }
 
@@ -81,57 +80,43 @@ export function OrderForm({
     if (!v.vehicle.trim()) { toast.error("Informe o veículo."); return; }
     if (!v.complaint.trim()) { toast.error("Descreva o serviço / reclamação."); return; }
     if (draftPartItems(v.part_items).some((item) => !item.description)) { toast.error("Informe o nome de cada peça com valor."); return; }
-    if (v.inspection_checklist.some((item) => !item.label.trim())) { toast.error("Informe o nome de cada item de inspeção."); return; }
     setSaving(true);
-    try {
-      await onSubmit(toOrderInput(v));
-    } finally {
-      setSaving(false);
-    }
+    try { await onSubmit(toOrderInput(v)); }
+    finally { setSaving(false); }
   }
 
   const piecesTotal = partsTotal(draftPartItems(v.part_items));
   const total = orderTotal(piecesTotal, parseMoney(v.labor_value));
-  const updatePart = (index: number, key: keyof PartDraft, value: string) => set("part_items", v.part_items.map((item, i) => i === index ? { ...item, [key]: value } : item));
+  const updatePart = (index: number, key: keyof PartDraft, value: string) =>
+    set("part_items", v.part_items.map((item, i) => i === index ? { ...item, [key]: value } : item));
 
   return (
     <form onSubmit={handle} className="space-y-6">
       <Section title="Cliente e veículo">
-        <F label="Placa">
-          <Input value={v.plate} onChange={(e) => set("plate", e.target.value.toUpperCase())} maxLength={8} className="plate" placeholder="ABC1D23" />
-        </F>
-        <F label="Cliente">
-          <Input value={v.customer_name} onChange={(e) => set("customer_name", e.target.value)} />
-        </F>
-        <F label="WhatsApp / telefone">
-          <Input value={v.phone} onChange={(e) => set("phone", e.target.value)} type="tel" placeholder="(00) 00000-0000" />
-        </F>
-        <F label="Veículo">
-          <Input value={v.vehicle} onChange={(e) => set("vehicle", e.target.value)} placeholder="Ex: Hilux 3.0" />
-        </F>
-        <F label="Ano">
-          <Input value={v.vehicle_year} onChange={(e) => set("vehicle_year", e.target.value)} />
-        </F>
-        <F label="Km">
-          <Input value={v.mileage} onChange={(e) => set("mileage", e.target.value)} inputMode="numeric" />
-        </F>
+        <F label="Placa"><Input value={v.plate} onChange={(e) => set("plate", e.target.value.toUpperCase())} maxLength={8} className="plate" placeholder="ABC1D23" /></F>
+        <F label="Cliente"><Input value={v.customer_name} onChange={(e) => set("customer_name", e.target.value)} /></F>
+        <F label="WhatsApp / telefone"><Input value={v.phone} onChange={(e) => set("phone", e.target.value)} type="tel" placeholder="(00) 00000-0000" /></F>
+        <F label="Veículo"><Input value={v.vehicle} onChange={(e) => set("vehicle", e.target.value)} placeholder="Ex: Hilux 3.0" /></F>
+        <F label="Ano"><Input value={v.vehicle_year} onChange={(e) => set("vehicle_year", e.target.value)} /></F>
+        <F label="Km"><Input value={v.mileage} onChange={(e) => set("mileage", e.target.value)} inputMode="numeric" /></F>
       </Section>
 
       <Section title="Serviço">
-        <F label="Reclamação / serviço solicitado" wide>
-          <Textarea value={v.complaint} onChange={(e) => set("complaint", e.target.value)} rows={2} />
-        </F>
-        <F label="Diagnóstico" wide>
-          <Textarea value={v.diagnosis} onChange={(e) => set("diagnosis", e.target.value)} rows={3} />
-        </F>
-        <F label="Peças e serviços executados" wide>
-          <Textarea value={v.parts} onChange={(e) => set("parts", e.target.value)} rows={3} placeholder="Ex: kit reparo bomba, 4 bicos, calibração..." />
-        </F>
+        <F label="Reclamação / serviço solicitado" wide><Textarea value={v.complaint} onChange={(e) => set("complaint", e.target.value)} rows={2} /></F>
+        <F label="Diagnóstico para o cliente" wide><Textarea value={v.diagnosis} onChange={(e) => set("diagnosis", e.target.value)} rows={4} placeholder="Descreva o diagnóstico ou gere uma sugestão com IA abaixo." /></F>
+        <F label="Peças e serviços executados" wide><Textarea value={v.parts} onChange={(e) => set("parts", e.target.value)} rows={3} placeholder="Ex: kit reparo bomba, 4 bicos, calibração..." /></F>
       </Section>
 
-      <InspectionChecklist items={v.inspection_checklist} onChange={(items) => set("inspection_checklist", items)} />
-      <InspectionDiagnosisAction vehicle={v.vehicle} year={v.vehicle_year} complaint={v.complaint} items={v.inspection_checklist} onApply={(text) => {
-        if (v.diagnosis.trim() && !window.confirm("Substituir o diagnóstico atual pela sugestão revisada?")) return;
+      <Section title="Inspeção do mecânico">
+        <F label="Itens reprovados" wide>
+          <Textarea value={v.inspection.failedItems} onChange={(e) => set("inspection", { ...v.inspection, failedItems: e.target.value })} rows={4} placeholder={"Informe apenas os itens que foram reprovados.\nEx.: Bico injetor 2 — retorno acima do especificado."} />
+        </F>
+        <F label="Observações da inspeção" wide>
+          <Textarea value={v.inspection.observations} onChange={(e) => set("inspection", { ...v.inspection, observations: e.target.value })} rows={4} placeholder="Descreva testes realizados, sintomas, medições e outras observações técnicas." />
+        </F>
+      </Section>
+      <InspectionDiagnosisAction vehicle={v.vehicle} year={v.vehicle_year} complaint={v.complaint} failedItems={v.inspection.failedItems} observations={v.inspection.observations} onApply={(text) => {
+        if (v.diagnosis.trim() && !window.confirm("Substituir o diagnóstico atual pela sugestão da IA?")) return;
         set("diagnosis", text);
       }} />
 
@@ -152,43 +137,20 @@ export function OrderForm({
       </Section>
 
       <Section title="Valores e prazos">
-        <F label="Mão de obra (R$)">
-          <Input value={v.labor_value} onChange={(e) => set("labor_value", e.target.value)} inputMode="decimal" placeholder="0,00" />
-        </F>
+        <F label="Mão de obra (R$)"><Input value={v.labor_value} onChange={(e) => set("labor_value", e.target.value)} inputMode="decimal" placeholder="0,00" /></F>
         <div className="flex flex-col justify-end rounded-sm border border-primary/40 bg-primary/10 px-4 py-2">
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">Total</span>
-          <span className="font-display text-2xl">{formatBRL(total)}</span>
+          <span className="text-xs uppercase tracking-wider text-muted-foreground">Total</span><span className="font-display text-2xl">{formatBRL(total)}</span>
         </div>
         <F label="Status">
-          <Select value={v.status} onValueChange={(s) => set("status", s as OrderStatus)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ORDER_STATUSES.map((s) => (
-                <SelectItem key={s.value} value={s.value}>
-                  {s.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Select value={v.status} onValueChange={(s) => set("status", s as OrderStatus)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ORDER_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent></Select>
         </F>
-        <F label="Data de entrada">
-          <Input type="date" value={v.entry_date} onChange={(e) => set("entry_date", e.target.value)} />
-        </F>
-        <F label="Previsão de entrega">
-          <Input type="date" value={v.due_date} onChange={(e) => set("due_date", e.target.value)} />
-        </F>
-        <F label="Observações internas" wide>
-          <Textarea value={v.notes} onChange={(e) => set("notes", e.target.value)} rows={2} />
-        </F>
+        <F label="Data de entrada"><Input type="date" value={v.entry_date} onChange={(e) => set("entry_date", e.target.value)} /></F>
+        <F label="Previsão de entrega"><Input type="date" value={v.due_date} onChange={(e) => set("due_date", e.target.value)} /></F>
+        <F label="Observações internas" wide><Textarea value={v.notes} onChange={(e) => set("notes", e.target.value)} rows={2} /></F>
       </Section>
 
-      <div className="flex flex-col gap-3 sm:flex-row print:hidden">
-        <Button type="submit" size="lg" disabled={saving} className="h-12">
-          {saving ? <Loader2 className="animate-spin" /> : <Save />}
-          {submitLabel}
-        </Button>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <Button type="submit" size="lg" disabled={saving} className="h-12">{saving ? <Loader2 className="animate-spin" /> : <Save />}{submitLabel}</Button>
         {extraActions}
       </div>
     </form>
@@ -196,19 +158,8 @@ export function OrderForm({
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <fieldset className="grid gap-4 rounded-md border border-border bg-card p-5 sm:grid-cols-2 lg:grid-cols-3">
-      <legend className="px-2 font-display text-sm uppercase text-primary">{title}</legend>
-      {children}
-    </fieldset>
-  );
+  return <fieldset className="grid gap-4 rounded-md border border-border bg-card p-5 sm:grid-cols-2 lg:grid-cols-3"><legend className="px-2 font-display text-sm uppercase text-primary">{title}</legend>{children}</fieldset>;
 }
-
 function F({ label, children, wide }: { label: string; children: ReactNode; wide?: boolean }) {
-  return (
-    <div className={wide ? "space-y-2 sm:col-span-2 lg:col-span-3" : "space-y-2"}>
-      <Label>{label}</Label>
-      {children}
-    </div>
-  );
+  return <div className={wide ? "space-y-2 sm:col-span-2 lg:col-span-3" : "space-y-2"}><Label>{label}</Label>{children}</div>;
 }
