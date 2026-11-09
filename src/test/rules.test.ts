@@ -111,7 +111,7 @@ describe("orçamento", () => {
       parts_value: 1000, labor_value: 500, due_date: null,
     });
     expect(msg).toContain("OS nº 12");
-    expect(msg).toMatch(/Total: R\\$\\s?1\\.500,00/);
+    expect(msg).toMatch(/Total: R\\$[\\s\\u00a0]?1\\.500,00/);
   });
 });
 
