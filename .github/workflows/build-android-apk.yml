@@ -60,11 +60,34 @@ jobs:
           mkdir -p /tmp/capacitor-tools
           cd /tmp/capacitor-tools
           npm init -y
-          npm install --no-audit --no-fund typescript @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/assets
+          npm install --no-audit --no-fund typescript @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/app@7 @capacitor/assets
           ln -s /tmp/capacitor-tools/node_modules "$GITHUB_WORKSPACE/node_modules"
 
       - name: Add Android project
         run: npx cap add android
+
+      - name: Configure Android OAuth deep link
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          source = manifest.read_text()
+          if 'android:scheme="cleidsondiesel"' not in source:
+              activity = re.search(r'(<activity\\b[^>]*android:name="[^"]*MainActivity"[^>]*>)', source)
+              if not activity:
+                  raise SystemExit("Could not find MainActivity in AndroidManifest.xml")
+              intent_filter = """\n            <intent-filter>
+                  <action android:name="android.intent.action.VIEW" />
+                  <category android:name="android.intent.category.DEFAULT" />
+                  <category android:name="android.intent.category.BROWSABLE" />
+                  <data android:scheme="cleidsondiesel" android:host="auth" />
+              </intent-filter>"""
+              source = source[:activity.end()] + intent_filter + source[activity.end():]
+              manifest.write_text(source)
+          print("Registered cleidsondiesel://auth deep link")
+          PY
 
       - name: Generate Android app icons
         run: npx capacitor-assets generate --android
