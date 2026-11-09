@@ -3,6 +3,8 @@
   "name": "cleidsondiesel",
   "main": "./src/server.ts",
   "compatibility_date": "2026-11-09",
+  "preview_urls": true,
+  "previews": {},
   "observability": {
     "enabled": true
   }
