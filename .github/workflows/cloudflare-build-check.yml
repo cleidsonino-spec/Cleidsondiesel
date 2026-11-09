@@ -20,5 +20,9 @@ jobs:
         run: bun install
       - name: Build application
         run: bun run build
+      - name: Verify Neon database connection
+        run: bun run db:check
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
       - name: Validate Worker bundle without deploying
         run: bunx wrangler deploy --dry-run
