@@ -35,12 +35,29 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            platform-tools
+            platforms;android-35
+            build-tools;35.0.0
 
-      - name: Install Capacitor
-        run: npm install --no-save --package-lock=false @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7
+      - name: Install image tools
+        run: sudo apt-get update && sudo apt-get install -y imagemagick
+
+      - name: Prepare app icon from the website favicon
+        run: |
+          mkdir -p assets
+          convert public/favicon.png -resize 1024x1024 -gravity center -background none -extent 1024x1024 assets/icon-only.png
+          cp assets/icon-only.png assets/splash.png
+
+      - name: Install Capacitor and asset generator
+        run: npm install --no-save --package-lock=false @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/assets
 
       - name: Add Android project
         run: npx cap add android
+
+      - name: Generate Android app icons
+        run: npx capacitor-assets generate --android
 
       - name: Sync Android project
         run: npx cap sync android
