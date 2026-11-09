@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Loader2, Lock } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
+import { App } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
 import "@lovable.dev/cloud-auth-js/styles.css";
 
 import { Logo } from "@/components/site/logo";
@@ -39,7 +41,33 @@ function AuthPage() {
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session) navigate({ to: "/painel" });
     });
-    return () => data.subscription.unsubscribe();
+
+    let appUrlListener: ReturnType<typeof App.addListener> | undefined;
+    if (Capacitor.isNativePlatform()) {
+      appUrlListener = App.addListener("appUrlOpen", ({ url }) => {
+        try {
+          const callbackUrl = new URL(url);
+          if (callbackUrl.protocol !== "cleidsondiesel:" || callbackUrl.hostname !== "auth") return;
+
+          // Lovable's OAuth broker returns Supabase tokens in the URL fragment.
+          // Reopen the same callback on the HTTPS origin so Supabase can consume
+          // the fragment using its normal detectSessionInUrl flow.
+          const fragment = callbackUrl.hash || (callbackUrl.search ? `#${callbackUrl.search.slice(1)}` : "");
+          if (!fragment) {
+            toast.error("O Google não retornou os dados de autenticação. Tente novamente.");
+            return;
+          }
+          window.location.replace(`${window.location.origin}/auth${fragment}`);
+        } catch {
+          toast.error("Não foi possível concluir o retorno do Google.");
+        }
+      });
+    }
+
+    return () => {
+      data.subscription.unsubscribe();
+      if (appUrlListener) void appUrlListener.then((listener) => listener.remove());
+    };
   }, [navigate]);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -65,7 +93,10 @@ function AuthPage() {
   }
 
   async function oauth(provider: "google" | "lovable") {
-    const result = await lovable.auth.signInWithOAuth(provider, { redirect_uri: window.location.origin + "/auth" });
+    const redirectUri = Capacitor.isNativePlatform()
+      ? "cleidsondiesel://auth"
+      : window.location.origin + "/auth";
+    const result = await lovable.auth.signInWithOAuth(provider, { redirect_uri: redirectUri });
     if (result.error) toast.error("Não foi possível entrar. Tente novamente.");
   }
 
