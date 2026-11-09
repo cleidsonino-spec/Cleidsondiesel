@@ -64,7 +64,7 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
     complaint: "",
     diagnosis: "",
     parts: "",
-    part_items: [{ description: "", value: "" }],
+    part_items: [{ description: "", quantity: "1", unit_value: "" }],
     labor_value: "",
     status: "recebido",
     entry_date: todayISO(),
