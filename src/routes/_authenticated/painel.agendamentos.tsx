@@ -1,6 +1,6 @@
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Check, ClipboardPlus, MessageCircle, X } from "lucide-react";
+import { CalendarClock, Check, ClipboardPlus, MessageCircle, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { formatPlate } from "@/lib/plate";
 import { appointmentsQuery } from "@/lib/queries";
-import { formatDateBR, todayISO } from "@/lib/schedule";
+import { formatDateBR, getSlotsForDate, todayISO } from "@/lib/schedule";
 import { appointmentStatusInfo, type AppointmentStatus } from "@/lib/status";
 import { cn } from "@/lib/utils";
 import { appointmentMessage, waLink } from "@/lib/whatsapp";
@@ -35,6 +35,9 @@ function AgendamentosPage() {
   const { data } = useSuspenseQuery(appointmentsQuery());
   const [view, setView] = useState<View>("proximos");
   const today = todayISO();
+  const [selectedDate, setSelectedDate] = useState(today);
+  const dayAppointments = data.filter((a) => a.scheduled_date === selectedDate && a.status !== "cancelado");
+  const slots = getSlotsForDate(selectedDate);
 
   const list = data
     .filter((a) => {
@@ -76,6 +79,55 @@ function AgendamentosPage() {
           ))}
         </div>
       </div>
+
+      <section className="space-y-4 rounded-md border border-border bg-card p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <CalendarClock className="size-5 text-primary" />
+            <div>
+              <h2 className="font-semibold">Horários da oficina</h2>
+              <p className="text-sm text-muted-foreground">Segunda a sexta · 08h às 17h · intervalo das 12h às 13h</p>
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Escolher dia</span>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(event) => setSelectedDate(event.target.value)}
+              className="rounded-sm border border-input bg-background px-3 py-2"
+            />
+          </label>
+        </div>
+        {slots.length === 0 ? (
+          <p className="rounded-sm bg-muted p-4 text-sm text-muted-foreground">A oficina não atende nesta data. Selecione um dia de segunda a sexta.</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+            {slots.map((time) => {
+              const booked = dayAppointments.find((a) => a.scheduled_time.slice(0, 5) === time);
+              return (
+                <div
+                  key={time}
+                  className={cn(
+                    "rounded-sm border p-3",
+                    booked ? "border-warning/40 bg-warning/5" : "border-emerald-500/30 bg-emerald-500/5",
+                  )}
+                >
+                  <p className="font-display text-xl">{time}</p>
+                  <p className={cn("text-xs font-medium", booked ? "text-warning" : "text-emerald-600")}>
+                    {booked ? "Ocupado" : "Disponível"}
+                  </p>
+                  {booked && <p className="mt-1 truncate text-xs text-muted-foreground">{booked.customer_name}</p>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+          <span>🟢 Disponível</span>
+          <span>🟠 Ocupado</span>
+        </div>
+      </section>
 
       {list.length === 0 && (
         <div className="rounded-md border border-dashed border-border p-10 text-center text-muted-foreground">
