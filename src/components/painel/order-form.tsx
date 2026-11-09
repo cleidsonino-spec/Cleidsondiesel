@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Database } from "@/integrations/supabase/types";
 import { isValidPlate, normalizePlate } from "@/lib/plate";
 import { formatBRL, ORDER_STATUSES, orderTotal, type OrderStatus } from "@/lib/status";
-import { draftPartItems, parseMoney, partsTotal, type PartDraft } from "@/lib/parts";
+import { draftPartItems, lineTotal, parseMoney, parseQuantity, partsTotal, type PartDraft } from "@/lib/parts";
 import { InspectionDiagnosisAction } from "@/components/painel/inspection-diagnosis";
 import { writeInspectionData, type InspectionData } from "@/lib/inspection";
 export { parseMoney } from "@/lib/parts";
@@ -79,7 +79,7 @@ export function OrderForm({
     if (!v.customer_name.trim()) { toast.error("Informe o nome do cliente."); return; }
     if (!v.vehicle.trim()) { toast.error("Informe o veículo."); return; }
     if (!v.complaint.trim()) { toast.error("Descreva o serviço / reclamação."); return; }
-    if (draftPartItems(v.part_items).some((item) => !item.description)) { toast.error("Informe o nome de cada peça com valor."); return; }
+    if (draftPartItems(v.part_items).some((item) => !item.description || item.quantity <= 0)) { toast.error("Informe a descrição e uma quantidade válida para cada peça."); return; }
     setSaving(true);
     try { await onSubmit(toOrderInput(v)); }
     finally { setSaving(false); }
@@ -123,14 +123,16 @@ export function OrderForm({
       <Section title="Peças e valores">
         <div className="space-y-3 sm:col-span-2 lg:col-span-3">
           {v.part_items.map((item, index) => (
-            <div key={index} className="grid grid-cols-[minmax(0,1fr)_minmax(90px,130px)_40px] items-end gap-2">
-              <div className="space-y-2"><Label htmlFor={`part-${index}`}>Peça {index + 1}</Label><Input id={`part-${index}`} value={item.description} onChange={(e) => updatePart(index, "description", e.target.value)} placeholder="Nome da peça" /></div>
-              <div className="space-y-2"><Label htmlFor={`part-value-${index}`}>Valor (R$)</Label><Input id={`part-value-${index}`} inputMode="decimal" value={item.value} onChange={(e) => updatePart(index, "value", e.target.value)} placeholder="0,00" /></div>
-              <Button type="button" variant="ghost" size="icon" aria-label={`Remover peça ${index + 1}`} title="Remover peça" onClick={() => set("part_items", v.part_items.filter((_, i) => i !== index))}><Trash2 className="text-destructive" /></Button>
+            <div key={index} className="grid grid-cols-2 gap-3 rounded-md border border-border p-3 sm:grid-cols-[minmax(0,2fr)_minmax(85px,0.7fr)_minmax(110px,1fr)_minmax(110px,1fr)_40px] sm:items-end">
+              <div className="col-span-2 space-y-2 sm:col-span-1"><Label htmlFor={"part-" + index}>Peça {index + 1}</Label><Input id={"part-" + index} value={item.description} onChange={(e) => updatePart(index, "description", e.target.value)} placeholder="Nome da peça" /></div>
+              <div className="space-y-2"><Label htmlFor={"part-qty-" + index}>Quantidade</Label><Input id={"part-qty-" + index} type="number" min="1" step="1" inputMode="numeric" value={item.quantity} onChange={(e) => updatePart(index, "quantity", e.target.value)} placeholder="1" /></div>
+              <div className="space-y-2"><Label htmlFor={"part-unit-" + index}>Valor unitário (R$)</Label><Input id={"part-unit-" + index} inputMode="decimal" value={item.unit_value} onChange={(e) => updatePart(index, "unit_value", e.target.value)} placeholder="0,00" /></div>
+              <div className="space-y-2"><Label>Total da peça</Label><div className="flex h-10 items-center rounded-md border border-input bg-muted px-3 text-sm font-semibold">{formatBRL(lineTotal(parseQuantity(item.quantity), parseMoney(item.unit_value)))}</div></div>
+              <Button type="button" variant="ghost" size="icon" className="col-span-2 sm:col-span-1" aria-label={"Remover peça " + (index + 1)} title="Remover peça" onClick={() => set("part_items", v.part_items.filter((_, i) => i !== index))}><Trash2 className="text-destructive" /></Button>
             </div>
           ))}
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <Button type="button" variant="outline" onClick={() => set("part_items", [...v.part_items, { description: "", value: "" }])}><Plus /> Adicionar peça</Button>
+            <Button type="button" variant="outline" onClick={() => set("part_items", [...v.part_items, { description: "", quantity: "1", unit_value: "" }])}><Plus /> Adicionar peça</Button>
             <p className="text-sm">Total das peças: <strong className="text-primary">{formatBRL(piecesTotal)}</strong></p>
           </div>
         </div>
