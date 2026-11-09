@@ -88,7 +88,8 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
             .select("id, number")
             .single();
           if (error) {
-            toast.error("Não foi possível salvar a OS.");
+            console.error("Erro ao salvar nova OS:", error);
+            toast.error(`Falha ao salvar: ${error.message}`);
             return;
           }
           if (appointmentId) {
