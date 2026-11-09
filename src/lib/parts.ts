@@ -21,7 +21,7 @@ export function parseMoney(s: string): number {
 
 export function parseQuantity(s: string): number {
   const n = Number(s.trim().replace(",", "."));
-  return Number.isFinite(n) && n > 0 ? Math.min(100000, n) : 0;
+  return Number.isInteger(n) && n > 0 ? Math.min(100000, n) : 0;
 }
 
 export function lineTotal(quantity: number, unitValue: number): number {
@@ -52,7 +52,7 @@ export function readPartItems(value: unknown): PartItem[] {
 
 export function draftPartItems(items: PartDraft[]): PartItem[] {
   return items
-    .filter((item) => item.description.trim() || item.unit_value.trim() || item.quantity.trim())
+    .filter((item) => item.description.trim() || item.unit_value.trim())
     .map((item) => {
       const quantity = parseQuantity(item.quantity);
       const unit_value = parseMoney(item.unit_value);
