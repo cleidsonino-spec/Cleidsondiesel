@@ -32,7 +32,7 @@ function ClientesPage() {
   const { data = [], isLoading, error } = useQuery({
     queryKey: ["customers"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("customers").select("*").order("name");
+      const { data, error } = await (supabase as any).from("customers").select("*").order("name");
       if (error) throw error;
       return data as Customer[];
     },
@@ -47,7 +47,7 @@ function ClientesPage() {
     if (!form.name.trim()) { toast.error("Informe o nome do cliente."); return; }
     setSaving(true);
     try {
-      const { error } = await supabase.from("customers").insert({
+      const { error } = await (supabase as any).from("customers").insert({
         name: form.name.trim(), document: form.document.trim() || null,
         phone: form.phone.trim() || null, email: form.email.trim() || null,
         address: form.address.trim() || null, notes: form.notes.trim() || null,
