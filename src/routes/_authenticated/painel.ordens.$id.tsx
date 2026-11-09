@@ -23,7 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { formatPlate } from "@/lib/plate";
 import { readPartItems } from "@/lib/parts";
-import { INSPECTION_STATUSES, newInspection, readInspection } from "@/lib/inspection";
+import { readInspectionData } from "@/lib/inspection";
 import { orderQuery } from "@/lib/queries";
 import { formatDateBR } from "@/lib/schedule";
 import { formatBRL, orderStatusInfo, orderTotal } from "@/lib/status";
@@ -63,7 +63,7 @@ function toForm(o: Order): OrderFormValues {
     entry_date: o.entry_date,
     due_date: o.due_date ?? "",
     notes: o.notes ?? "",
-    inspection_checklist: readInspection(o.inspection_checklist).length ? readInspection(o.inspection_checklist) : newInspection(),
+    inspection: readInspectionData(o.inspection_checklist),
   };
 }
 
@@ -221,10 +221,14 @@ function PrintSheet({ order: o }: { order: Order }) {
           <p className="whitespace-pre-wrap">{v || "—"}</p>
         </div>
       ))}
-      {readInspection(o.inspection_checklist).length > 0 && <div className="mt-4">
-        <p className="font-bold">Checklist de inspeção</p>
-        {readInspection(o.inspection_checklist).map((item) => <p key={item.id} className="mt-1"><strong>{item.label}:</strong> {INSPECTION_STATUSES.find((s) => s.value === item.status)?.label}{item.notes ? ` — ${item.notes}` : ""}</p>)}
-      </div>}
+      {(() => {
+        const inspection = readInspectionData(o.inspection_checklist);
+        return inspection.failedItems || inspection.observations ? <div className="mt-4 space-y-2">
+          <p className="font-bold">Inspeção</p>
+          {inspection.failedItems && <div><p className="font-semibold">Itens reprovados</p><p className="whitespace-pre-wrap">{inspection.failedItems}</p></div>}
+          {inspection.observations && <div><p className="font-semibold">Observações da inspeção</p><p className="whitespace-pre-wrap">{inspection.observations}</p></div>}
+        </div> : null;
+      })()}
       {readPartItems(o.part_items).length > 0 && <table className="mt-4 w-full text-left">
         <thead><tr className="border-b border-foreground"><th className="py-2">Peça</th><th className="py-2 text-right">Valor</th></tr></thead>
         <tbody>{readPartItems(o.part_items).map((item, index) => <tr key={index}><td className="py-1">{item.description}</td><td className="text-right">{formatBRL(item.value)}</td></tr>)}</tbody>
