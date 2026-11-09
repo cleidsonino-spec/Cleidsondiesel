@@ -9,8 +9,8 @@ type Order = Database["public"]["Tables"]["service_orders"]["Row"];
 
 export function quoteRows(o: Pick<Order, "part_items" | "parts_value" | "labor_value">) {
   const items = readPartItems(o.part_items);
-  const rows = items.length ? items : Number(o.parts_value) ? [{ description: "Peças", value: Number(o.parts_value) }] : [];
-  return [...rows, { description: "Mão de obra", value: Number(o.labor_value) || 0 }];
+  const rows = items.length ? items : Number(o.parts_value) ? [{ description: "Peças", quantity: 1, unit_value: Number(o.parts_value), value: Number(o.parts_value) }] : [];
+  return [...rows, { description: "Mão de obra", quantity: 1, unit_value: Number(o.labor_value) || 0, value: Number(o.labor_value) || 0 }];
 }
 
 /** Runs only after hydration. PDFs stay private on the owner's device. */
@@ -78,20 +78,22 @@ export async function createQuotePdf(o: Order): Promise<File> {
   if (o.parts) field("PEÇAS E SERVIÇOS", o.parts);
   function tableHeader() {
     room(12); pdf.setFillColor(32, 32, 32); pdf.rect(left, y, 178, 9, "F"); pdf.setTextColor(255);
-    text("ITEM", 19, y + 6, 9, true); text("DISCRIMINAÇÃO", 34, y + 6, 9, true);
-    text("VALOR (R$)", 165, y + 6, 9, true); pdf.setTextColor(32); y += 9;
+    text("ITEM", 18, y + 6, 7, true); text("DISCRIMINAÇÃO", 31, y + 6, 7, true);
+    text("QTD", 128, y + 6, 7, true); text("UNIT. (R$)", 141, y + 6, 7, true);
+    text("TOTAL (R$)", 169, y + 6, 7, true); pdf.setTextColor(32); y += 9;
   }
   tableHeader();
   quoteRows(o).forEach((item, index) => {
-    const lines = pdf.splitTextToSize(item.description, 121) as string[];
+    const lines = pdf.splitTextToSize(item.description, 92) as string[];
     const height = Math.max(10, lines.length * 5 + 5);
     if (y + height > 264) { pdf.addPage(); header(true); tableHeader(); }
-    // Split exceptionally long descriptions safely across pages.
-    text(String(index + 1).padStart(2, "0"), 19, y + 6, 9);
-    text(formatBRL(item.value), 163, y + 6, 9);
+    text(String(index + 1).padStart(2, "0"), 18, y + 6, 8);
+    text(String(item.quantity), 129, y + 6, 8);
+    text(formatBRL(item.unit_value), 141, y + 6, 8);
+    text(formatBRL(item.value), 169, y + 6, 8);
     for (const s of lines) {
       if (y + 8 > 264) { line(y); pdf.addPage(); header(true); tableHeader(); }
-      text(s, 34, y + 6, 9); y += 5;
+      text(s, 31, y + 6, 8); y += 5;
     }
     y += 5; line(y);
   });
