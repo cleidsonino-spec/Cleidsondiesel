@@ -14,7 +14,7 @@ O sistema deverá ter três perfis distintos:
 
 - **Administrador (proprietário):** acesso completo, inclusive gerenciamento de usuários, permissões e configurações.
 - **Funcionário:** acesso individual com usuário e senha próprios, limitado às funções operacionais que o administrador liberar.
-- **Secretária:** acesso individual com usuário e senha próprios, voltado às rotinas de atendimento e administrativas que o administrador liberar.
+- **Secretária:** acesso individual com usuário e senha próprios, voltado às rotinas de atendimento e administrativas. Poderá **visualizar valores das ordens de serviço e pagamentos**. Ações como registrar, editar, estornar ou excluir pagamentos continuarão sujeitas a permissões específicas definidas pelo administrador.
 
 Os acessos de funcionários e secretária serão criados ou convidados pelo administrador. Não haverá cadastro público que permita a qualquer pessoa escolher o próprio perfil ou virar administrador.
 
