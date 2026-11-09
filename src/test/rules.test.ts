@@ -1,7 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { newInspection, readInspection } from "@/lib/inspection";
+import { diagnosisText, inspectionDiagnosisInput } from "@/lib/inspection-diagnosis";
 
 describe("inspeção", () => {
+  it("preserva itens reprovados e observações do mecânico", () => {
+    expect(readInspection([{ id: "pump", label: "Bomba", status: "failed", notes: "Vazamento de combustível" }])[0]).toEqual({ id: "pump", label: "Bomba", status: "failed", notes: "Vazamento de combustível" });
+  });
+  it("exige achados ou observações antes de gerar diagnóstico", () => {
+    const input = { vehicle: "Hilux", vehicle_year: "2015", complaint: "", items: [{ label: "Bomba", status: "pending", notes: "" }] };
+    expect(inspectionDiagnosisInput.safeParse(input).success).toBe(false);
+    expect(inspectionDiagnosisInput.safeParse({ ...input, items: [{ label: "Bomba", status: "failed", notes: "Vazamento" }] }).success).toBe(true);
+  });
+  it("diagnóstico aplicado mantém recomendações e verificações para o cliente", () => {
+    const text = diagnosisText({ diagnosis: "Vazamento observado.", recommendations: ["Reparar após avaliação."], checks: ["Testar pressão."] });
+    expect(text).toContain("Vazamento observado.");
+    expect(text).toContain("Reparar após avaliação.");
+    expect(text).toContain("Testar pressão.");
+  });
   it("não marca itens novos como inspecionados", () => {
     expect(newInspection().length).toBe(8);
     expect(newInspection().every((item) => item.status === "pending")).toBe(true);

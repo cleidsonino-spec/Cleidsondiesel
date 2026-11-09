@@ -2,6 +2,7 @@ export const INSPECTION_STATUSES = [
   { value: "pending", label: "Não verificado" },
   { value: "ok", label: "Conforme" },
   { value: "attention", label: "Atenção" },
+  { value: "failed", label: "Reprovado" },
   { value: "na", label: "Não se aplica" },
 ] as const;
 

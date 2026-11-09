@@ -1,6 +1,8 @@
 # Roadmap — Cleidson Diesel
 
-- [ ] Checklist de inspeção salvo na ordem de serviço
+- [x] Itens reprovados e diagnóstico com recomendações por IA, revisados pelo mecânico
+
+- [x] Checklist de inspeção salvo na ordem de serviço
 - [ ] Logo no orçamento PDF e como marca d’água
 
 - [x] Site público (início, serviços)

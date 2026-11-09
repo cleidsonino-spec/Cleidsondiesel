@@ -13,6 +13,7 @@ import { formatBRL, ORDER_STATUSES, orderTotal, type OrderStatus } from "@/lib/s
 import { draftPartItems, parseMoney, partsTotal, type PartDraft } from "@/lib/parts";
 import { InspectionChecklist } from "@/components/painel/inspection-checklist";
 import type { InspectionItem } from "@/lib/inspection";
+import { InspectionDiagnosisAction } from "@/components/painel/inspection-diagnosis";
 export { parseMoney } from "@/lib/parts";
 
 export type OrderInput = Database["public"]["Tables"]["service_orders"]["Insert"];
@@ -129,6 +130,10 @@ export function OrderForm({
       </Section>
 
       <InspectionChecklist items={v.inspection_checklist} onChange={(items) => set("inspection_checklist", items)} />
+      <InspectionDiagnosisAction vehicle={v.vehicle} year={v.vehicle_year} complaint={v.complaint} items={v.inspection_checklist} onApply={(text) => {
+        if (v.diagnosis.trim() && !window.confirm("Substituir o diagnóstico atual pela sugestão revisada?")) return;
+        set("diagnosis", text);
+      }} />
 
       <Section title="Peças e valores">
         <div className="space-y-3 sm:col-span-2 lg:col-span-3">

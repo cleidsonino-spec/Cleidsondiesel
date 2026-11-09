@@ -31,6 +31,8 @@ use the editor.
 
 ## Project rules
 
+- Inspection AI runs through an admin-checked authenticated server function using the Gateway SDK; only technical draft fields are sent, and suggestions enter customer-facing diagnosis only after explicit mechanic review and normal save. Why: protect customer identity and avoid unreviewed or stale diagnoses.
+
 - Internal inspection checklists are stored as JSON on service orders, edited with the shared order form and printed with the OS, never exposed through public plate lookup. Why: keep inspection records private and tied to the serviced vehicle.
 - Quote PDFs embed the existing shop logo and a faint raster watermark on every page. Why: brand shared files without publishing customer documents or relying on remote images inside a PDF viewer.
 
