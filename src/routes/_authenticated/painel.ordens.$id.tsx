@@ -144,7 +144,8 @@ function OrdemPage() {
           onSubmit={async (input) => {
             const { error } = await supabase.from("service_orders").update(input).eq("id", id);
             if (error) {
-              toast.error("Não foi possível salvar.");
+              console.error("Erro ao atualizar OS:", error);
+              toast.error(`Falha ao salvar: ${error.message}`);
               return;
             }
             await qc.invalidateQueries({ queryKey: ["orders"] });
