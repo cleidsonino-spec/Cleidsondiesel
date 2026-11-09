@@ -30,6 +30,7 @@ import { formatBRL, orderStatusInfo, orderTotal } from "@/lib/status";
 import { quoteMessage, statusMessage, waLink } from "@/lib/whatsapp";
 
 type Order = Database["public"]["Tables"]["service_orders"]["Row"];
+type OrderWithWarranty = Order & { warranty_start_date?: string | null; warranty_end_date?: string | null };
 
 export const Route = createFileRoute("/_authenticated/painel/ordens/$id")({
   head: () => ({ meta: [
@@ -88,6 +89,8 @@ function OrdemPage() {
   const siteUrl = typeof window !== "undefined" ? window.location.origin : undefined;
   const quoteText = quoteMessage(order);
   const statusHref = waLink(order.phone, statusMessage(order, siteUrl));
+  const warrantyOrder = order as OrderWithWarranty;
+  const warrantyActive = !!warrantyOrder.warranty_end_date && warrantyOrder.warranty_end_date >= new Date().toISOString().slice(0, 10);
 
   async function remove() {
     const { error } = await supabase.from("service_orders").delete().eq("id", id);
@@ -114,6 +117,17 @@ function OrdemPage() {
 
       {/* WhatsApp */}
       <ApprovalActions order={order} />
+      {warrantyOrder.warranty_start_date && warrantyOrder.warranty_end_date && (
+        <section className="rounded-md border border-border bg-card p-4 print:hidden">
+          <p className="font-semibold">Garantia do serviço</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            De {formatDateBR(warrantyOrder.warranty_start_date)} até {formatDateBR(warrantyOrder.warranty_end_date)}
+          </p>
+          <p className={warrantyActive ? "mt-2 text-sm font-medium text-success" : "mt-2 text-sm font-medium text-destructive"}>
+            {warrantyActive ? "Garantia ativa" : "Garantia vencida"}
+          </p>
+        </section>
+      )}
       <div className="rounded-md border border-success/40 bg-success/10 p-4 print:hidden">
         <div className="mb-3 flex items-center gap-2">
           <MessageCircle className="size-5 text-success" />
@@ -178,12 +192,12 @@ function OrdemPage() {
         />
       </div>
 
-      <PrintSheet order={order} />
+      <PrintSheet order={warrantyOrder} />
     </div>
   );
 }
 
-function PrintSheet({ order: o }: { order: Order }) {
+function PrintSheet({ order: o }: { order: OrderWithWarranty }) {
   const rows: [string, string | null][] = [
     ["Cliente", o.customer_name],
     ["Telefone", o.phone],
@@ -192,6 +206,8 @@ function PrintSheet({ order: o }: { order: Order }) {
     ["Km", o.mileage],
     ["Entrada", formatDateBR(o.entry_date)],
     ["Previsão", formatDateBR(o.due_date)],
+    ["Início da garantia", formatDateBR(o.warranty_start_date ?? null)],
+    ["Garantia até", formatDateBR(o.warranty_end_date ?? null)],
     ["Status", orderStatusInfo(o.status).label],
   ];
   return (

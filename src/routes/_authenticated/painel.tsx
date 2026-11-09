@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { CalendarDays, ClipboardList, Download, ExternalLink, LogOut, Plus, ShieldAlert } from "lucide-react";
+import { CalendarDays, ClipboardList, Download, ExternalLink, LogOut, Plus, ShieldAlert, Users } from "lucide-react";
 
 import { Logo } from "@/components/site/logo";
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,7 @@ function PainelLayout() {
           <nav className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 pb-2">
             <PanelLink to="/painel" icon={<ClipboardList />} label="Ordens de serviço" exact />
             <PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" />
+            <PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" />
             <Button asChild size="sm" className="ml-auto shrink-0">
               <Link to="/painel/ordens/nova" search={{}}>
                 <Plus /> Nova OS
@@ -94,7 +95,7 @@ function PanelLink({
   label,
   exact,
 }: {
-  to: "/painel" | "/painel/agendamentos";
+  to: "/painel" | "/painel/agendamentos" | "/painel/clientes";
   icon: React.ReactNode;
   label: string;
   exact?: boolean;
