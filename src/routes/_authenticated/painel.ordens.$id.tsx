@@ -56,8 +56,8 @@ function toForm(o: Order): OrderFormValues {
     diagnosis: o.diagnosis ?? "",
     parts: o.parts ?? "",
     part_items: o.part_items == null
-      ? (Number(o.parts_value) ? [{ description: o.parts || "Peças (valor anterior)", value: money(o.parts_value) }] : [{ description: "", value: "" }])
-      : readPartItems(o.part_items).map((item) => ({ description: item.description, value: money(item.value) })),
+      ? (Number(o.parts_value) ? [{ description: o.parts || "Peças (valor anterior)", quantity: "1", unit_value: money(o.parts_value) }] : [{ description: "", quantity: "1", unit_value: "" }])
+      : readPartItems(o.part_items).map((item) => ({ description: item.description, quantity: String(item.quantity), unit_value: money(item.unit_value) })),
     labor_value: money(o.labor_value),
     status: o.status,
     entry_date: o.entry_date,
@@ -230,8 +230,8 @@ function PrintSheet({ order: o }: { order: Order }) {
         </div> : null;
       })()}
       {readPartItems(o.part_items).length > 0 && <table className="mt-4 w-full text-left">
-        <thead><tr className="border-b border-foreground"><th className="py-2">Peça</th><th className="py-2 text-right">Valor</th></tr></thead>
-        <tbody>{readPartItems(o.part_items).map((item, index) => <tr key={index}><td className="py-1">{item.description}</td><td className="text-right">{formatBRL(item.value)}</td></tr>)}</tbody>
+        <thead><tr className="border-b border-foreground"><th className="py-2">Peça</th><th className="py-2 text-right">Qtd.</th><th className="py-2 text-right">Unitário</th><th className="py-2 text-right">Total</th></tr></thead>
+        <tbody>{readPartItems(o.part_items).map((item, index) => <tr key={index}><td className="py-1">{item.description}</td><td className="text-right">{item.quantity}</td><td className="text-right">{formatBRL(item.unit_value)}</td><td className="text-right">{formatBRL(item.value)}</td></tr>)}</tbody>
       </table>}
       <div className="mt-6 ml-auto w-64 space-y-1 border-t border-foreground pt-2">
         <p className="flex justify-between">
