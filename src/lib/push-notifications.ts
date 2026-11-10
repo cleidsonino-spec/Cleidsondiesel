@@ -28,7 +28,9 @@ export async function startAdminPushNotifications() {
 
   try {
     let permission = await PushNotifications.checkPermissions();
-    if (permission.receive === "prompt") permission = await PushNotifications.requestPermissions();
+    if (permission.receive === "prompt" || permission.receive === "prompt-with-rationale") {
+      permission = await PushNotifications.requestPermissions();
+    }
     if (permission.receive === "granted") {
       await PushNotifications.register();
     }
