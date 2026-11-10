@@ -61,6 +61,8 @@ export type Database = {
       }
       customers: {
         Row: {
+          customer_type: string | null
+          document: string | null
           address: string | null
           created_at: string
           email: string | null
@@ -71,6 +73,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          customer_type?: string | null
+          document?: string | null
           address?: string | null
           created_at?: string
           email?: string | null
@@ -81,6 +85,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          customer_type?: string | null
+          document?: string | null
           address?: string | null
           created_at?: string
           email?: string | null
