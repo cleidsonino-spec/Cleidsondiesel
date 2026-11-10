@@ -43,13 +43,23 @@ function OrcamentosPage() {
     queryKey: ["quote-approvals", "all"],
     refetchInterval: 15000,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const fetchPage = (from: number) => supabase
         .from("quote_approvals")
         .select("id,token,state,expires_at,approved_at,approved_by,created_at,order_id,service_orders(id,number,customer_name,phone,vehicle,plate,status,parts_value,labor_value)")
         .order("created_at", { ascending: false })
-        .limit(500);
-      if (error) throw error;
-      return data;
+        .range(from, from + 499);
+      const first = await fetchPage(0);
+      if (first.error) throw first.error;
+      const all = [...first.data];
+      let from = 500;
+      while (first.data.length === 500) {
+        const page = await fetchPage(from);
+        if (page.error) throw page.error;
+        all.push(...page.data);
+        if (page.data.length < 500) break;
+        from += 500;
+      }
+      return all;
     },
   });
 
@@ -149,7 +159,6 @@ function OrcamentosPage() {
             </div>
           </article>;
         })}
-        {data.length >= 500 && <p className="text-center text-xs text-muted-foreground">Exibindo os 500 registros mais recentes.</p>}
       </div>}
   </div>;
 }
