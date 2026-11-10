@@ -25,6 +25,7 @@ import { isFullName, isValidCpf } from "@/lib/customer-identity";
 import { formatPlate, isValidPlate, normalizePlate } from "@/lib/plate";
 import { availableSlots, getSlotsForDate } from "@/lib/schedule";
 import { orderTotal } from "@/lib/status";
+import { canIssueWarranty, warrantyEndDate, warrantyState } from "@/lib/warranty";
 import { quoteMessage, toWhatsAppNumber, SHOP_WHATSAPP, appointmentShopLink, approvalShopLink } from "@/lib/whatsapp";
 
 describe("placas", () => {
@@ -127,5 +128,25 @@ describe("WhatsApp", () => {
     expect(toWhatsAppNumber("(71) 99999-0000")).toBe("5571999990000");
     expect(toWhatsAppNumber("+55 71 99999-0000")).toBe("5571999990000");
     expect(toWhatsAppNumber("1234")).toBeNull();
+  });
+});
+
+
+describe("garantia", () => {
+  it("só permite emitir quando a OS está pronta para retirada", () => {
+    expect(canIssueWarranty("pronto")).toBe(true);
+    for (const status of ["recebido", "em_analise", "aguardando_aprovacao", "em_servico", "entregue", "cancelado"]) {
+      expect(canIssueWarranty(status)).toBe(false);
+    }
+  });
+  it("calcula vencimento por mês-calendário, ajustando fim de mês e ano bissexto", () => {
+    expect(warrantyEndDate("2026-01-31", 1)).toBe("2026-02-28");
+    expect(warrantyEndDate("2024-01-31", 1)).toBe("2024-02-29");
+    expect(warrantyEndDate("2026-11-30", 3)).toBe("2027-02-28");
+  });
+  it("classifica garantias futuras, vigentes e vencidas", () => {
+    expect(warrantyState("2026-12-01", "2027-12-01", "2026-11-09")).toBe("A iniciar");
+    expect(warrantyState("2026-01-01", "2026-12-01", "2026-11-09")).toBe("Vigente");
+    expect(warrantyState("2025-01-01", "2025-12-31", "2026-11-09")).toBe("Vencida");
   });
 });
