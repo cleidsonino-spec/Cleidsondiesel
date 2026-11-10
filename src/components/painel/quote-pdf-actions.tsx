@@ -4,8 +4,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { createQuotePdf, downloadQuote } from "@/lib/quote-pdf";
+import { createQuotePdf, defaultQuotePdfOptions, downloadQuote, type QuotePdfOptions } from "@/lib/quote-pdf";
 import { waLink } from "@/lib/whatsapp";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -15,6 +16,8 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
   const [file, setFile] = useState<File | null>(null);
   const [failed, setFailed] = useState(false);
   const [preparedBy, setPreparedBy] = useState("");
+  const [options, setOptions] = useState<QuotePdfOptions>(defaultQuotePdfOptions);
+  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -33,13 +36,17 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
     let active = true;
     setFile(null);
     setFailed(false);
-    createQuotePdf(order, preparedBy).then((pdf) => {
+    createQuotePdf(order, preparedBy, options).then((pdf) => {
       if (active) setFile(pdf);
     }).catch(() => {
       if (active) { setFailed(true); toast.error("Não foi possível gerar o PDF. Reabra a ordem e tente novamente."); }
     });
     return () => { active = false; };
-  }, [order, preparedBy]);
+  }, [order, preparedBy, options]);
+
+  function updateOption<K extends keyof QuotePdfOptions>(key: K, value: QuotePdfOptions[K]) {
+    setOptions((current) => ({ ...current, [key]: value }));
+  }
 
   async function shareWithCustomer() {
     if (!file) return;
@@ -66,10 +73,38 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
   }
 
   return <>
-    <div className="mb-3 space-y-2">
-      <Label htmlFor="quote-prepared-by">Orçamento preparado por</Label>
-      <Input id="quote-prepared-by" value={preparedBy} onChange={(event) => setPreparedBy(event.target.value)} placeholder="Digite o nome de quem está preparando o orçamento" maxLength={100} />
-      <p className="text-xs text-muted-foreground">Esse nome aparecerá no PDF e na mensagem enviada ao cliente.</p>
+    <div className="mb-3 space-y-3">
+      <div className="space-y-2">
+        <Label htmlFor="quote-prepared-by">Orçamento preparado por</Label>
+        <Input id="quote-prepared-by" value={preparedBy} onChange={(event) => setPreparedBy(event.target.value)} placeholder="Nome do responsável" maxLength={100} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="quote-validity">Validade do orçamento (dias)</Label>
+        <Input id="quote-validity" type="number" min="1" max="90" value={options.validityDays} onChange={(event) => updateOption("validityDays", Math.min(90, Math.max(1, Number(event.target.value) || 1)))} />
+        <p className="text-xs text-muted-foreground">O PDF calcula automaticamente a data limite a partir da emissão. Padrão: 7 dias.</p>
+      </div>
+      <Button type="button" variant="outline" className="w-full" onClick={() => setShowDetails((value) => !value)}>
+        {showDetails ? "Ocultar condições e observações" : "Adicionar condições de pagamento e serviço"}
+      </Button>
+      {showDetails && <div className="space-y-3 rounded-md border border-border p-3">
+        <div className="space-y-2">
+          <Label htmlFor="quote-payment-terms">Condições de pagamento</Label>
+          <Textarea id="quote-payment-terms" value={options.paymentTerms} onChange={(event) => updateOption("paymentTerms", event.target.value)} rows={2} placeholder="Ex.: entrada de 50% e saldo na entrega." />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="quote-payment-methods">Formas de pagamento</Label>
+          <Input id="quote-payment-methods" value={options.paymentMethods} onChange={(event) => updateOption("paymentMethods", event.target.value)} placeholder="Informe apenas as formas aceitas pela oficina" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="quote-service-conditions">Condições do serviço</Label>
+          <Textarea id="quote-service-conditions" value={options.serviceConditions} onChange={(event) => updateOption("serviceConditions", event.target.value)} rows={3} placeholder="Garantias, itens não inclusos, condições para início do serviço..." />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="quote-observations">Observações para o cliente</Label>
+          <Textarea id="quote-observations" value={options.observations} onChange={(event) => updateOption("observations", event.target.value)} rows={3} placeholder="Informações adicionais que devem aparecer no orçamento." />
+        </div>
+      </div>}
+      <p className="text-xs text-muted-foreground">Os campos comerciais acima são aplicados ao PDF gerado nesta tela; não alteram o cadastro da OS.</p>
     </div>
     {message != null && <Button type="button" className="h-11" disabled={!file} onClick={sendQuote}>{!file && !failed ? <Loader2 className="animate-spin" /> : <FileText />} Enviar orçamento pelo WhatsApp</Button>}
     <Button type="button" variant="outline" className="h-11" disabled={!file} onClick={shareWithCustomer}><Share2 /> Compartilhar PDF com o cliente</Button>
