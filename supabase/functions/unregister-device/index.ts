@@ -7,16 +7,13 @@ Deno.serve(async (req) => {
     const { supabase, user } = await requireAdmin(req);
     const body = await req.json().catch(() => ({}));
     const token = typeof body?.token === "string" ? body.token.trim() : "";
+    if (token.length < 20 || token.length > 4096) return json({ error: "INVALID_TOKEN" }, 400);
     const { data, error } = await supabase.auth.admin.getUserById(user.id);
     if (error || !data.user) return json({ error: "USER_NOT_FOUND" }, 404);
     const metadata = { ...(data.user.app_metadata ?? {}) };
     const stored = Array.isArray(metadata.cleidson_diesel_fcm_tokens) ? metadata.cleidson_diesel_fcm_tokens : [];
-    if (!token) {
-      delete metadata.cleidson_diesel_fcm_tokens;
-    } else {
-      metadata.cleidson_diesel_fcm_tokens = stored.filter((value: unknown) => value !== token);
-      if (metadata.cleidson_diesel_fcm_tokens.length === 0) delete metadata.cleidson_diesel_fcm_tokens;
-    }
+    metadata.cleidson_diesel_fcm_tokens = stored.filter((value: unknown) => value !== token);
+    if (metadata.cleidson_diesel_fcm_tokens.length === 0) delete metadata.cleidson_diesel_fcm_tokens;
     const { error: updateError } = await supabase.auth.admin.updateUserById(user.id, { app_metadata: metadata });
     if (updateError) return json({ error: "TOKEN_REMOVE_FAILED" }, 500);
     return json({ unregistered: true });
