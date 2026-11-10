@@ -15,7 +15,7 @@ import { customerOrdersQuery } from "@/lib/queries";
 import { warrantiesQuery, warrantyState } from "@/lib/warranty";
 import { StatusBadge } from "@/components/site/status-badge";
 import { formatDateBR, todayISO } from "@/lib/schedule";
-import { formatBRL, orderStatusInfo, orderTotal } from "@/lib/status";
+import { formatBRL, orderStatusInfo, orderTotal, ORDER_STATUSES } from "@/lib/status";
 import { isValidPlate, normalizePlate, formatPlate } from "@/lib/plate";
 import { isValidCpf, isValidCnpj, formatCpf, formatCnpj } from "@/lib/customer-identity";
 
@@ -29,6 +29,10 @@ export function RegistryPage({ mode }: { mode: "customers" | "vehicles" }) {
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [historyCustomer, setHistoryCustomer] = useState<(typeof customers)[number] | null>(null);
+  const [historyStatus, setHistoryStatus] = useState("all");
+  const [historyPlate, setHistoryPlate] = useState("");
+  const [historyStartDate, setHistoryStartDate] = useState("");
+  const [historyEndDate, setHistoryEndDate] = useState("");
   const { data: historyOrders = [], isLoading: historyOrdersLoading, isError: historyOrdersError } = useQuery(customerOrdersQuery(historyCustomer?.id ?? ""));
   const [saving, setSaving] = useState(false);
   const qc = useQueryClient();
@@ -75,7 +79,14 @@ export function RegistryPage({ mode }: { mode: "customers" | "vehicles" }) {
       <DialogContent className="max-h-[90dvh] max-w-3xl overflow-y-auto">
         <DialogHeader><DialogTitle>Histórico do cliente</DialogTitle></DialogHeader>
         {historyCustomer && (() => {
-          const customerOrders = historyOrders;
+          const normalizedPlateFilter = normalizePlate(historyPlate);
+          const customerOrders = historyOrders.filter((order) => {
+            if (historyStatus !== "all" && order.status !== historyStatus) return false;
+            if (normalizedPlateFilter && !normalizePlate(order.plate).includes(normalizedPlateFilter)) return false;
+            if (historyStartDate && order.entry_date < historyStartDate) return false;
+            if (historyEndDate && order.entry_date > historyEndDate) return false;
+            return true;
+          });
           const customerOrderIds = new Set(customerOrders.map((order) => order.id));
           const customerWarranties = warranties.filter((warranty) => customerOrderIds.has(warranty.service_order_id));
           return <div className="space-y-6">
@@ -86,7 +97,14 @@ export function RegistryPage({ mode }: { mode: "customers" | "vehicles" }) {
               {historyCustomer.address && <p className="text-sm text-muted-foreground">{historyCustomer.address}</p>}
             </section>
             <section className="space-y-3">
-              <div className="flex items-center justify-between"><h3 className="font-semibold">Ordens de Serviço</h3><span className="text-sm text-muted-foreground">{customerOrders.length} registro(s)</span></div>
+              <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold">Ordens de Serviço</h3><span className="text-sm text-muted-foreground">{customerOrders.length} de {historyOrders.length} OS</span></div>
+              <div className="grid gap-3 rounded-md border border-border p-3 sm:grid-cols-2">
+                <div className="space-y-2"><Label htmlFor="history-status">Status da OS</Label><Select value={historyStatus} onValueChange={setHistoryStatus}><SelectTrigger id="history-status"><SelectValue placeholder="Todos os status" /></SelectTrigger><SelectContent><SelectItem value="all">Todos os status</SelectItem>{ORDER_STATUSES.map((status) => <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>)}</SelectContent></Select></div>
+                <div className="space-y-2"><Label htmlFor="history-plate">Placa do veículo</Label><Input id="history-plate" value={historyPlate} onChange={(e) => setHistoryPlate(e.target.value.toUpperCase())} placeholder="Digite a placa" /></div>
+                <div className="space-y-2"><Label htmlFor="history-start">Data inicial</Label><Input id="history-start" type="date" value={historyStartDate} max={historyEndDate || undefined} onChange={(e) => setHistoryStartDate(e.target.value)} /></div>
+                <div className="space-y-2"><Label htmlFor="history-end">Data final</Label><Input id="history-end" type="date" value={historyEndDate} min={historyStartDate || undefined} onChange={(e) => setHistoryEndDate(e.target.value)} /></div>
+                <div className="sm:col-span-2"><Button type="button" variant="outline" size="sm" onClick={() => { setHistoryStatus("all"); setHistoryPlate(""); setHistoryStartDate(""); setHistoryEndDate(""); }}>Limpar filtros</Button></div>
+              </div>
               {historyOrdersLoading ? <p className="rounded-md border border-dashed p-5 text-center text-sm text-muted-foreground">Carregando ordens de serviço…</p> : historyOrdersError ? <p className="rounded-md border border-dashed p-5 text-center text-sm text-destructive">Não foi possível carregar o histórico de OS. Tente novamente.</p> : customerOrders.length === 0 ? <p className="rounded-md border border-dashed p-5 text-center text-sm text-muted-foreground">Nenhuma OS vinculada a este cadastro.</p> :
                 <div className="divide-y rounded-md border border-border">
                   {customerOrders.map((order) => {
