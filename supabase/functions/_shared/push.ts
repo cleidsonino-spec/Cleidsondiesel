@@ -107,7 +107,7 @@ export async function sendToAdmins(title: string, body: string, route: string) {
             token,
             notification: { title, body },
             data: { route },
-            android: { priority: "HIGH", notification: { channel_id: "cleidson-diesel" } },
+            android: { priority: "HIGH" },
           },
         }),
       },
