@@ -23,7 +23,7 @@ export function warrantyState(start: string, end: string, today: string) {
 export const warrantiesQuery = () => queryOptions({
   queryKey: ["warranties"],
   queryFn: async () => {
-    const { data, error } = await supabase.from("warranties").select("*, service_orders(id, number, plate, vehicle, vehicle_year, customer_name, phone, complaint)").order("end_date", { ascending: false });
+    const { data, error } = await supabase.from("warranties").select("*, service_orders(id, number, plate, vehicle, vehicle_year, customer_id, customer_name, phone, complaint)").order("end_date", { ascending: false });
     if (error) throw error;
     return data;
   },
