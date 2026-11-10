@@ -40,7 +40,7 @@ export function WarrantyList() {
     expiring: rows.filter((r) => r.state === "Vigente" && r.remainingDays >= 0 && r.remainingDays <= 30).length,
   };
   const normalizedSearch = search.trim().toLocaleLowerCase("pt-BR");
-  const normalizedDocument = search.replace(/\\D/g, "");
+  const normalizedDocument = search.replace(/\D/g, "");
   const filtered = rows.filter(({ warranty: w, state, remainingDays, customer }) => {
     const matchesStatus = status === "Todas"
       || (status === "Vencendo em 30 dias" ? state === "Vigente" && remainingDays >= 0 && remainingDays <= 30 : state === status);
