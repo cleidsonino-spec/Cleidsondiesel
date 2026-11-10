@@ -4,6 +4,7 @@ import { CalendarDays, Car, Users, ShieldCheck, ClipboardList, Download, Externa
 import { Logo } from "@/components/site/logo";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { NotificationBell } from "@/components/painel/notifications";
 
 export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({
@@ -56,6 +57,7 @@ function PainelLayout() {
             <PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" />
             <PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" />
             <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />
+            <NotificationBell />
             <Button asChild size="sm" className="ml-auto shrink-0"><Link to="/painel/ordens/nova" search={{}}><Plus /> Nova OS</Link></Button>
           </nav>
         )}
