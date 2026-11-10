@@ -210,6 +210,47 @@ export type Database = {
         }
         Relationships: []
       }
+      warranties: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          duration_months: number
+          end_date: string
+          id: string
+          service_order_id: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          duration_months: number
+          end_date: string
+          id?: string
+          service_order_id: string
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          duration_months?: number
+          end_date?: string
+          id?: string
+          service_order_id?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warranties_service_order_id_fkey"
+            columns: ["service_order_id"]
+            isOneToOne: true
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
