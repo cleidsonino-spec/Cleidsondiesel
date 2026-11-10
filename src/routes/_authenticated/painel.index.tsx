@@ -72,6 +72,7 @@ function PainelIndex() {
       open: activeOrders.length,
       ready: ready.length,
       waiting: waiting.length,
+      waitingOrders: waiting.slice().sort((a, b) => b.updated_at.localeCompare(a.updated_at)),
       today: todayAppointments.length,
       expiring: expiringWarranties.length,
       todayAppointments,
@@ -106,6 +107,20 @@ function PainelIndex() {
         <Stat icon={<CheckCircle2 />} label="Prontos para retirada" value={stats.ready} href="/painel/" accent />
         <Stat icon={<CalendarClock />} label="Agendamentos de hoje" value={stats.today} href="/painel/agendamentos" />
       </section>
+
+      {stats.waitingOrders.length > 0 && <section className="space-y-3 rounded-md border border-warning/40 bg-warning/5 p-4" aria-label="Ordens aguardando autorização do cliente">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div><h2 className="font-semibold">Aguardando autorização do cliente</h2><p className="text-sm text-muted-foreground">{stats.waitingOrders.length} OS precisam de retorno do cliente.</p></div>
+          <a href="/painel/orcamentos" className="text-sm font-medium text-primary hover:underline">Consultar orçamentos</a>
+        </div>
+        <div className="divide-y divide-border">
+          {stats.waitingOrders.slice(0, 8).map((o) => <Link key={o.id} to="/painel/ordens/$id" params={{ id: o.id }} className="flex flex-wrap items-center justify-between gap-3 py-3 hover:text-primary">
+            <div className="min-w-0"><p className="font-medium">OS nº {o.number} · {o.customer_name}</p><p className="text-sm text-muted-foreground">{formatPlate(o.plate)} · {o.vehicle}</p></div>
+            <div className="flex items-center gap-3"><span className="text-sm font-medium">{formatBRL(orderTotal(o.parts_value, o.labor_value))}</span><StatusBadge tone="warning" label="Aguardando autorização" /></div>
+          </Link>)}
+        </div>
+        {stats.waitingOrders.length > 8 && <p className="text-xs text-muted-foreground">Exibindo as 8 OS mais recentes nessa situação.</p>}
+      </section>}
 
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-md border border-border bg-card p-4">
