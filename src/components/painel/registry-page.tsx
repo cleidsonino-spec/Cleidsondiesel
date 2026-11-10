@@ -15,7 +15,6 @@ import { ordersQuery } from "@/lib/queries";
 import { warrantiesQuery, warrantyState } from "@/lib/warranty";
 import { StatusBadge } from "@/components/site/status-badge";
 import { formatDateBR, todayISO } from "@/lib/schedule";
-import { formatPlate } from "@/lib/plate";
 import { formatBRL, orderStatusInfo, orderTotal } from "@/lib/status";
 import { isValidPlate, normalizePlate, formatPlate } from "@/lib/plate";
 import { isValidCpf, isValidCnpj, formatCpf, formatCnpj } from "@/lib/customer-identity";
