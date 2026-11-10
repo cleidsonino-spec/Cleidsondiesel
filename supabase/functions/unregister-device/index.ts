@@ -16,10 +16,8 @@ Deno.serve(async (req) => {
       metadata.cleidson_diesel_fcm_tokens = stored.filter((value: unknown) => value !== token);
       if (metadata.cleidson_diesel_fcm_tokens.length === 0) delete metadata.cleidson_diesel_fcm_tokens;
     }
-    if (true) {
-      const { error: updateError } = await supabase.auth.admin.updateUserById(user.id, { app_metadata: metadata });
-      if (updateError) return json({ error: "TOKEN_REMOVE_FAILED" }, 500);
-    }
+    const { error: updateError } = await supabase.auth.admin.updateUserById(user.id, { app_metadata: metadata });
+    if (updateError) return json({ error: "TOKEN_REMOVE_FAILED" }, 500);
     return json({ unregistered: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "UNKNOWN";
