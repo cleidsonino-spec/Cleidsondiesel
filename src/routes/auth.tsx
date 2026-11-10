@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { lovable } from "@/integrations/lovable";
+import { startNativeOAuth } from "@/lib/native-oauth";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/auth")({
@@ -66,11 +67,19 @@ function AuthPage() {
   }
 
   async function oauth(provider: "google" | "lovable") {
-    const redirectUri = Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android"
-      ? "br.com.cleidsondiesel.painel://auth/callback"
-      : window.location.origin + "/auth";
-    const result = await lovable.auth.signInWithOAuth(provider, { redirect_uri: redirectUri });
-    if (result.error) toast.error("Não foi possível entrar. Tente novamente.");
+    setLoading(true);
+    try {
+      if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android") {
+        await startNativeOAuth(provider);
+        return;
+      }
+      const result = await lovable.auth.signInWithOAuth(provider, { redirect_uri: window.location.origin + "/auth" });
+      if (result.error) toast.error("Não foi possível entrar. Tente novamente.");
+    } catch {
+      toast.error("Não foi possível iniciar o login. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
