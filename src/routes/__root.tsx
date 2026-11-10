@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import { App } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -138,10 +139,14 @@ function RootComponent() {
         console.error("[Auth] Não foi possível concluir o retorno do Google.", error);
       }
     };
-    const appUrlListener = App.addListener("appUrlOpen", ({ url }) => void handleOAuthUrl(url));
-    void App.getLaunchUrl().then(({ url }) => handleOAuthUrl(url)).catch((error) => {
-      console.error("[Auth] Não foi possível verificar o link inicial.", error);
-    });
+    const appUrlListener = Capacitor.isNativePlatform()
+      ? App.addListener("appUrlOpen", ({ url }) => void handleOAuthUrl(url))
+      : null;
+    if (Capacitor.isNativePlatform()) {
+      void App.getLaunchUrl().then(({ url }) => handleOAuthUrl(url)).catch((error) => {
+        console.error("[Auth] Não foi possível verificar o link inicial.", error);
+      });
+    }
 
     const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
@@ -152,7 +157,7 @@ function RootComponent() {
     return () => {
       active = false;
       data.subscription.unsubscribe();
-      void appUrlListener.then((listener) => listener.remove());
+      if (appUrlListener) void appUrlListener.then((listener) => listener.remove());
     };
   }, [router, queryClient]);
 
