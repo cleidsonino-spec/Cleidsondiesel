@@ -1,4 +1,4 @@
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, type PluginListenerHandle } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -6,7 +6,7 @@ export async function startAdminPushNotifications() {
   if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") return () => {};
 
   let active = true;
-  const listeners = [];
+  const listeners: PluginListenerHandle[] = [];
 
   const registration = await PushNotifications.addListener("registration", async ({ value }) => {
     if (!active) return;
