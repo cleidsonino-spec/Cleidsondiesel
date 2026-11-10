@@ -60,11 +60,33 @@ jobs:
           mkdir -p /tmp/capacitor-tools
           cd /tmp/capacitor-tools
           npm init -y
-          npm install --no-audit --no-fund typescript @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/assets @capacitor/push-notifications@7
+          npm install --no-audit --no-fund typescript @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/app@7 @capacitor/assets @capacitor/push-notifications@7
           ln -s /tmp/capacitor-tools/node_modules "$GITHUB_WORKSPACE/node_modules"
 
       - name: Add Android project
         run: npx cap add android
+
+      - name: Register Android OAuth deep link
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          path = "android/app/src/main/AndroidManifest.xml"
+          ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
+          ET.register_namespace("tools", "http://schemas.android.com/tools")
+          android = "{http://schemas.android.com/apk/res/android}"
+          tree = ET.parse(path)
+          root = tree.getroot()
+          app = root.find("application")
+          activity = next((node for node in app.findall("activity") if node.get(android + "name", "").endswith("MainActivity")), None)
+          if activity is None:
+              raise SystemExit("MainActivity not found in AndroidManifest.xml")
+          intent = ET.SubElement(activity, "intent-filter")
+          ET.SubElement(intent, "action", {android + "name": "android.intent.action.VIEW"})
+          ET.SubElement(intent, "category", {android + "name": "android.intent.category.DEFAULT"})
+          ET.SubElement(intent, "category", {android + "name": "android.intent.category.BROWSABLE"})
+          ET.SubElement(intent, "data", {android + "scheme": "br.com.cleidsondiesel.painel", android + "host": "auth", android + "path": "/callback"})
+          tree.write(path, encoding="utf-8", xml_declaration=True)
+          PY
 
       - name: Generate Android app icons
         run: npx capacitor-assets generate --android
