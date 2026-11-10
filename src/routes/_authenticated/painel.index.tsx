@@ -1,8 +1,8 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  ArrowUpRight, CalendarClock, CheckCircle2, ClipboardList, Clock3,
-  Plus, Search, ShieldAlert, ShieldCheck, Wrench,
+  ArrowUpRight, CalendarClock, CheckCircle2, ClipboardList,
+  Plus, Search, ShieldCheck, Wrench,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
