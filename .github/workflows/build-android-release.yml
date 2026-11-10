@@ -60,32 +60,31 @@ jobs:
           mkdir -p /tmp/capacitor-tools
           cd /tmp/capacitor-tools
           npm init -y
-          npm install --no-audit --no-fund typescript @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/app@7 @capacitor/assets @capacitor/push-notifications@7
+          npm install --no-audit --no-fund typescript @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/assets @capacitor/push-notifications@7 @capacitor/app@7 @capacitor/browser@7
           ln -s /tmp/capacitor-tools/node_modules "$GITHUB_WORKSPACE/node_modules"
 
       - name: Add Android project
         run: npx cap add android
 
-      - name: Register Android OAuth deep link
+      - name: Configure verified Android App Link
         run: |
           python3 - <<'PY'
-          import xml.etree.ElementTree as ET
-          path = "android/app/src/main/AndroidManifest.xml"
-          ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
-          ET.register_namespace("tools", "http://schemas.android.com/tools")
-          android = "{http://schemas.android.com/apk/res/android}"
-          tree = ET.parse(path)
-          root = tree.getroot()
-          app = root.find("application")
-          activity = next((node for node in app.findall("activity") if node.get(android + "name", "").endswith("MainActivity")), None)
-          if activity is None:
-              raise SystemExit("MainActivity not found in AndroidManifest.xml")
-          intent = ET.SubElement(activity, "intent-filter")
-          ET.SubElement(intent, "action", {android + "name": "android.intent.action.VIEW"})
-          ET.SubElement(intent, "category", {android + "name": "android.intent.category.DEFAULT"})
-          ET.SubElement(intent, "category", {android + "name": "android.intent.category.BROWSABLE"})
-          ET.SubElement(intent, "data", {android + "scheme": "br.com.cleidsondiesel.painel", android + "host": "auth", android + "path": "/callback"})
-          tree.write(path, encoding="utf-8", xml_declaration=True)
+          from pathlib import Path
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          content = manifest.read_text()
+          marker = "        </activity>"
+          intent_filter = """            <intent-filter android:autoVerify="true">
+                          <action android:name="android.intent.action.VIEW" />
+                          <category android:name="android.intent.category.DEFAULT" />
+                          <category android:name="android.intent.category.BROWSABLE" />
+                          <data android:scheme="https" android:host="cleidsondiesel.lovable.app" android:pathPrefix="/auth" />
+                      </intent-filter>
+          """
+          if 'android:host="cleidsondiesel.lovable.app"' not in content:
+              if marker not in content:
+                  raise SystemExit("Could not find MainActivity closing tag in AndroidManifest.xml")
+              content = content.replace(marker, intent_filter + marker, 1)
+              manifest.write_text(content)
           PY
 
       - name: Generate Android app icons
@@ -115,6 +114,14 @@ jobs:
         run: |
           echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/cleidson-release.jks"
           test -s "$RUNNER_TEMP/cleidson-release.jks"
+          APP_LINK_SHA256="$(keytool -list -v -keystore "$RUNNER_TEMP/cleidson-release.jks" -alias "$KEY_ALIAS" -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" | awk -F': ' '/SHA256:/{print $2; exit}')"
+          if [ -z "$APP_LINK_SHA256" ]; then
+            echo "::error::Could not read the release certificate SHA-256 fingerprint."
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/app-links"
+          printf '[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"br.com.cleidsondiesel.painel","sha256_cert_fingerprints":["%s"]}}]\n' "$APP_LINK_SHA256" > "$RUNNER_TEMP/app-links/assetlinks.json"
+          echo "Android App Links SHA-256: $APP_LINK_SHA256"
           cat >> android/app/build.gradle <<'GRADLE'
 
           android {
@@ -149,5 +156,6 @@ jobs:
           path: |
             android/app/build/outputs/apk/release/*.apk
             android/app/build/outputs/bundle/release/*.aab
+            ${{ runner.temp }}/app-links/assetlinks.json
           if-no-files-found: error
           retention-days: 30
