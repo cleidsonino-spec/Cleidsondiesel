@@ -23,6 +23,7 @@ import {
 } from "@/lib/status";
 import { formatPlate, normalizePlate } from "@/lib/plate";
 import { cn } from "@/lib/utils";
+import { NotificationCenter } from "@/components/painel/notifications";
 
 export const Route = createFileRoute("/_authenticated/painel/")({
   head: () => ({ meta: [
@@ -100,6 +101,8 @@ function PainelIndex() {
           <Link to="/painel/ordens/nova" search={{}}><Plus /> Nova ordem de serviço</Link>
         </Button>
       </div>
+
+      <NotificationCenter />
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Indicadores da oficina">
         <Stat icon={<Wrench />} label="Em andamento" value={stats.open} href="/painel/" />
