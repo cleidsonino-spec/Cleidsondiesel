@@ -10,7 +10,6 @@ async function sendTokenToWorker(path: "register" | "unregister", token: string)
   const accessToken = data.session?.access_token;
   if (!accessToken) throw new Error("AUTH_REQUIRED");
 
-  const { data: clientData } = await supabase.auth.getSession();
   const response = await fetch(`${PUSH_WORKER_URL}/${path}`, {
     method: "POST",
     headers: {
