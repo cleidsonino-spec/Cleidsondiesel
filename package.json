@@ -74,6 +74,7 @@
     "vite-tsconfig-paths": "^6.0.2",
     "zod": "^3.25.76",
     "@capacitor/core": "^7.4.3",
+    "@capacitor/app": "^7.0.2",
     "@capacitor/push-notifications": "^7.0.2"
   },
   "devDependencies": {
