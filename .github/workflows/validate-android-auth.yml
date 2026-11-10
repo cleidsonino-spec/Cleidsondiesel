@@ -1,6 +1,14 @@
 name: Validate Android auth changes
 
 on:
+  push:
+    branches:
+      - fix/android-persistent-auth-session
+    paths:
+      - "src/integrations/supabase/**"
+      - "package.json"
+      - "bun.lock"
+      - ".github/workflows/validate-android-auth.yml"
   pull_request:
     branches:
       - main
