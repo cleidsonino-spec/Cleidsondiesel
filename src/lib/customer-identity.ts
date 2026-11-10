@@ -21,25 +21,25 @@ export function formatCpf(cpf: string): string {
   return cpf.replace(/\D/g, "").slice(0, 11).replace(/^(\d{3})(\d)/, "$1.$2").replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3").replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3-$4");
 }
 
-/** Validates Brazilian CNPJ check digits; does not verify registration status. */
+/** Validates CNPJ check digits; does not verify Receita Federal registration. */
 export function isValidCnpj(cnpj: string): boolean {
-  if (!/^[\\d./ -]+$/.test(cnpj)) return false;
-  const digits = cnpj.replace(/\\D/g, "");
-  if (digits.length !== 14 || /^(\\d)\\1{13}$/.test(digits)) return false;
+  if (!/^[\d./ -]+$/.test(cnpj)) return false;
+  const digits = cnpj.replace(/\D/g, "");
+  if (digits.length !== 14 || /^(\d)\1{13}$/.test(digits)) return false;
   const calculate = (base: string, weights: number[]) => {
     const sum = weights.reduce((total, weight, index) => total + Number(base[index]) * weight, 0);
     const remainder = sum % 11;
     return remainder < 2 ? 0 : 11 - remainder;
   };
-  const first = calculate(digits.slice(0, 12), [5,4,3,2,9,8,7,6,5,4,3,2]);
-  const second = calculate(digits.slice(0, 12) + first, [6,5,4,3,2,9,8,7,6,5,4,3,2]);
+  const first = calculate(digits.slice(0, 12), [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  const second = calculate(digits.slice(0, 12) + first, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
   return first === Number(digits[12]) && second === Number(digits[13]);
 }
 
 export function formatCnpj(cnpj: string): string {
-  return cnpj.replace(/\\D/g, "").slice(0, 14)
-    .replace(/^(\\d{2})(\\d)/, "$1.$2")
-    .replace(/^(\\d{2})\\.(\\d{3})(\\d)/, "$1.$2.$3")
-    .replace(/(\\d{2})\\.(\\d{3})\\.(\\d{3})(\\d)/, "$1.$2.$3/$4")
-    .replace(/(\\d{2})\\.(\\d{3})\\.(\\d{3})\\/(\\d{4})(\\d)/, "$1.$2.$3/$4-$5");
+  return cnpj.replace(/\D/g, "").slice(0, 14)
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/(\d{2})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3/$4")
+    .replace(/(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, "$1.$2.$3/$4-$5");
 }
