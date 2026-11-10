@@ -9,8 +9,14 @@ Deno.serve(async (req) => {
     const { data, error } = await supabase.auth.admin.getUserById(user.id);
     if (error || !data.user) return json({ error: "USER_NOT_FOUND" }, 404);
     const metadata = { ...(data.user.app_metadata ?? {}) };
-    if (!token || metadata.cleidson_diesel_fcm_token === token) {
-      delete metadata.cleidson_diesel_fcm_token;
+    const stored = Array.isArray(metadata.cleidson_diesel_fcm_tokens) ? metadata.cleidson_diesel_fcm_tokens : [];
+    if (!token) {
+      delete metadata.cleidson_diesel_fcm_tokens;
+    } else {
+      metadata.cleidson_diesel_fcm_tokens = stored.filter((value: unknown) => value !== token);
+      if (metadata.cleidson_diesel_fcm_tokens.length === 0) delete metadata.cleidson_diesel_fcm_tokens;
+    }
+    if (true) {
       const { error: updateError } = await supabase.auth.admin.updateUserById(user.id, { app_metadata: metadata });
       if (updateError) return json({ error: "TOKEN_REMOVE_FAILED" }, 500);
     }
