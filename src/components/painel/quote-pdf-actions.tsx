@@ -59,7 +59,7 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
   function sendQuote() {
     if (!file) return;
     downloadQuote(file);
-    const text = [message ?? "", preparedBy ? `Orçamento preparado por: ${preparedBy}` : ""].filter(Boolean).join("\\n\\n");
+    const text = [message ?? "", preparedBy ? `Orçamento preparado por: ${preparedBy}` : ""].filter(Boolean).join("\n\n");
     const href = waLink(order.phone, text);
     if (href) { window.open(href, "_blank", "noopener,noreferrer"); toast.success("PDF baixado e WhatsApp do cliente aberto. Anexe o PDF na conversa."); }
     else toast.error("PDF baixado, mas falta um telefone válido com DDD na ordem de serviço.");
