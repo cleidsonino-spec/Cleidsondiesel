@@ -1,30 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { newInspection, readInspection } from "@/lib/inspection";
-import { diagnosisText, inspectionDiagnosisInput } from "@/lib/inspection-diagnosis";
+import { readInspectionData, writeInspectionData } from "@/lib/inspection";
+import { inspectionDiagnosisInput } from "@/lib/inspection-diagnosis";
 
 describe("inspeção", () => {
-  it("preserva itens reprovados e observações do mecânico", () => {
-    expect(readInspection([{ id: "pump", label: "Bomba", status: "failed", notes: "Vazamento de combustível" }])[0]).toEqual({ id: "pump", label: "Bomba", status: "failed", notes: "Vazamento de combustível" });
+  it("preserva itens reprovados e observações", () => {
+    const data = { failedItems: "Bomba com vazamento", observations: "Pressão baixa" };
+    expect(readInspectionData(writeInspectionData(data))).toEqual(data);
   });
-  it("exige achados ou observações antes de gerar diagnóstico", () => {
-    const input = { vehicle: "Hilux", vehicle_year: "2015", complaint: "", items: [{ label: "Bomba", status: "pending", notes: "" }] };
+  it("mantém achados dos checklists antigos", () => {
+    expect(readInspectionData([{ label: "Bomba", status: "failed", notes: "Vazamento" }])).toEqual({ failedItems: "Bomba", observations: "Bomba: Vazamento" });
+    expect(readInspectionData(null)).toEqual({ failedItems: "", observations: "" });
+  });
+  it("exige achados ou observações para IA", () => {
+    const input = { vehicle: "Hilux", vehicle_year: "2015", complaint: "", failed_items: "", observations: "" };
     expect(inspectionDiagnosisInput.safeParse(input).success).toBe(false);
-    expect(inspectionDiagnosisInput.safeParse({ ...input, items: [{ label: "Bomba", status: "failed", notes: "Vazamento" }] }).success).toBe(true);
-  });
-  it("diagnóstico aplicado mantém recomendações e verificações para o cliente", () => {
-    const text = diagnosisText({ diagnosis: "Vazamento observado.", recommendations: ["Reparar após avaliação."], checks: ["Testar pressão."] });
-    expect(text).toContain("Vazamento observado.");
-    expect(text).toContain("Reparar após avaliação.");
-    expect(text).toContain("Testar pressão.");
-  });
-  it("não marca itens novos como inspecionados", () => {
-    expect(newInspection().length).toBe(8);
-    expect(newInspection().every((item) => item.status === "pending")).toBe(true);
-  });
-  it("preserva resultado e observações salvos e não inventa resultados", () => {
-    expect(readInspection([{ id: "pump", label: "Bomba", status: "attention", notes: "Vazamento" }])).toEqual([{ id: "pump", label: "Bomba", status: "attention", notes: "Vazamento" }]);
-    expect(readInspection(null)).toEqual([]);
-    expect(readInspection([{ id: "pump", label: "Bomba", status: "unknown" }])[0]?.status).toBe("pending");
+    expect(inspectionDiagnosisInput.safeParse({ ...input, failed_items: "Vazamento" }).success).toBe(true);
   });
 });
 
@@ -84,10 +74,10 @@ describe("orçamento", () => {
     expect(quoteRows({ part_items: [{ description: "Kit", value: 125.50 }, { description: "Bico", value: 250.25 }], parts_value: 375.75, labor_value: 100 })).toEqual([{ description: "Kit", value: 125.50 }, { description: "Bico", value: 250.25 }, { description: "Mão de obra", value: 100 }]);
   });
   it("soma todas as peças em centavos e recalcula ao remover", () => {
-    const items = draftPartItems([{ description: "Kit", value: "125,50" }, { description: "Bico", value: "250,25" }, { description: "", value: "" }]);
+    const items = draftPartItems([{ description: "Kit", quantity: "1", unit_value: "125,50" }, { description: "Bico", quantity: "1", unit_value: "250,25" }, { description: "", quantity: "1", unit_value: "" }]);
     expect(partsTotal(items)).toBe(375.75);
     expect(partsTotal(items.slice(1))).toBe(250.25);
-    expect(partsTotal([{ description: "A", value: 0.1 }, { description: "B", value: 0.2 }])).toBe(0.3);
+    expect(partsTotal([{ description: "A", quantity: 1, unit_value: 0.1, value: 0.1 }, { description: "B", quantity: 1, unit_value: 0.2, value: 0.2 }])).toBe(0.3);
   });
   it("total = peças + mão de obra", () => {
     expect(orderTotal(1250.5, "300")).toBe(1550.5);

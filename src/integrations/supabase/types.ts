@@ -59,6 +59,39 @@ export type Database = {
         }
         Relationships: []
       }
+      customers: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       quote_approvals: {
         Row: {
           approved_at: string | null
@@ -112,6 +145,7 @@ export type Database = {
           complaint: string
           created_at: string
           created_by: string | null
+          customer_id: string | null
           customer_name: string
           diagnosis: string | null
           due_date: string | null
@@ -130,6 +164,7 @@ export type Database = {
           status: Database["public"]["Enums"]["order_status"]
           updated_at: string
           vehicle: string
+          vehicle_id: string | null
           vehicle_year: string | null
         }
         Insert: {
@@ -137,6 +172,7 @@ export type Database = {
           complaint: string
           created_at?: string
           created_by?: string | null
+          customer_id?: string | null
           customer_name: string
           diagnosis?: string | null
           due_date?: string | null
@@ -155,6 +191,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["order_status"]
           updated_at?: string
           vehicle: string
+          vehicle_id?: string | null
           vehicle_year?: string | null
         }
         Update: {
@@ -162,6 +199,7 @@ export type Database = {
           complaint?: string
           created_at?: string
           created_by?: string | null
+          customer_id?: string | null
           customer_name?: string
           diagnosis?: string | null
           due_date?: string | null
@@ -180,6 +218,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["order_status"]
           updated_at?: string
           vehicle?: string
+          vehicle_id?: string | null
           vehicle_year?: string | null
         }
         Relationships: [
@@ -188,6 +227,20 @@ export type Database = {
             columns: ["appointment_id"]
             isOneToOne: false
             referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_orders_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
@@ -210,8 +263,53 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicles: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          mileage: string | null
+          model: string
+          notes: string | null
+          plate: string
+          updated_at: string
+          year: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          mileage?: string | null
+          model: string
+          notes?: string | null
+          plate: string
+          updated_at?: string
+          year?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          mileage?: string | null
+          model?: string
+          notes?: string | null
+          plate?: string
+          updated_at?: string
+          year?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       warranties: {
         Row: {
+          coverage: string
           created_at: string
           created_by: string | null
           duration_months: number
@@ -219,9 +317,11 @@ export type Database = {
           id: string
           service_order_id: string
           start_date: string
+          terms: string
           updated_at: string
         }
         Insert: {
+          coverage?: string
           created_at?: string
           created_by?: string | null
           duration_months: number
@@ -229,9 +329,11 @@ export type Database = {
           id?: string
           service_order_id: string
           start_date: string
+          terms?: string
           updated_at?: string
         }
         Update: {
+          coverage?: string
           created_at?: string
           created_by?: string | null
           duration_months?: number
@@ -239,6 +341,7 @@ export type Database = {
           id?: string
           service_order_id?: string
           start_date?: string
+          terms?: string
           updated_at?: string
         }
         Relationships: [

@@ -13,21 +13,21 @@ export function readInspectionData(value: unknown): InspectionData {
       const item = entry as Record<string, unknown>;
 
       // Formato atual: array exigido pela constraint do banco, com campos separados.
-      if (item.id === "failed-items") {
-        const text = typeof item.notes === "string" ? item.notes : item.label;
+      if (item['id'] === "failed-items") {
+        const text = typeof item['notes'] === "string" ? item['notes'] : item['label'];
         if (typeof text === "string" && text.trim()) failedItems.push(text.trim());
         continue;
       }
-      if (item.id === "inspection-observations") {
-        if (typeof item.notes === "string" && item.notes.trim()) observations.push(item.notes.trim());
+      if (item['id'] === "inspection-observations") {
+        if (typeof item['notes'] === "string" && item['notes'].trim()) observations.push(item['notes'].trim());
         continue;
       }
 
       // Compatibilidade com o checklist antigo.
-      if (typeof item.label !== "string") continue;
-      if (item.status === "failed") failedItems.push(item.label);
-      if (typeof item.notes === "string" && item.notes.trim()) {
-        observations.push(`${item.label}: ${item.notes.trim()}`);
+      if (typeof item['label'] !== "string") continue;
+      if (item['status'] === "failed") failedItems.push(item['label']);
+      if (typeof item['notes'] === "string" && item['notes'].trim()) {
+        observations.push(`${item['label']}: ${item['notes'].trim()}`);
       }
     }
     return { failedItems: failedItems.join("\n"), observations: observations.join("\n") };
@@ -37,8 +37,8 @@ export function readInspectionData(value: unknown): InspectionData {
   if (value && typeof value === "object") {
     const data = value as Record<string, unknown>;
     return {
-      failedItems: typeof data.failedItems === "string" ? data.failedItems : "",
-      observations: typeof data.observations === "string" ? data.observations : "",
+      failedItems: typeof data['failedItems'] === "string" ? data['failedItems'] : "",
+      observations: typeof data['observations'] === "string" ? data['observations'] : "",
     };
   }
 

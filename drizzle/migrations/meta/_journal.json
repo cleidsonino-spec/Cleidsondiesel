@@ -43,6 +43,13 @@
       "when": 1794109499642,
       "tag": "0005_order_inspection_checklist",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794272807818,
+      "tag": "0006_customers_vehicles_and_warranty_module",
+      "breakpoints": true
     }
   ]
 }

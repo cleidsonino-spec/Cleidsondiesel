@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { OrderForm, type OrderFormValues } from "@/components/painel/order-form";
 import { QuotePdfActions } from "@/components/painel/quote-pdf-actions";
 import { ApprovalActions } from "@/components/painel/approval-actions";
+import { WarrantyEditor } from "@/components/painel/warranty-editor";
+import { warrantiesQuery } from "@/lib/warranty";
 import { StatusBadge } from "@/components/site/status-badge";
 import {
   AlertDialog,
@@ -39,13 +41,15 @@ export const Route = createFileRoute("/_authenticated/painel/ordens/$id")({
     { property: "og:description", content: "Peças, orçamento e acompanhamento da ordem de serviço." },
     { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
   ] }),
-  loader: ({ context, params }) => context.queryClient.ensureQueryData(orderQuery(params.id)),
+  loader: async ({ context, params }) => { await Promise.all([context.queryClient.ensureQueryData(orderQuery(params.id)), context.queryClient.ensureQueryData(warrantiesQuery())]); },
   component: OrdemPage,
 });
 
 function toForm(o: Order): OrderFormValues {
   const money = (n: number) => (Number(n) ? Number(n).toFixed(2).replace(".", ",") : "");
   return {
+    customer_id: o.customer_id ?? "",
+    vehicle_id: o.vehicle_id ?? "",
     plate: o.plate,
     customer_name: o.customer_name,
     phone: o.phone ?? "",
@@ -178,6 +182,7 @@ function OrdemPage() {
         />
       </div>
 
+      <WarrantyEditor orderId={id} />
       <PrintSheet order={order} />
     </div>
   );

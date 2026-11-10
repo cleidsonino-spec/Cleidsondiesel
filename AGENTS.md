@@ -31,6 +31,9 @@ use the editor.
 
 ## Project rules
 
+- Customer and vehicle registries are admin-only; orders keep nullable registry links and independent historical snapshots, validated together in the database. Why: reuse registrations without rewriting past quotes or exposing contacts publicly.
+- Warranties belong to saved orders; the shop explicitly enters duration, start, coverage and terms, with database-derived calendar-month expiry and private printable certificates. Why: keep dates consistent without inventing a warranty policy.
+
 - Inspection AI runs through an admin-checked authenticated server function using the Gateway SDK; only technical draft fields are sent, and suggestions enter customer-facing diagnosis only after explicit mechanic review and normal save. Why: protect customer identity and avoid unreviewed or stale diagnoses.
 
 - Internal inspection checklists are stored as JSON on service orders, edited with the shared order form and printed with the OS, never exposed through public plate lookup. Why: keep inspection records private and tied to the serviced vehicle.

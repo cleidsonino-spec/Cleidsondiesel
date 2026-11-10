@@ -21,7 +21,7 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
     supabase.auth.getUser().then(({ data }) => {
       const user = data.user;
       const metadata = user?.user_metadata ?? {};
-      const name = [metadata.full_name, metadata.name, metadata.display_name].find(
+      const name = [metadata['full_name'], metadata['name'], metadata['display_name']].find(
         (value) => typeof value === "string" && value.trim(),
       );
       if (active) {

@@ -38,15 +38,15 @@ export function readPartItems(value: unknown): PartItem[] {
   return value.flatMap((raw) => {
     if (!raw || typeof raw !== "object") return [];
     const item = raw as Record<string, unknown>;
-    if (typeof item.description !== "string") return [];
-    const quantity = typeof item.quantity === "number" && Number.isFinite(item.quantity) && item.quantity > 0 ? item.quantity : 1;
-    const unitValue = typeof item.unit_value === "number" && Number.isFinite(item.unit_value) && item.unit_value >= 0
-      ? item.unit_value
-      : typeof item.value === "number" && Number.isFinite(item.value) && item.value >= 0 ? item.value : 0;
-    const value = typeof item.value === "number" && Number.isFinite(item.value) && item.quantity == null
-      ? item.value
+    if (typeof item['description'] !== "string") return [];
+    const quantity = typeof item['quantity'] === "number" && Number.isFinite(item['quantity']) && item['quantity'] > 0 ? item['quantity'] : 1;
+    const unitValue = typeof item['unit_value'] === "number" && Number.isFinite(item['unit_value']) && item['unit_value'] >= 0
+      ? item['unit_value']
+      : typeof item['value'] === "number" && Number.isFinite(item['value']) && item['value'] >= 0 ? item['value'] : 0;
+    const value = typeof item['value'] === "number" && Number.isFinite(item['value']) && item['quantity'] == null
+      ? item['value']
       : lineTotal(quantity, unitValue);
-    return [{ description: item.description, quantity, unit_value: unitValue, value }];
+    return [{ description: item['description'], quantity, unit_value: unitValue, value }];
   });
 }
 

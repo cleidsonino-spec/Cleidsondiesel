@@ -1,5 +1,8 @@
 # Roadmap — Cleidson Diesel
 
+- [ ] Cadastro de clientes e veículos integrado às ordens de serviço
+- [ ] Emissão, consulta e impressão de garantias com prazo definido pela oficina
+
 - [x] Itens reprovados e diagnóstico com recomendações por IA, revisados pelo mecânico
 
 - [x] Checklist de inspeção salvo na ordem de serviço

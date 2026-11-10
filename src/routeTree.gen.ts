@@ -19,6 +19,11 @@ import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated
 import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
 import { Route as AuthenticatedPainelIndexRouteImport } from './routes/_authenticated/painel.index'
 import { Route as AuthenticatedPainelAgendamentosRouteImport } from './routes/_authenticated/painel.agendamentos'
+import { Route as AuthenticatedPainelClientesRouteImport } from './routes/_authenticated/painel.clientes'
+import { Route as AuthenticatedPainelGarantiasRouteImport } from './routes/_authenticated/painel.garantias'
+import { Route as AuthenticatedPainelVeiculosRouteImport } from './routes/_authenticated/painel.veiculos'
+import { Route as AuthenticatedPainelGarantiasIndexRouteImport } from './routes/_authenticated/painel.garantias.index'
+import { Route as AuthenticatedPainelGarantiasIdRouteImport } from './routes/_authenticated/painel.garantias.$id'
 import { Route as AuthenticatedPainelOrdensIdRouteImport } from './routes/_authenticated/painel.ordens.$id'
 import { Route as AuthenticatedPainelOrdensNovaRouteImport } from './routes/_authenticated/painel.ordens.nova'
 
@@ -73,6 +78,36 @@ const AuthenticatedPainelAgendamentosRoute =
     path: '/agendamentos',
     getParentRoute: () => AuthenticatedPainelRoute,
   } as any)
+const AuthenticatedPainelClientesRoute =
+  AuthenticatedPainelClientesRouteImport.update({
+    id: '/clientes',
+    path: '/clientes',
+    getParentRoute: () => AuthenticatedPainelRoute,
+  } as any)
+const AuthenticatedPainelGarantiasRoute =
+  AuthenticatedPainelGarantiasRouteImport.update({
+    id: '/garantias',
+    path: '/garantias',
+    getParentRoute: () => AuthenticatedPainelRoute,
+  } as any)
+const AuthenticatedPainelVeiculosRoute =
+  AuthenticatedPainelVeiculosRouteImport.update({
+    id: '/veiculos',
+    path: '/veiculos',
+    getParentRoute: () => AuthenticatedPainelRoute,
+  } as any)
+const AuthenticatedPainelGarantiasIndexRoute =
+  AuthenticatedPainelGarantiasIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedPainelGarantiasRoute,
+  } as any)
+const AuthenticatedPainelGarantiasIdRoute =
+  AuthenticatedPainelGarantiasIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedPainelGarantiasRoute,
+  } as any)
 const AuthenticatedPainelOrdensIdRoute =
   AuthenticatedPainelOrdensIdRouteImport.update({
     id: '/ordens/$id',
@@ -95,9 +130,14 @@ export interface FileRoutesByFullPath {
   '/painel': typeof AuthenticatedPainelRouteWithChildren
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
+  '/painel/clientes': typeof AuthenticatedPainelClientesRoute
+  '/painel/garantias': typeof AuthenticatedPainelGarantiasRouteWithChildren
+  '/painel/veiculos': typeof AuthenticatedPainelVeiculosRoute
   '/painel/': typeof AuthenticatedPainelIndexRoute
+  '/painel/garantias/$id': typeof AuthenticatedPainelGarantiasIdRoute
   '/painel/ordens/$id': typeof AuthenticatedPainelOrdensIdRoute
   '/painel/ordens/nova': typeof AuthenticatedPainelOrdensNovaRoute
+  '/painel/garantias/': typeof AuthenticatedPainelGarantiasIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -107,9 +147,13 @@ export interface FileRoutesByTo {
   '/servicos': typeof ServicosRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
+  '/painel/clientes': typeof AuthenticatedPainelClientesRoute
+  '/painel/veiculos': typeof AuthenticatedPainelVeiculosRoute
   '/painel': typeof AuthenticatedPainelIndexRoute
+  '/painel/garantias/$id': typeof AuthenticatedPainelGarantiasIdRoute
   '/painel/ordens/$id': typeof AuthenticatedPainelOrdensIdRoute
   '/painel/ordens/nova': typeof AuthenticatedPainelOrdensNovaRoute
+  '/painel/garantias': typeof AuthenticatedPainelGarantiasIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -122,9 +166,14 @@ export interface FileRoutesById {
   '/_authenticated/painel': typeof AuthenticatedPainelRouteWithChildren
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/_authenticated/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
+  '/_authenticated/painel/clientes': typeof AuthenticatedPainelClientesRoute
+  '/_authenticated/painel/garantias': typeof AuthenticatedPainelGarantiasRouteWithChildren
+  '/_authenticated/painel/veiculos': typeof AuthenticatedPainelVeiculosRoute
   '/_authenticated/painel/': typeof AuthenticatedPainelIndexRoute
+  '/_authenticated/painel/garantias/$id': typeof AuthenticatedPainelGarantiasIdRoute
   '/_authenticated/painel/ordens/$id': typeof AuthenticatedPainelOrdensIdRoute
   '/_authenticated/painel/ordens/nova': typeof AuthenticatedPainelOrdensNovaRoute
+  '/_authenticated/painel/garantias/': typeof AuthenticatedPainelGarantiasIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -137,9 +186,14 @@ export interface FileRouteTypes {
     | '/painel'
     | '/orcamento/$token'
     | '/painel/agendamentos'
+    | '/painel/clientes'
+    | '/painel/garantias'
+    | '/painel/veiculos'
     | '/painel/'
+    | '/painel/garantias/$id'
     | '/painel/ordens/$id'
     | '/painel/ordens/nova'
+    | '/painel/garantias/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -149,9 +203,13 @@ export interface FileRouteTypes {
     | '/servicos'
     | '/orcamento/$token'
     | '/painel/agendamentos'
+    | '/painel/clientes'
+    | '/painel/veiculos'
     | '/painel'
+    | '/painel/garantias/$id'
     | '/painel/ordens/$id'
     | '/painel/ordens/nova'
+    | '/painel/garantias'
   id:
     | '__root__'
     | '/'
@@ -163,9 +221,14 @@ export interface FileRouteTypes {
     | '/_authenticated/painel'
     | '/orcamento/$token'
     | '/_authenticated/painel/agendamentos'
+    | '/_authenticated/painel/clientes'
+    | '/_authenticated/painel/garantias'
+    | '/_authenticated/painel/veiculos'
     | '/_authenticated/painel/'
+    | '/_authenticated/painel/garantias/$id'
     | '/_authenticated/painel/ordens/$id'
     | '/_authenticated/painel/ordens/nova'
+    | '/_authenticated/painel/garantias/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -250,6 +313,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPainelAgendamentosRouteImport
       parentRoute: typeof AuthenticatedPainelRoute
     }
+    '/_authenticated/painel/clientes': {
+      id: '/_authenticated/painel/clientes'
+      path: '/clientes'
+      fullPath: '/painel/clientes'
+      preLoaderRoute: typeof AuthenticatedPainelClientesRouteImport
+      parentRoute: typeof AuthenticatedPainelRoute
+    }
+    '/_authenticated/painel/garantias': {
+      id: '/_authenticated/painel/garantias'
+      path: '/garantias'
+      fullPath: '/painel/garantias'
+      preLoaderRoute: typeof AuthenticatedPainelGarantiasRouteImport
+      parentRoute: typeof AuthenticatedPainelRoute
+    }
+    '/_authenticated/painel/veiculos': {
+      id: '/_authenticated/painel/veiculos'
+      path: '/veiculos'
+      fullPath: '/painel/veiculos'
+      preLoaderRoute: typeof AuthenticatedPainelVeiculosRouteImport
+      parentRoute: typeof AuthenticatedPainelRoute
+    }
+    '/_authenticated/painel/garantias/': {
+      id: '/_authenticated/painel/garantias/'
+      path: '/'
+      fullPath: '/painel/garantias/'
+      preLoaderRoute: typeof AuthenticatedPainelGarantiasIndexRouteImport
+      parentRoute: typeof AuthenticatedPainelGarantiasRoute
+    }
+    '/_authenticated/painel/garantias/$id': {
+      id: '/_authenticated/painel/garantias/$id'
+      path: '/$id'
+      fullPath: '/painel/garantias/$id'
+      preLoaderRoute: typeof AuthenticatedPainelGarantiasIdRouteImport
+      parentRoute: typeof AuthenticatedPainelGarantiasRoute
+    }
     '/_authenticated/painel/ordens/$id': {
       id: '/_authenticated/painel/ordens/$id'
       path: '/ordens/$id'
@@ -267,8 +365,28 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedPainelGarantiasRouteChildren {
+  AuthenticatedPainelGarantiasIdRoute: typeof AuthenticatedPainelGarantiasIdRoute
+  AuthenticatedPainelGarantiasIndexRoute: typeof AuthenticatedPainelGarantiasIndexRoute
+}
+
+const AuthenticatedPainelGarantiasRouteChildren: AuthenticatedPainelGarantiasRouteChildren =
+  {
+    AuthenticatedPainelGarantiasIdRoute: AuthenticatedPainelGarantiasIdRoute,
+    AuthenticatedPainelGarantiasIndexRoute:
+      AuthenticatedPainelGarantiasIndexRoute,
+  }
+
+const AuthenticatedPainelGarantiasRouteWithChildren =
+  AuthenticatedPainelGarantiasRoute._addFileChildren(
+    AuthenticatedPainelGarantiasRouteChildren,
+  )
+
 interface AuthenticatedPainelRouteChildren {
   AuthenticatedPainelAgendamentosRoute: typeof AuthenticatedPainelAgendamentosRoute
+  AuthenticatedPainelClientesRoute: typeof AuthenticatedPainelClientesRoute
+  AuthenticatedPainelGarantiasRoute: typeof AuthenticatedPainelGarantiasRouteWithChildren
+  AuthenticatedPainelVeiculosRoute: typeof AuthenticatedPainelVeiculosRoute
   AuthenticatedPainelIndexRoute: typeof AuthenticatedPainelIndexRoute
   AuthenticatedPainelOrdensIdRoute: typeof AuthenticatedPainelOrdensIdRoute
   AuthenticatedPainelOrdensNovaRoute: typeof AuthenticatedPainelOrdensNovaRoute
@@ -276,6 +394,10 @@ interface AuthenticatedPainelRouteChildren {
 
 const AuthenticatedPainelRouteChildren: AuthenticatedPainelRouteChildren = {
   AuthenticatedPainelAgendamentosRoute: AuthenticatedPainelAgendamentosRoute,
+  AuthenticatedPainelClientesRoute: AuthenticatedPainelClientesRoute,
+  AuthenticatedPainelGarantiasRoute:
+    AuthenticatedPainelGarantiasRouteWithChildren,
+  AuthenticatedPainelVeiculosRoute: AuthenticatedPainelVeiculosRoute,
   AuthenticatedPainelIndexRoute: AuthenticatedPainelIndexRoute,
   AuthenticatedPainelOrdensIdRoute: AuthenticatedPainelOrdensIdRoute,
   AuthenticatedPainelOrdensNovaRoute: AuthenticatedPainelOrdensNovaRoute,
