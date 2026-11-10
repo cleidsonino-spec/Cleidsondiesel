@@ -126,12 +126,13 @@ export function NotificationCenter() {
         <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-card">
           {notifications.map((item) => {
             const Icon = item.icon === "warranty" ? ShieldAlert : item.icon === "appointment" ? CalendarClock : item.icon === "ready" ? CheckCircle2 : item.priority === "urgent" ? ClockAlert : Wrench;
+            const href = item.href === "/painel/ordens/$id" ? `/painel/ordens/${item.params?.id}` : item.href === "/painel/garantias/$id" ? `/painel/garantias/${item.params?.id}` : item.href;
             return (
-              <Link key={item.id} to={item.href} params={item.params} className="flex flex-wrap items-center gap-3 p-4 transition-colors hover:bg-secondary/60">
+              <a key={item.id} href={href} className="flex flex-wrap items-center gap-3 p-4 transition-colors hover:bg-secondary/60">
                 <span className={`flex size-10 shrink-0 items-center justify-center rounded-full ${item.priority === "urgent" ? "bg-destructive/10 text-destructive" : item.priority === "warning" ? "bg-warning/10 text-warning" : "bg-secondary text-muted-foreground"}`}><Icon className="size-5" /></span>
                 <span className="min-w-0 flex-1"><span className="block font-medium">{item.title}</span><span className="block truncate text-sm text-muted-foreground">{item.detail}</span></span>
                 <span className="text-xs text-muted-foreground">{formatDateBR(item.date)}</span>
-              </Link>
+              </a>
             );
           })}
         </div>
