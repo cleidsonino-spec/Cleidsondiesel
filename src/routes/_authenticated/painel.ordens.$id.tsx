@@ -182,7 +182,7 @@ function OrdemPage() {
         />
       </div>
 
-      <WarrantyEditor orderId={id} />
+      <WarrantyEditor orderId={id} orderStatus={order.status} />
       <PrintSheet order={order} />
     </div>
   );
