@@ -90,8 +90,10 @@ export async function sendToAdmins(title: string, body: string, route: string) {
   for (const item of roles ?? []) {
     const { data, error: userError } = await supabase.auth.admin.getUserById(item.user_id);
     if (userError || !data.user) continue;
-    const token = data.user.app_metadata?.cleidson_diesel_fcm_token;
-    if (typeof token === "string" && token.length > 20) tokens.add(token);
+    const stored = data.user.app_metadata?.cleidson_diesel_fcm_tokens;
+    if (Array.isArray(stored)) {
+      for (const token of stored) if (typeof token === "string" && token.length > 20) tokens.add(token);
+    }
   }
 
   const results = await Promise.all([...tokens].map(async (token) => {
