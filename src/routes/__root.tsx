@@ -9,12 +9,11 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { App } from "@capacitor/app";
-import { Capacitor } from "@capacitor/core";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
+import { initializeNativeOAuthCallback } from "@/lib/native-oauth";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -122,43 +121,21 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
-    let active = true;
-    const handleOAuthUrl = async (rawUrl?: string) => {
-      if (!rawUrl || !active) return;
-      try {
-        const callback = new URL(rawUrl);
-        if (callback.protocol !== "br.com.cleidsondiesel.painel:" || callback.hostname !== "auth" || callback.pathname !== "/callback") return;
-        const params = new URLSearchParams(callback.hash.replace(/^#/, ""));
-        const access_token = params.get("access_token");
-        const refresh_token = params.get("refresh_token");
-        if (!access_token || !refresh_token) return;
-        const { error } = await supabase.auth.setSession({ access_token, refresh_token });
-        if (error) throw error;
-        if (active) await router.navigate({ to: "/painel" });
-      } catch (error) {
-        console.error("[Auth] Não foi possível concluir o retorno do Google.", error);
-      }
-    };
-    const appUrlListener = Capacitor.isNativePlatform()
-      ? App.addListener("appUrlOpen", ({ url }) => void handleOAuthUrl(url))
-      : null;
-    if (Capacitor.isNativePlatform()) {
-      void App.getLaunchUrl().then(({ url }) => handleOAuthUrl(url)).catch((error) => {
-        console.error("[Auth] Não foi possível verificar o link inicial.", error);
-      });
-    }
+    let dispose: (() => void) | undefined;
+    void initializeNativeOAuthCallback().then((cleanup) => {
+      dispose = cleanup;
+    });
+    return () => dispose?.();
+  }, []);
 
+  useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
       else queryClient.clear();
     });
-    return () => {
-      active = false;
-      data.subscription.unsubscribe();
-      if (appUrlListener) void appUrlListener.then((listener) => listener.remove());
-    };
+    return () => data.subscription.unsubscribe();
   }, [router, queryClient]);
 
   return (

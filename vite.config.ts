@@ -12,4 +12,13 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Cloudflare's dashboard runs npx wrangler preview after the Nitro build.
+  // Wrangler requires a previews block for that command.
+  nitro: {
+    cloudflare: {
+      wrangler: {
+        previews: {},
+      },
+    },
+  },
 });
