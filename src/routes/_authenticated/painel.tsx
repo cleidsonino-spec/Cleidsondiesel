@@ -1,10 +1,12 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { CalendarDays, Car, Users, ShieldCheck, ClipboardList, Download, ExternalLink, FileText, LogOut, Plus, ShieldAlert } from "lucide-react";
 
 import { Logo } from "@/components/site/logo";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationBell } from "@/components/painel/notifications";
+import { startAdminPushNotifications, unregisterAdminPushDevice } from "@/lib/push-notifications";
 
 export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({
@@ -29,7 +31,22 @@ function PainelLayout() {
   const { isAdmin, user } = Route.useRouteContext();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (!isAdmin) return;
+    let cancelled = false;
+    let stop: (() => void) | undefined;
+    void startAdminPushNotifications().then((cleanup) => {
+      if (cancelled) cleanup();
+      else stop = cleanup;
+    }).catch(() => console.error("[Push] Falha ao iniciar notificações."));
+    return () => {
+      cancelled = true;
+      stop?.();
+    };
+  }, [isAdmin]);
+
   async function signOut() {
+    try { await unregisterAdminPushDevice(); } catch { /* O encerramento da sessão não deve depender da rede. */ }
     await supabase.auth.signOut();
     navigate({ to: "/auth" });
   }
