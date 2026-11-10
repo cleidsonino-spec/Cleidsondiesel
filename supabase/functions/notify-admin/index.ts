@@ -1,4 +1,4 @@
-import { json, sendToAdmins } from "../_shared/push.ts";
+import { corsHeaders, json, sendToAdmins } from "../_shared/push.ts";
 
 const messages = (table: string, event: string, record: Record<string, unknown>, old: Record<string, unknown>) => {
   if (table === "appointments" && event === "INSERT") {
@@ -17,6 +17,7 @@ const messages = (table: string, event: string, record: Record<string, unknown>,
 };
 
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "METHOD_NOT_ALLOWED" }, 405);
   const secret = Deno.env.get("PUSH_WEBHOOK_SECRET");
   if (!secret || req.headers.get("x-webhook-secret") !== secret) return json({ error: "UNAUTHORIZED" }, 401);
