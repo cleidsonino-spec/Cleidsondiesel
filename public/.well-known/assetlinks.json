@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "br.com.cleidsondiesel.painel",
+      "sha256_cert_fingerprints": [
+        "6C:39:81:F8:D7:DD:B6:70:41:85:58:17:11:A5:2E:E7:7B:C9:F2:D6:19:5E:DB:77:C1:A2:5E:5F:85:2D:8B:B9"
+      ]
+    }
+  }
+]
