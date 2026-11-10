@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Car, Pencil, Plus, Search, Trash2, Users, Save, History } from "lucide-react";
 import { toast } from "sonner";
@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { customersQuery, vehiclesQuery } from "@/lib/registry";
-import { ordersQuery } from "@/lib/queries";
+import { customerOrdersQuery } from "@/lib/queries";
 import { warrantiesQuery, warrantyState } from "@/lib/warranty";
 import { StatusBadge } from "@/components/site/status-badge";
 import { formatDateBR, todayISO } from "@/lib/schedule";
@@ -25,11 +25,11 @@ const blank: Draft = { name: "", phone: "", email: "", address: "", notes: "", c
 export function RegistryPage({ mode }: { mode: "customers" | "vehicles" }) {
   const { data: customers } = useSuspenseQuery(customersQuery());
   const { data: vehicles } = useSuspenseQuery(vehiclesQuery());
-  const { data: orders } = useSuspenseQuery(ordersQuery());
   const { data: warranties } = useSuspenseQuery(warrantiesQuery());
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [historyCustomer, setHistoryCustomer] = useState<(typeof customers)[number] | null>(null);
+  const { data: historyOrders = [], isLoading: historyOrdersLoading, isError: historyOrdersError } = useQuery(customerOrdersQuery(historyCustomer?.id ?? ""));
   const [saving, setSaving] = useState(false);
   const qc = useQueryClient();
   const isCustomer = mode === "customers";
@@ -75,7 +75,7 @@ export function RegistryPage({ mode }: { mode: "customers" | "vehicles" }) {
       <DialogContent className="max-h-[90dvh] max-w-3xl overflow-y-auto">
         <DialogHeader><DialogTitle>Histórico do cliente</DialogTitle></DialogHeader>
         {historyCustomer && (() => {
-          const customerOrders = orders.filter((order) => order.customer_id === historyCustomer.id).sort((a, b) => b.number - a.number);
+          const customerOrders = historyOrders;
           const customerOrderIds = new Set(customerOrders.map((order) => order.id));
           const customerWarranties = warranties.filter((warranty) => customerOrderIds.has(warranty.service_order_id));
           return <div className="space-y-6">
@@ -87,7 +87,7 @@ export function RegistryPage({ mode }: { mode: "customers" | "vehicles" }) {
             </section>
             <section className="space-y-3">
               <div className="flex items-center justify-between"><h3 className="font-semibold">Ordens de Serviço</h3><span className="text-sm text-muted-foreground">{customerOrders.length} registro(s)</span></div>
-              {customerOrders.length === 0 ? <p className="rounded-md border border-dashed p-5 text-center text-sm text-muted-foreground">Nenhuma OS vinculada a este cadastro.</p> :
+              {historyOrdersLoading ? <p className="rounded-md border border-dashed p-5 text-center text-sm text-muted-foreground">Carregando ordens de serviço…</p> : historyOrdersError ? <p className="rounded-md border border-dashed p-5 text-center text-sm text-destructive">Não foi possível carregar o histórico de OS. Tente novamente.</p> : customerOrders.length === 0 ? <p className="rounded-md border border-dashed p-5 text-center text-sm text-muted-foreground">Nenhuma OS vinculada a este cadastro.</p> :
                 <div className="divide-y rounded-md border border-border">
                   {customerOrders.map((order) => {
                     const info = orderStatusInfo(order.status);
