@@ -69,8 +69,6 @@ export async function createQuotePdf(o: Order, preparedBy = "", options: QuotePd
   function header(continued = false) {
     const markWidth = Math.min(118, 118 / ratio);
     pdf.addImage(watermark, "PNG", (210 - markWidth) / 2, (297 - markWidth * ratio) / 2, markWidth, markWidth * ratio, "watermark", "FAST");
-    pdf.setFillColor(255, 255, 255);
-    pdf.roundedRect(10, 10, 190, 277, 3, 3, "F");
     pdf.setDrawColor(220); pdf.setLineWidth(0.35);
     pdf.roundedRect(10, 10, 190, 277, 3, 3, "S");
     const logoWidth = Math.min(29, 29 / ratio);
