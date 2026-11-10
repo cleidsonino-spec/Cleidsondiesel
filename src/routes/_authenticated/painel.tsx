@@ -60,7 +60,7 @@ function PainelLayout() {
         </div>
         {isAdmin && (
           <nav className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 pb-2">
-            <PanelLink to="/painel" icon={<ClipboardList />} label="Ordens de serviço" exact />
+            <PanelLink to="/painel" icon={<ClipboardList />} label="Visão geral" exact />
             <PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" />
             <PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" />
             <PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" />
