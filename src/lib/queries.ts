@@ -52,3 +52,25 @@ export const appointmentQuery = (id: string) =>
       return data;
     },
   });
+
+
+export const customerOrdersQuery = (customerId: string) =>
+  queryOptions({
+    queryKey: ["orders", "customer", customerId],
+    enabled: Boolean(customerId),
+    queryFn: async () => {
+      const pageSize = 500;
+      const allOrders = [];
+      for (let offset = 0; ; offset += pageSize) {
+        const { data, error } = await supabase
+          .from("service_orders")
+          .select("*")
+          .eq("customer_id", customerId)
+          .order("number", { ascending: false })
+          .range(offset, offset + pageSize - 1);
+        if (error) throw error;
+        allOrders.push(...data);
+        if (data.length < pageSize) return allOrders;
+      }
+    },
+  });
