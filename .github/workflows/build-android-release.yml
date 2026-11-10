@@ -60,7 +60,7 @@ jobs:
           mkdir -p /tmp/capacitor-tools
           cd /tmp/capacitor-tools
           npm init -y
-          npm install --no-audit --no-fund typescript @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/assets @capacitor/push-notifications@7 @capacitor/app@7 @capacitor/browser@7
+          npm install --no-audit --no-fund typescript @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/assets @capacitor/push-notifications@7 @capacitor/app@7 @capacitor/browser@7 @capacitor/preferences@7.0.3
           ln -s /tmp/capacitor-tools/node_modules "$GITHUB_WORKSPACE/node_modules"
 
       - name: Add Android project

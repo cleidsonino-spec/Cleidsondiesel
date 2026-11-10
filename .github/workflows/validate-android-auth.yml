@@ -1,0 +1,38 @@
+name: Validate Android auth changes
+
+on:
+  push:
+    branches:
+      - fix/android-persistent-auth-session
+    paths:
+      - "src/integrations/supabase/**"
+      - "package.json"
+      - "bun.lock"
+      - ".github/workflows/validate-android-auth.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/integrations/supabase/**"
+      - "package.json"
+      - "bun.lock"
+      - ".github/workflows/validate-android-auth.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies from lockfile
+        run: bun install --frozen-lockfile
+
+      - name: Build web app
+        run: bun run build
