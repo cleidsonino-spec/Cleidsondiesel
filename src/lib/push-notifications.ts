@@ -2,7 +2,29 @@ import { Capacitor, type PluginListenerHandle } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { supabase } from "@/integrations/supabase/client";
 
+const PUSH_WORKER_URL = "https://cleidson-diesel-push.cleidsonino.workers.dev";
 let currentFcmToken: string | null = null;
+
+async function sendTokenToWorker(path: "register" | "unregister", token: string) {
+  const { data } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
+  if (!accessToken) throw new Error("AUTH_REQUIRED");
+
+  const { data: clientData } = await supabase.auth.getSession();
+  const response = await fetch(`${PUSH_WORKER_URL}/${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "",
+    },
+    body: JSON.stringify({ token }),
+  });
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    throw new Error(typeof result.error === "string" ? result.error : "PUSH_REGISTRATION_FAILED");
+  }
+}
 
 export async function startAdminPushNotifications() {
   if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") return () => {};
@@ -13,8 +35,11 @@ export async function startAdminPushNotifications() {
   const registration = await PushNotifications.addListener("registration", async ({ value }) => {
     if (!active) return;
     currentFcmToken = value;
-    const { error } = await supabase.functions.invoke("register-device", { body: { token: value } });
-    if (error) console.error("[Push] Não foi possível registrar este aparelho.");
+    try {
+      await sendTokenToWorker("register", value);
+    } catch {
+      console.error("[Push] Não foi possível registrar este aparelho.");
+    }
   });
   listeners.push(registration);
 
@@ -31,9 +56,7 @@ export async function startAdminPushNotifications() {
     if (permission.receive === "prompt" || permission.receive === "prompt-with-rationale") {
       permission = await PushNotifications.requestPermissions();
     }
-    if (permission.receive === "granted") {
-      await PushNotifications.register();
-    }
+    if (permission.receive === "granted") await PushNotifications.register();
   } catch {
     console.error("[Push] Não foi possível ativar notificações neste aparelho.");
   }
@@ -48,6 +71,10 @@ export async function unregisterAdminPushDevice() {
   if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") return;
   const token = currentFcmToken;
   if (!token) return;
-  const { error } = await supabase.functions.invoke("unregister-device", { body: { token } });
-  if (!error) currentFcmToken = null;
+  try {
+    await sendTokenToWorker("unregister", token);
+    currentFcmToken = null;
+  } catch {
+    console.error("[Push] Não foi possível remover este aparelho.");
+  }
 }
