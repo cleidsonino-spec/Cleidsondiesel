@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Loader2, Lock } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
+import { Capacitor } from "@capacitor/core";
 import { toast } from "sonner";
 import "@lovable.dev/cloud-auth-js/styles.css";
 
@@ -65,7 +66,10 @@ function AuthPage() {
   }
 
   async function oauth(provider: "google" | "lovable") {
-    const result = await lovable.auth.signInWithOAuth(provider, { redirect_uri: window.location.origin + "/auth" });
+    const redirectUri = Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android"
+      ? "br.com.cleidsondiesel.painel://auth/callback"
+      : window.location.origin + "/auth";
+    const result = await lovable.auth.signInWithOAuth(provider, { redirect_uri: redirectUri });
     if (result.error) toast.error("Não foi possível entrar. Tente novamente.");
   }
 
