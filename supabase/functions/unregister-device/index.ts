@@ -1,6 +1,7 @@
-import { json, requireAdmin } from "../_shared/push.ts";
+import { corsHeaders, json, requireAdmin } from "../_shared/push.ts";
 
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "METHOD_NOT_ALLOWED" }, 405);
   try {
     const { supabase, user } = await requireAdmin(req);
