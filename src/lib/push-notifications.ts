@@ -2,6 +2,8 @@ import { Capacitor, type PluginListenerHandle } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { supabase } from "@/integrations/supabase/client";
 
+let currentFcmToken: string | null = null;
+
 export async function startAdminPushNotifications() {
   if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") return () => {};
 
@@ -10,6 +12,7 @@ export async function startAdminPushNotifications() {
 
   const registration = await PushNotifications.addListener("registration", async ({ value }) => {
     if (!active) return;
+    currentFcmToken = value;
     const { error } = await supabase.functions.invoke("register-device", { body: { token: value } });
     if (error) console.error("[Push] Não foi possível registrar este aparelho.");
   });
@@ -25,7 +28,9 @@ export async function startAdminPushNotifications() {
 
   try {
     let permission = await PushNotifications.checkPermissions();
-    if (permission.receive === "prompt") permission = await PushNotifications.requestPermissions();
+    if (permission.receive === "prompt" || permission.receive === "prompt-with-rationale") {
+      permission = await PushNotifications.requestPermissions();
+    }
     if (permission.receive === "granted") {
       await PushNotifications.register();
     }
@@ -41,5 +46,8 @@ export async function startAdminPushNotifications() {
 
 export async function unregisterAdminPushDevice() {
   if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") return;
-  await supabase.functions.invoke("unregister-device", { body: {} });
+  const token = currentFcmToken;
+  if (!token) return;
+  const { error } = await supabase.functions.invoke("unregister-device", { body: { token } });
+  if (!error) currentFcmToken = null;
 }
