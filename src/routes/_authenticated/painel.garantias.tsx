@@ -44,7 +44,7 @@ export function WarrantyList() {
   const filtered = rows.filter(({ warranty: w, state, remainingDays, customer }) => {
     const matchesStatus = status === "Todas"
       || (status === "Vencendo em 30 dias" ? state === "Vigente" && remainingDays >= 0 && remainingDays <= 30 : state === status);
-    const searchable = `${w.service_orders?.customer_name ?? ""} ${w.service_orders?.phone ?? ""} ${w.service_orders?.plate ?? ""} ${formatPlate(w.service_orders?.plate ?? "")} ${w.service_orders?.number ?? ""} ${customer?.document ?? ""} ${customer?.name ?? ""}`.toLocaleLowerCase("pt-BR");
+    const searchable = `${w.service_orders?.customer_name ?? ""} ${w.service_orders?.phone ?? ""} ${w.service_orders?.plate ?? ""} ${formatPlate(w.service_orders?.plate ?? "")} ${normalizePlate(w.service_orders?.plate ?? "")} ${w.service_orders?.number ?? ""} ${customer?.document ?? ""} ${customer?.name ?? ""}`.toLocaleLowerCase("pt-BR");
     const matchesText = searchable.includes(normalizedSearch) || (normalizedDocument.length > 0 && (customer?.document ?? "").includes(normalizedDocument));
     return matchesStatus && matchesText;
   });
