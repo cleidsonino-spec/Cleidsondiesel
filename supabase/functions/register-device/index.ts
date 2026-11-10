@@ -12,7 +12,13 @@ Deno.serve(async (req) => {
     if (error || !data.user) return json({ error: "USER_NOT_FOUND" }, 404);
     const metadata = data.user.app_metadata ?? {};
     const { error: updateError } = await supabase.auth.admin.updateUserById(user.id, {
-      app_metadata: { ...metadata, cleidson_diesel_fcm_token: token },
+      app_metadata: {
+        ...metadata,
+        cleidson_diesel_fcm_tokens: [...new Set([
+          ...(Array.isArray(metadata.cleidson_diesel_fcm_tokens) ? metadata.cleidson_diesel_fcm_tokens.filter((value: unknown) => typeof value === "string") : []),
+          token,
+        ])].slice(-10),
+      },
     });
     if (updateError) return json({ error: "TOKEN_SAVE_FAILED" }, 500);
     return json({ registered: true });
