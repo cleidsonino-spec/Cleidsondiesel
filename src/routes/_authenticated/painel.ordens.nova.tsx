@@ -105,8 +105,10 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
             return;
           }
           if (appointmentId) {
-            await supabase.from("appointments").update({ status: "concluido" }).eq("id", appointmentId);
-            qc.invalidateQueries({ queryKey: ["appointments"] });
+            const client = supabase as any;
+            const { error: appointmentError } = await client.rpc("secretaria_complete_appointment", { _appointment_id: appointmentId });
+            if (appointmentError) toast.error("OS criada, mas não foi possível concluir o agendamento: " + appointmentError.message);
+            await qc.invalidateQueries({ queryKey: ["appointments"] });
           }
           await qc.invalidateQueries({ queryKey: ["orders"] });
           toast.success(`OS nº ${data.number} aberta!`);
