@@ -22,10 +22,10 @@ import { isValidCpf, isValidCnpj, formatCpf, formatCnpj } from "@/lib/customer-i
 type Draft = { id?: string; name: string; phone: string; email: string; address: string; notes: string; customer_type: string; document: string; customer_id: string; plate: string; model: string; year: string; mileage: string };
 const blank: Draft = { name: "", phone: "", email: "", address: "", notes: "", customer_type: "pf", document: "", customer_id: "", plate: "", model: "", year: "", mileage: "" };
 
-export function RegistryPage({ mode, readOnly = false, canDelete = true }: { mode: "customers" | "vehicles"; readOnly?: boolean; canDelete?: boolean }) {
+export function RegistryPage({ mode, readOnly = false, canDelete = true, includeWarranties = false }: { mode: "customers" | "vehicles"; readOnly?: boolean; canDelete?: boolean; includeWarranties?: boolean }) {
   const { data: customers } = useSuspenseQuery(customersQuery());
   const { data: vehicles } = useSuspenseQuery(vehiclesQuery());
-  const { data: warranties } = useSuspenseQuery(warrantiesQuery());
+  const { data: warranties = [] } = useQuery({ ...warrantiesQuery(), enabled: includeWarranties });
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [historyCustomer, setHistoryCustomer] = useState<(typeof customers)[number] | null>(null);
