@@ -28,7 +28,7 @@ type MechanicProductionRow = {
 
 const countsKey = ["mechanic-service-counts"];
 
-export function MechanicProduction() {
+export function MechanicProduction({ canReset = false }: { canReset?: boolean }) {
   const queryClient = useQueryClient();
 
   const productionQuery = useQuery({
@@ -71,30 +71,32 @@ export function MechanicProduction() {
             Acompanhe os serviços atribuídos e os procedimentos registrados por cada mecânico.
           </p>
         </div>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" disabled={resetMutation.isPending}>
-              <RotateCcw className="size-4" /> Zerar contagem
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Zerar a produção de todos os mecânicos?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Os números exibidos começarão do zero a partir de agora. As ordens de serviço e todos os registros técnicos antigos serão preservados.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction
-                disabled={resetMutation.isPending}
-                onClick={() => resetMutation.mutate()}
-              >
-                {resetMutation.isPending ? "Reiniciando..." : "Sim, zerar contagem"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {canReset && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" disabled={resetMutation.isPending}>
+                <RotateCcw className="size-4" /> Zerar contagem
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Zerar a produção de todos os mecânicos?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Os números exibidos começarão do zero a partir de agora. As ordens de serviço e todos os registros técnicos antigos serão preservados.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={resetMutation.isPending}
+                  onClick={() => resetMutation.mutate()}
+                >
+                  {resetMutation.isPending ? "Reiniciando..." : "Sim, zerar contagem"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       {productionQuery.isPending ? (
