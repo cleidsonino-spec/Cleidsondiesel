@@ -31,3 +31,6 @@ jobs:
 
       - name: Executar testes
         run: bun run test
+
+      - name: Verificar build de produção
+        run: bun run build
