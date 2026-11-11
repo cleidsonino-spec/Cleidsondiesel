@@ -11,7 +11,12 @@ import { customersQuery } from "@/lib/registry";
 import { formatDateBR, todayISO } from "@/lib/schedule";
 import { formatPlate, normalizePlate } from "@/lib/plate";
 
-export const Route = createFileRoute("/_authenticated/painel/garantias")({ component: () => <Outlet /> });
+export const Route = createFileRoute("/_authenticated/painel/garantias")({
+  beforeLoad: ({ context }) => {
+    if (!context.isAdmin && !context.isSecretaria) throw redirect({ to: "/painel" });
+  },
+  component: () => <Outlet />,
+});
 
 function daysUntil(date: string, today: string) {
   const [y, m, d] = date.split("-").map(Number);
