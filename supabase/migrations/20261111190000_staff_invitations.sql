@@ -9,7 +9,8 @@ create table if not exists public.staff_invitations (
   created_at timestamptz not null default now(),
   expires_at timestamptz not null,
   used_at timestamptz,
-  revoked_at timestamptz
+  revoked_at timestamptz,
+  accepted_user_id uuid references auth.users(id) on delete set null
 );
 
 create index if not exists staff_invitations_status_idx
@@ -58,7 +59,7 @@ begin
   end if;
 
   update public.staff_invitations
-     set used_at = now()
+     set used_at = now(), accepted_user_id = new.id
    where id = v_invitation.id;
 
   insert into public.user_roles (user_id, role)
