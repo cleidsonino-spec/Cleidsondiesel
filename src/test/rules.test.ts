@@ -72,7 +72,7 @@ describe("orçamento", () => {
     expect(isValidCpf("123")).toBe(false);
   });
   it("PDF mantém os valores individuais das peças e mão de obra", () => {
-    expect(quoteRows({ part_items: [{ description: "Kit", value: 125.50 }, { description: "Bico", value: 250.25 }], parts_value: 375.75, labor_value: 100 })).toEqual([{ description: "Kit", value: 125.50 }, { description: "Bico", value: 250.25 }, { description: "Mão de obra", value: 100 }]);
+    expect(quoteRows({ part_items: [{ description: "Kit", value: 125.50 }, { description: "Bico", value: 250.25 }], parts_value: 375.75, labor_value: 100 })).toEqual([{ description: "Kit", quantity: 1, unit_value: 125.50, value: 125.50 }, { description: "Bico", quantity: 1, unit_value: 250.25, value: 250.25 }, { description: "Mão de obra", quantity: 1, unit_value: 100, value: 100 }]);
   });
   it("soma todas as peças em centavos e recalcula ao remover", () => {
     const items = draftPartItems([{ description: "Kit", quantity: "1", unit_value: "125,50" }, { description: "Bico", quantity: "1", unit_value: "250,25" }, { description: "", quantity: "1", unit_value: "" }]);
