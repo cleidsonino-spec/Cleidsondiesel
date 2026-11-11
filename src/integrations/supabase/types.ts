@@ -423,6 +423,7 @@ export type Database = {
         | "recebido"
         | "em_analise"
         | "aguardando_aprovacao"
+        | "aprovado_aguardando_encaminhamento"
         | "em_servico"
         | "pronto"
         | "entregue"
