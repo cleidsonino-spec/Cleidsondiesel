@@ -88,7 +88,7 @@ function PainelLayout() {
               <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />
               <PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" />
               <PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" />
-              {isAdmin && <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />}
+              {isAdmin && <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />}\n              {isAdmin && <PanelLink to="/painel/equipe" icon={<Users />} label="Equipe" />}
               <NotificationBell />
               <Button asChild size="sm" className="ml-auto shrink-0"><Link to="/painel/ordens/nova" search={{}}><Plus /> Nova OS</Link></Button>
             </>}
@@ -109,7 +109,7 @@ function PainelLayout() {
 }
 
 function PanelLink({ to, icon, label, exact }: {
-  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias";
+  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias" | "/painel/equipe";
   icon: React.ReactNode;
   label: string;
   exact?: boolean;
