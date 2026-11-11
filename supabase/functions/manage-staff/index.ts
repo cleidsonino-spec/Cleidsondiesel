@@ -44,8 +44,8 @@ async function listStaff(supabase: ReturnType<typeof adminClient>) {
       if (role !== "secretaria" && role !== "mecanico") continue;
       staff.push({
         id: user.id,
-        username: user.user_metadata?.username ?? "",
-        full_name: user.user_metadata?.full_name ?? "",
+        username: metadata.staff_username ?? "",
+        full_name: metadata.staff_full_name ?? user.user_metadata?.full_name ?? "",
         role,
         status: metadata.staff_status ?? (user.banned_until ? "blocked" : "active"),
         created_at: user.created_at,
@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
         email,
         password,
         email_confirm: true,
-        user_metadata: { username, full_name: fullName },
+        user_metadata: { full_name: fullName },
         app_metadata: { staff_role: role, staff_status: "active", staff_username: username, staff_full_name: fullName },
       });
       if (createError || !created.user) {
@@ -162,8 +162,7 @@ Deno.serve(async (req) => {
         email: `removed+${userId}@staff.cleidsondiesel.invalid`,
         email_confirm: true,
         ban_duration: "876000h",
-        app_metadata: { ...metadata, staff_status: "removed" },
-        user_metadata: { ...target.user_metadata, username: null },
+        app_metadata: { ...metadata, staff_status: "removed", staff_username: null },
       });
       if (removeError) {
         await supabase.from("user_roles").upsert({ user_id: userId, role }, {
