@@ -6,7 +6,8 @@ export type AppointmentStatus = Database["public"]["Enums"]["appointment_status"
 export const ORDER_STATUSES: { value: OrderStatus; label: string; tone: Tone }[] = [
   { value: "recebido", label: "Recebido", tone: "info" },
   { value: "em_analise", label: "Em análise", tone: "warning" },
-  { value: "aguardando_aprovacao", label: "Aguardando aprovação", tone: "warning" },
+  { value: "aguardando_aprovacao", label: "Aguardando orçamento/aprovação", tone: "warning" },
+  { value: "aprovado_aguardando_encaminhamento" as OrderStatus, label: "Aprovado · aguardando encaminhamento", tone: "success" },
   { value: "em_servico", label: "Em serviço", tone: "primary" },
   { value: "pronto", label: "Pronto p/ retirada", tone: "success" },
   { value: "entregue", label: "Entregue", tone: "muted" },
@@ -27,6 +28,7 @@ export const ORDER_PROGRESS: OrderStatus[] = [
   "recebido",
   "em_analise",
   "aguardando_aprovacao",
+  "aprovado_aguardando_encaminhamento" as OrderStatus,
   "em_servico",
   "pronto",
   "entregue",
@@ -36,6 +38,7 @@ export const OPEN_ORDER_STATUSES: OrderStatus[] = [
   "recebido",
   "em_analise",
   "aguardando_aprovacao",
+  "aprovado_aguardando_encaminhamento" as OrderStatus,
   "em_servico",
   "pronto",
 ];

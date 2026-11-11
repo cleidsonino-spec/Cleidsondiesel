@@ -73,7 +73,7 @@ function toForm(o: Order): OrderFormValues {
 }
 
 function OrdemPage() {
-  const { isAdmin } = Route.useRouteContext();
+  const { isAdmin, isSecretary } = Route.useRouteContext();
   const { id } = Route.useParams();
   const { data: order } = useSuspenseQuery(orderQuery(id));
   const qc = useQueryClient();
@@ -120,7 +120,8 @@ function OrdemPage() {
 
       {/* WhatsApp */}
       <ApprovalActions order={order} />
-      {isAdmin && <MechanicAssignment serviceOrderId={id} />}
+      {(isAdmin || isSecretary) && order.status === "recebido" && <MechanicAssignment serviceOrderId={id} stage="diagnostico" />}
+      {(isAdmin || isSecretary) && String(order.status) === "aprovado_aguardando_encaminhamento" && <MechanicAssignment serviceOrderId={id} stage="servico" />}
       <div className="rounded-md border border-success/40 bg-success/10 p-4 print:hidden">
         <div className="mb-3 flex items-center gap-2">
           <MessageCircle className="size-5 text-success" />
