@@ -48,7 +48,7 @@ function QuotePage() {
   async function approve() {
     if (!accepted || !isFullName(name) || !isValidCpf(cpf)) return;
     setBusy(true);
-    const { error } = await supabase.rpc("approve_quote_identified", { _token: token, _name: name.trim().replace(/\\s+/g, " "), _cpf: cpf });
+    const { error } = await supabase.rpc("approve_quote_identified", { _token: token, _name: name.trim().replace(/\s+/g, " "), _cpf: cpf });
     setBusy(false);
     if (error) {
       const message = error.message.includes("Invalid name or CPF")
