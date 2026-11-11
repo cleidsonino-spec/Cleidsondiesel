@@ -18,7 +18,7 @@ Adicionar painéis de Secretária e Mecânico ao aplicativo Cleidson Diesel, man
 - Consultar agendamentos, sem confirmar, criar ou alterar agendamentos.
 - Registrar os procedimentos executados e seus resultados na ordem atribuída.
 - Não emitir ordens, não acrescentar serviços à ordem, não alterar valores/orçamentos e não confirmar agendamentos.
-- Usar a IA como apoio para diagnóstico técnico; sugestões da IA devem ser identificadas como sugestões e revisadas pelo mecânico antes do registro final.
+- **IA e diagnóstico por inteligência artificial ficam fora desta etapa.** Poderão ser avaliados em uma fase futura, mediante autorização.
 
 ### Registro de execução do mecânico
 Cada registro deve guardar, no mínimo: ordem de serviço, funcionário, data/hora, tipo de procedimento, descrição, resultado e observações. Exemplos:
@@ -63,7 +63,6 @@ Os registros são histórico técnico. Somente Secretária e Administrador podem
 - O guard de painel atualmente reconhece apenas o papel admin.
 - As políticas existentes protegem ordens, agendamentos e cadastros como admin-only.
 - Já existe checklist interno em service_orders, mas ele não substitui um histórico por funcionário e por etapa.
-- O projeto contém uma função de diagnóstico assistido por IA; sua autorização atual deve ser revisada antes de permitir acesso a mecânicos.
 - A documentação AGENTS.md determina que mudanças de schema sejam feitas pelo fluxo Lovable, e não por edição manual das migrations do repositório.
 
 ## Critérios de aceite
