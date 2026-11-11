@@ -87,7 +87,14 @@ function StaffDashboard() {
     toast.success("Andamento registrado.");
   }
 
-  async function changeStatus(orderId: string, status: "em_servico" | "pronto") {\n    const { error } = await (supabase as any).rpc("mechanic_update_order_status", { _order_id: orderId, _status: status });\n    if (error) { toast.error(error.message || "Não foi possível atualizar o status."); return; }\n    toast.success("Status da ordem atualizado.");\n    await load();\n  }\n\n  async function signOut() {
+  async function changeStatus(orderId: string, status: "em_servico" | "pronto") {
+    const { error } = await (supabase as any).rpc("mechanic_update_order_status", { _order_id: orderId, _status: status });
+    if (error) { toast.error(error.message || "Não foi possível atualizar o status."); return; }
+    toast.success("Status da ordem atualizado.");
+    await load();
+  }
+
+  async function signOut() {
     await supabase.auth.signOut();
     navigate({ to: "/auth" });
   }
@@ -113,9 +120,12 @@ function StaffDashboard() {
           {staffRole === "mecanico" ? <>
             <div className="flex flex-wrap justify-between gap-2"><h3 className="font-semibold">OS nº {order?.number ?? "—"} · {order?.vehicle ?? "Veículo"}</h3><span className="text-sm text-muted-foreground">{order?.status ?? "—"}</span></div>
             <p className="text-sm">Placa: {order?.plate ?? "—"} · Prazo: {order?.due_date ?? "Não informado"}</p>
-            <p className="text-sm"><strong>Cliente:</strong> {order?.customer_name ?? "—"}</p>\n            <p className="text-sm"><strong>Reclamação:</strong> {order?.complaint ?? "—"}</p>
+            <p className="text-sm"><strong>Cliente:</strong> {order?.customer_name ?? "—"}</p>
+            <p className="text-sm"><strong>Reclamação:</strong> {order?.complaint ?? "—"}</p>
             {order?.diagnosis && <p className="text-sm"><strong>Diagnóstico:</strong> {order.diagnosis}</p>}
-            <div className="flex flex-col gap-2 sm:flex-row"><Input value={drafts[id] ?? ""} onChange={(e) => setDrafts((old) => ({...old,[id]:e.target.value}))} placeholder="Descreva o andamento do serviço"/><Button onClick={() => void saveLog(id)}>Registrar andamento</Button></div>\n            <div className="flex flex-wrap gap-2"><Button variant="outline" disabled={order?.status === "em_servico"} onClick={() => void changeStatus(id, "em_servico")}>Iniciar serviço</Button><Button variant="outline" disabled={order?.status === "pronto"} onClick={() => void changeStatus(id, "pronto")}>Marcar como pronto</Button></div>\n            <div className="space-y-2 border-t pt-3"><h4 className="text-sm font-semibold">Histórico do serviço</h4>{(history[id] ?? []).length ? (history[id] ?? []).map((log: any) => <div key={log.id} className="rounded bg-muted/50 p-3 text-sm"><p className="font-medium">{log.procedure} · {log.result}</p><p>{log.description}</p>{log.observations && <p className="text-muted-foreground">{log.observations}</p>}<p className="mt-1 text-xs text-muted-foreground">{new Date(log.created_at).toLocaleString("pt-BR")}</p></div>) : <p className="text-xs text-muted-foreground">Nenhum andamento registrado ainda.</p>}</div>
+            <div className="flex flex-col gap-2 sm:flex-row"><Input value={drafts[id] ?? ""} onChange={(e) => setDrafts((old) => ({...old,[id]:e.target.value}))} placeholder="Descreva o andamento do serviço"/><Button onClick={() => void saveLog(id)}>Registrar andamento</Button></div>
+            <div className="flex flex-wrap gap-2"><Button variant="outline" disabled={order?.status === "em_servico"} onClick={() => void changeStatus(id, "em_servico")}>Iniciar serviço</Button><Button variant="outline" disabled={order?.status === "pronto"} onClick={() => void changeStatus(id, "pronto")}>Marcar como pronto</Button></div>
+            <div className="space-y-2 border-t pt-3"><h4 className="text-sm font-semibold">Histórico do serviço</h4>{(history[id] ?? []).length ? (history[id] ?? []).map((log: any) => <div key={log.id} className="rounded bg-muted/50 p-3 text-sm"><p className="font-medium">{log.procedure} · {log.result}</p><p>{log.description}</p>{log.observations && <p className="text-muted-foreground">{log.observations}</p>}<p className="mt-1 text-xs text-muted-foreground">{new Date(log.created_at).toLocaleString("pt-BR")}</p></div>) : <p className="text-xs text-muted-foreground">Nenhum andamento registrado ainda.</p>}</div>
           </> : <>
             <div className="flex flex-wrap justify-between gap-2"><h3 className="font-semibold">{item.customer_name} · {item.vehicle}</h3><span className="text-sm text-muted-foreground">{item.status}</span></div>
             <p className="text-sm">{item.scheduled_date} às {String(item.scheduled_time).slice(0,5)} · {item.plate}</p>
