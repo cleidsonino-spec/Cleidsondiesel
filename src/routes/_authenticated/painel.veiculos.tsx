@@ -11,5 +11,5 @@ export const Route = createFileRoute("/_authenticated/painel/veiculos")({
 });
 function VeiculosPage() {
   const { isAdmin } = Route.useRouteContext();
-  return <RegistryPage mode="vehicles" readOnly={!isAdmin} canDelete={isAdmin} />;
+  return <RegistryPage mode="vehicles" readOnly={!isAdmin} canDelete={isAdmin} includeWarranties={isAdmin} />;
 }
