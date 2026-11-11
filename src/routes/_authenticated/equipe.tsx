@@ -27,6 +27,7 @@ function StaffDashboard() {
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("Ative as notificações do navegador para acompanhar atualizações.");
   const [drafts, setDrafts] = useState<Record<string,string>>({});
+  const [diagnoses, setDiagnoses] = useState<Record<string,string>>({});
   const [unread, setUnread] = useState(0);
   const [history, setHistory] = useState<Record<string, any[]>>({});
 
@@ -34,7 +35,7 @@ function StaffDashboard() {
     setLoading(true);
     if (staffRole === "mecanico") {
       const { data, error } = await (supabase as any).from("service_order_assignments")
-        .select("id, service_order_id, assigned_at, service_orders(id, number, vehicle, plate, complaint, diagnosis, due_date, status)")
+        .select("id, service_order_id, assigned_at, service_orders(id, number, customer_name, vehicle, plate, complaint, diagnosis, due_date, status)")
         .eq("mechanic_user_id", user.id).eq("active", true).order("assigned_at", { ascending: false });
       if (error) toast.error("Não foi possível carregar suas ordens.");
       setItems(data ?? []);
@@ -88,7 +89,11 @@ function StaffDashboard() {
     await load();
   }
 
-  async function changeStatus(orderId: string, status: "em_servico" | "pronto") {
+  async function startDiagnosis(orderId: string) { const { error } = await (supabase as any).rpc("mechanic_start_diagnosis", { _order_id: orderId }); if (error) { toast.error(error.message || "Não foi possível iniciar o diagnóstico."); return; } toast.success("Diagnóstico iniciado."); await load(); }
+
+  async function completeDiagnosis(orderId: string) { const diagnosis = diagnoses[orderId]?.trim(); if (!diagnosis) { toast.error("Registre o diagnóstico antes de concluir."); return; } const { error } = await (supabase as any).rpc("mechanic_complete_diagnosis", { _order_id: orderId, _diagnosis: diagnosis }); if (error) { toast.error(error.message || "Não foi possível concluir o diagnóstico."); return; } setDiagnoses((old) => ({ ...old, [orderId]: "" })); toast.success("Diagnóstico concluído e enviado para orçamento."); await load(); }
+
+  async function changeStatus(orderId: string, status: "pronto") {
     const { error } = await (supabase as any).rpc("mechanic_update_order_status", { _order_id: orderId, _status: status });
     if (error) { toast.error(error.message || "Não foi possível atualizar o status."); return; }
     toast.success("Status da ordem atualizado.");
@@ -119,13 +124,12 @@ function StaffDashboard() {
         const id = staffRole === "mecanico" ? item.service_order_id : item.id;
         return <article key={item.id} className="space-y-3 rounded-lg border bg-card p-4">
           {staffRole === "mecanico" ? <>
-            <div className="flex flex-wrap justify-between gap-2"><h3 className="font-semibold">OS nº {order?.number ?? "—"} · {order?.vehicle ?? "Veículo"}</h3><span className="text-sm text-muted-foreground">{order?.status ?? "—"}</span></div>
+            <div className="flex flex-wrap justify-between gap-2"><h3 className="font-semibold">OS nº {order?.number ?? "—"} · {order?.vehicle ?? "Veículo"}</h3><span className="text-sm font-medium text-primary">{({ recebido: "Aguardando diagnóstico", em_analise: "Em diagnóstico", aguardando_aprovacao: "Aguardando orçamento/aprovação", em_servico: "Em serviço", pronto: "Serviço concluído", entregue: "Entregue", cancelado: "Cancelado" } as Record<string,string>)[order?.status] ?? order?.status ?? "—"}</span></div>
             <p className="text-sm">Placa: {order?.plate ?? "—"} · Prazo: {order?.due_date ?? "Não informado"}</p>
             <p className="text-sm"><strong>Cliente:</strong> {order?.customer_name ?? "—"}</p>
             <p className="text-sm"><strong>Reclamação:</strong> {order?.complaint ?? "—"}</p>
             {order?.diagnosis && <p className="text-sm"><strong>Diagnóstico:</strong> {order.diagnosis}</p>}
-            <div className="flex flex-col gap-2 sm:flex-row"><Input value={drafts[id] ?? ""} onChange={(e) => setDrafts((old) => ({...old,[id]:e.target.value}))} placeholder="Descreva o andamento do serviço"/><Button onClick={() => void saveLog(id)}>Registrar andamento</Button></div>
-            <div className="flex flex-wrap gap-2"><Button variant="outline" disabled={order?.status === "em_servico"} onClick={() => void changeStatus(id, "em_servico")}>Iniciar serviço</Button><Button variant="outline" disabled={order?.status === "pronto"} onClick={() => void changeStatus(id, "pronto")}>Marcar como pronto</Button></div>
+            <>{order?.status === "recebido" && <Button onClick={() => void startDiagnosis(id)}>Iniciar diagnóstico</Button>}{order?.status === "em_analise" && <div className="space-y-2"><label className="text-sm font-medium" htmlFor={"diagnosis-" + id}>Resultado do diagnóstico</label><textarea id={"diagnosis-" + id} value={diagnoses[id] ?? order?.diagnosis ?? ""} onChange={(e) => setDiagnoses((old) => ({ ...old, [id]: e.target.value }))} placeholder="Descreva os testes realizados, defeitos encontrados e reparos recomendados" className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /><Button onClick={() => void completeDiagnosis(id)}>Concluir diagnóstico e enviar para orçamento</Button></div>}{order?.status === "aguardando_aprovacao" && <p className="rounded-md bg-muted p-3 text-sm">Diagnóstico concluído. Aguardando orçamento e aprovação do cliente.</p>}{order?.status === "em_servico" && <div className="space-y-2"><div className="flex flex-col gap-2 sm:flex-row"><Input value={drafts[id] ?? ""} onChange={(e) => setDrafts((old) => ({...old,[id]:e.target.value}))} placeholder="Descreva o andamento do serviço"/><Button onClick={() => void saveLog(id)}>Registrar andamento</Button></div><Button variant="outline" onClick={() => void changeStatus(id, "pronto")}>Concluir serviço</Button></div>}</>
             <div className="space-y-2 border-t pt-3"><h4 className="text-sm font-semibold">Histórico do serviço</h4>{(history[id] ?? []).length ? (history[id] ?? []).map((log: any) => <div key={log.id} className="rounded bg-muted/50 p-3 text-sm"><p className="font-medium">{log.procedure} · {log.result}</p><p>{log.description}</p>{log.observations && <p className="text-muted-foreground">{log.observations}</p>}<p className="mt-1 text-xs text-muted-foreground">{new Date(log.created_at).toLocaleString("pt-BR")}</p></div>) : <p className="text-xs text-muted-foreground">Nenhum andamento registrado ainda.</p>}</div>
           </> : <>
             <div className="flex flex-wrap justify-between gap-2"><h3 className="font-semibold">{item.customer_name} · {item.vehicle}</h3><span className="text-sm text-muted-foreground">{item.status}</span></div>
