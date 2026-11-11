@@ -90,15 +90,20 @@ function OrcamentosPage() {
   }
 
   const counts = useMemo(() => data.reduce((acc, item) => {
-    acc[approvalStatus(item).key] += 1;
+    const key = approvalStatus(item).key;
+    acc[key] += 1;
+    const order = item.service_orders;
+    const total = order ? orderTotal(order.parts_value, order.labor_value) : 0;
+    if (key === "approved") acc.approvedValue += total;
+    if (key === "rejected") acc.rejectedValue += total;
     return acc;
-  }, { pending: 0, approved: 0, rejected: 0, expired: 0 }), [data]);
+  }, { pending: 0, approved: 0, rejected: 0, expired: 0, approvedValue: 0, rejectedValue: 0 }), [data]);
 
   return <div className="space-y-6">
     <div>
       <p className="text-sm text-muted-foreground">Controle de autorização</p>
-      <h1 className="text-3xl">Orçamentos enviados</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Consulte links emitidos, aprovações e prazos de validade.</p>
+      <h1 className="text-3xl">Orçamentos por cliente</h1>
+      <p className="mt-1 text-sm text-muted-foreground">Acompanhe os orçamentos enviados e as decisões de cada cliente.</p>
     </div>
 
     <section className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="Resumo dos orçamentos">
@@ -148,8 +153,10 @@ function OrcamentosPage() {
             </div>
             <div className="grid gap-2 text-sm sm:grid-cols-2">
               <p><span className="text-muted-foreground">Link emitido:</span> {dateTime(item.created_at)}</p>
-              <p><span className="text-muted-foreground">Aprovação:</span> {dateTime(item.approved_at)}</p>
-              {item.approved_by && <p><span className="text-muted-foreground">Aprovado por:</span> {item.approved_by}</p>}
+              {status.key === "approved" && <p className="flex items-center gap-1 text-success"><CheckCircle2 className="size-4" /> Cliente aprovou: {dateTime(item.approved_at)}</p>}
+              {status.key === "rejected" && <p className="flex items-center gap-1 text-destructive"><XCircle className="size-4" /> Cliente recusou: {dateTime(item.rejected_at)}</p>}
+              {item.approved_by && status.key === "approved" && <p><span className="text-muted-foreground">Aprovado por:</span> {item.approved_by}</p>}
+              {item.rejected_by && status.key === "rejected" && <p><span className="text-muted-foreground">Recusado por:</span> {item.rejected_by}</p>}
               <p><span className="text-muted-foreground">Validade:</span> {dateTime(item.expires_at)}</p>
             </div>
             <div className="flex flex-wrap gap-2 border-t border-border pt-3">
