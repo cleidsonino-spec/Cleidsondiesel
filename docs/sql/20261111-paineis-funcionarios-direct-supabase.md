@@ -322,5 +322,5 @@ Aplicada diretamente no Supabase em 2026-11-11:
 - Vitest e build de produção passaram no GitHub Actions para o commit `93fab0aa289713cd243cd6cfdbf66d03ad0b54c4`.
 - As funções de equipe foram verificadas como SECURITY DEFINER, EXECUTE permitido a `authenticated` e negado a `anon`.
 - Política de solicitação pública de agendamento verificada como INSERT exclusivo para `anon`, com status inicial pendente.
-- Nenhuma conta de secretaria ou mecânico foi criada. Teste de login e teste visual com contas reais ainda pendentes.
+- Nenhuma conta de secretaria ou mecânico foi criada. O login por nome de usuário e senha ainda não está implementado; a tela atual usa e-mail/senha e provedores OAuth. Não provisionar funcionários até implementar um fluxo de autenticação de servidor seguro. Teste visual com contas reais ainda pendente.
 - Nenhum deploy foi feito.
