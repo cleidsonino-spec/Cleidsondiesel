@@ -7,6 +7,7 @@ import { OrderForm, type OrderFormValues } from "@/components/painel/order-form"
 import { QuotePdfActions } from "@/components/painel/quote-pdf-actions";
 import { ApprovalActions } from "@/components/painel/approval-actions";
 import { WarrantyEditor } from "@/components/painel/warranty-editor";
+import { MechanicAssignment } from "@/components/painel/mechanic-assignment";
 import { warrantiesQuery } from "@/lib/warranty";
 import { StatusBadge } from "@/components/site/status-badge";
 import {
@@ -72,6 +73,7 @@ function toForm(o: Order): OrderFormValues {
 }
 
 function OrdemPage() {
+  const { isAdmin } = Route.useRouteContext();
   const { id } = Route.useParams();
   const { data: order } = useSuspenseQuery(orderQuery(id));
   const qc = useQueryClient();
@@ -118,6 +120,7 @@ function OrdemPage() {
 
       {/* WhatsApp */}
       <ApprovalActions order={order} />
+      {isAdmin && <MechanicAssignment serviceOrderId={id} />}
       <div className="rounded-md border border-success/40 bg-success/10 p-4 print:hidden">
         <div className="mb-3 flex items-center gap-2">
           <MessageCircle className="size-5 text-success" />

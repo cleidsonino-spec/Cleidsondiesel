@@ -21,14 +21,17 @@ export const Route = createFileRoute("/_authenticated/painel")({
     ],
   }),
   beforeLoad: async ({ context }) => {
-    const { data } = await supabase.rpc("has_role", { _user_id: context.user.id, _role: "admin" });
-    return { isAdmin: data === true };
+    const { data, error } = await supabase.from("user_roles")
+      .select("role").eq("user_id", context.user.id).maybeSingle();
+    if (error) throw error;
+    const role = data?.role ?? "user";
+    return { isAdmin: role === "admin", isSecretary: role === "secretaria" };
   },
   component: PainelLayout,
 });
 
 function PainelLayout() {
-  const { isAdmin, user } = Route.useRouteContext();
+  const { isAdmin, isSecretary, user } = Route.useRouteContext();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -66,21 +69,21 @@ function PainelLayout() {
             <Button variant="ghost" size="sm" onClick={signOut} aria-label="Sair"><LogOut /> <span className="hidden sm:inline">Sair</span></Button>
           </div>
         </div>
-        {isAdmin && (
+        {(isAdmin || isSecretary) && (
           <nav className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 pb-2">
             <PanelLink to="/painel" icon={<ClipboardList />} label="Visão geral" exact />
             <PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" />
-            <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />
+            {isAdmin && <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />}
             <PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" />
-            <PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" />
-            <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />
-            <NotificationBell />
+            {isAdmin && <PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" />}
+            {isAdmin && <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />}
+            {isAdmin && <NotificationBell />}
             <Button asChild size="sm" className="ml-auto shrink-0"><Link to="/painel/ordens/nova" search={{}}><Plus /> Nova OS</Link></Button>
           </nav>
         )}
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6 md:py-8">
-        {isAdmin ? <Outlet /> : (
+        {(isAdmin || isSecretary) ? <Outlet /> : (
           <div className="mx-auto max-w-md rounded-md border border-border bg-card p-8 text-center">
             <ShieldAlert className="mx-auto size-10 text-warning" />
             <h1 className="mt-4 text-xl">Acesso aguardando liberação</h1>
