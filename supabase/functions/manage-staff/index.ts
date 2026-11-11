@@ -118,15 +118,18 @@ Deno.serve(async (req) => {
     }
 
     if (action === "block") {
+      // Remove the database role first so an already-issued JWT loses RLS access immediately.
+      const { error: roleError } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role);
+      if (roleError) return json({ error: "BLOCK_ROLE_FAILED" }, 500);
       const { error: banError } = await supabase.auth.admin.updateUserById(userId, {
         ban_duration: "876000h",
         app_metadata: { ...metadata, staff_status: "blocked" },
       });
-      if (banError) return json({ error: "BLOCK_FAILED" }, 500);
-      const { error: roleError } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role);
-      if (roleError) {
-        await supabase.auth.admin.updateUserById(userId, { ban_duration: "876000h" });
-        return json({ error: "BLOCK_ROLE_FAILED" }, 500);
+      if (banError) {
+        await supabase.from("user_roles").upsert({ user_id: userId, role }, {
+          onConflict: "user_id,role", ignoreDuplicates: true,
+        });
+        return json({ error: "BLOCK_FAILED" }, 500);
       }
       return json({ blocked: true });
     }
@@ -153,6 +156,8 @@ Deno.serve(async (req) => {
     if (action === "remove") {
       // Soft-delete: the employee loses all access and the username is released,
       // while auth.users references in technical history remain valid.
+      const { error: roleError } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role);
+      if (roleError) return json({ error: "REMOVE_ROLE_FAILED" }, 500);
       const { error: removeError } = await supabase.auth.admin.updateUserById(userId, {
         email: `removed+${userId}@staff.cleidsondiesel.invalid`,
         email_confirm: true,
@@ -160,9 +165,12 @@ Deno.serve(async (req) => {
         app_metadata: { ...metadata, staff_status: "removed" },
         user_metadata: { ...target.user_metadata, username: null },
       });
-      if (removeError) return json({ error: "REMOVE_FAILED" }, 500);
-      const { error: roleError } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role);
-      if (roleError) return json({ error: "REMOVE_ROLE_FAILED" }, 500);
+      if (removeError) {
+        await supabase.from("user_roles").upsert({ user_id: userId, role }, {
+          onConflict: "user_id,role", ignoreDuplicates: true,
+        });
+        return json({ error: "REMOVE_FAILED" }, 500);
+      }
       return json({ removed: true, history_preserved: true });
     }
 
