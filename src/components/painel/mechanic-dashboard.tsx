@@ -91,8 +91,9 @@ export function MechanicDashboard() {
                 <p className="mt-1 text-sm">{order.complaint}</p>
                 <p className="mt-1 text-xs text-muted-foreground">Entrada: {formatDateBR(order.entry_date)}</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge tone={status.tone} label={status.label} />
+                <Button asChild size="sm" variant="outline"><Link to="/painel/ordens/$id" params={{ id: order.id }}>Ver OS</Link></Button>
                 <Button size="sm" onClick={() => setSelected(order)}><Wrench /> Registrar procedimento</Button>
               </div>
             </article>
