@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ConsultaRouteImport } from './routes/consulta'
 import { Route as ServicosRouteImport } from './routes/servicos'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
+import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
 import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
 import { Route as AuthenticatedPainelIndexRouteImport } from './routes/_authenticated/painel.index'
 import { Route as AuthenticatedPainelAgendamentosRouteImport } from './routes/_authenticated/painel.agendamentos'
@@ -56,6 +57,11 @@ const ServicosRoute = ServicosRouteImport.update({
   id: '/servicos',
   path: '/servicos',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedEquipeRoute = AuthenticatedEquipeRouteImport.update({
+  id: '/equipe',
+  path: '/equipe',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
   id: '/painel',
@@ -134,8 +140,10 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/consulta': typeof ConsultaRoute
   '/servicos': typeof ServicosRoute
+  '/equipe': typeof AuthenticatedEquipeRoute
   '/painel': typeof AuthenticatedPainelRouteWithChildren
   '/orcamento/$token': typeof OrcamentoTokenRoute
+  '/equipe': typeof AuthenticatedEquipeRoute
   '/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/painel/clientes': typeof AuthenticatedPainelClientesRoute
   '/painel/garantias': typeof AuthenticatedPainelGarantiasRouteWithChildren
@@ -194,7 +202,9 @@ export interface FileRouteTypes {
     | '/consulta'
     | '/servicos'
     | '/painel'
+    | '/equipe'
     | '/orcamento/$token'
+    | '/equipe'
     | '/painel/agendamentos'
     | '/painel/clientes'
     | '/painel/garantias'
@@ -231,6 +241,7 @@ export interface FileRouteTypes {
     | '/consulta'
     | '/servicos'
     | '/_authenticated/painel'
+    | '/_authenticated/equipe'
     | '/orcamento/$token'
     | '/_authenticated/painel/agendamentos'
     | '/_authenticated/painel/clientes'
@@ -297,6 +308,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/servicos'
       preLoaderRoute: typeof ServicosRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/equipe': {
+      id: '/_authenticated/equipe'
+      path: '/equipe'
+      fullPath: '/equipe'
+      preLoaderRoute: typeof AuthenticatedEquipeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/painel': {
       id: '/_authenticated/painel'
@@ -429,10 +447,12 @@ const AuthenticatedPainelRouteWithChildren =
   AuthenticatedPainelRoute._addFileChildren(AuthenticatedPainelRouteChildren)
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRouteWithChildren
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRouteWithChildren,
 }
 
