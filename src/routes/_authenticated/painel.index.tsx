@@ -25,6 +25,7 @@ import { formatPlate, normalizePlate } from "@/lib/plate";
 import { cn } from "@/lib/utils";
 import { NotificationCenter } from "@/components/painel/notifications";
 import { MechanicProduction } from "@/components/painel/mechanic-production";
+import { MechanicDashboard } from "@/components/painel/mechanic-dashboard";
 
 export const Route = createFileRoute("/_authenticated/painel/")({
   head: () => ({ meta: [
@@ -35,6 +36,7 @@ export const Route = createFileRoute("/_authenticated/painel/")({
     { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
   ] }),
   loader: ({ context }) => {
+    if (context.isMechanic) return context.queryClient.ensureQueryData(ordersQuery());
     if (!context.isAdmin) return;
     return Promise.all([
       context.queryClient.ensureQueryData(ordersQuery()),
@@ -54,7 +56,8 @@ function daysUntil(date: string, today: string) {
 }
 
 function PainelIndex() {
-  const { isAdmin } = Route.useRouteContext();
+  const { isAdmin, isMechanic } = Route.useRouteContext();
+  if (isMechanic) return <MechanicDashboard />;
   return isAdmin ? <AdminPainelIndex /> : <SecretariaPainelIndex />;
 }
 
