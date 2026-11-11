@@ -1,0 +1,33 @@
+name: Testes do aplicativo
+
+on:
+  push:
+    branches:
+      - feature/painel-funcionario-secretaria
+    paths:
+      - "src/**"
+      - "package.json"
+      - "bun.lock"
+      - "vitest.config.ts"
+      - ".github/workflows/testes.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Executar testes Vitest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Instalar dependências
+        run: bun install --frozen-lockfile
+
+      - name: Executar testes
+        run: bun run test
