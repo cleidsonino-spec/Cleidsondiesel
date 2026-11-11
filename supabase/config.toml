@@ -2,4 +2,6 @@ project_id = "vmmfifpikycnmvzibrfn"
 
 [functions.notify-admin]
 verify_jwt = false
-\n[functions.manage-staff]\nverify_jwt = true\n
+
+[functions.manage-staff]
+verify_jwt = true
