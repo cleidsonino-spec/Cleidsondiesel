@@ -32,5 +32,8 @@ jobs:
       - name: Executar testes
         run: bun run test
 
+      - name: Verificar lint
+        run: bun run lint
+
       - name: Verificar build de produção
         run: bun run build
