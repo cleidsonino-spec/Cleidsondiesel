@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
       return json({ error: "ROLE_ASSIGNMENT_FAILED" }, 500);
     }
 
-    return json({ accepted: true });
+    return json({ accepted: true, email: invitation.email });
   }
 
   try {
