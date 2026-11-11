@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Menu, Wrench } from "lucide-react";
+import { Menu, Wrench, Users } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
