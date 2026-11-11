@@ -24,21 +24,23 @@ export const Route = createFileRoute("/_authenticated/painel")({
     // The generated Supabase types still list only the original roles.
     // Keep this role check typed dynamically until Lovable regenerates the schema types.
     const client = supabase as any;
-    const [adminResult, secretariaResult] = await Promise.all([
+    const [adminResult, secretariaResult, mechanicResult] = await Promise.all([
       client.rpc("has_role", { _user_id: context.user.id, _role: "admin" }),
       client.rpc("has_role", { _user_id: context.user.id, _role: "secretaria" }),
+      client.rpc("has_role", { _user_id: context.user.id, _role: "mecanico" }),
     ]);
     return {
       isAdmin: adminResult.data === true,
       isSecretaria: secretariaResult.data === true,
+      isMechanic: mechanicResult.data === true,
     };
   },
   component: PainelLayout,
 });
 
 function PainelLayout() {
-  const { isAdmin, isSecretaria, user } = Route.useRouteContext();
-  const canAccessPanel = isAdmin || isSecretaria;
+  const { isAdmin, isSecretaria, isMechanic, user } = Route.useRouteContext();
+  const canAccessPanel = isAdmin || isSecretaria || isMechanic;
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -78,14 +80,16 @@ function PainelLayout() {
         </div>
         {canAccessPanel && (
           <nav className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 pb-2">
-            <PanelLink to="/painel" icon={<ClipboardList />} label={isAdmin ? "Visão geral" : "Produção"} exact />
+            <PanelLink to="/painel" icon={<ClipboardList />} label={isAdmin ? "Visão geral" : isSecretaria ? "Produção" : "Minhas OS"} exact />
             <PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" />
-            <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />
-            <PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" />
-            <PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" />
-            {isAdmin && <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />}
-            <NotificationBell />
-            <Button asChild size="sm" className="ml-auto shrink-0"><Link to="/painel/ordens/nova" search={{}}><Plus /> Nova OS</Link></Button>
+            {(isAdmin || isSecretaria) && <>
+              <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />
+              <PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" />
+              <PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" />
+              {isAdmin && <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />}
+              <NotificationBell />
+              <Button asChild size="sm" className="ml-auto shrink-0"><Link to="/painel/ordens/nova" search={{}}><Plus /> Nova OS</Link></Button>
+            </>}
           </nav>
         )}
       </header>
