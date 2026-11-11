@@ -58,7 +58,9 @@ function PainelLayout() {
   }, [isAdmin]);
 
   async function signOut() {
-    try { await unregisterAdminPushDevice(); } catch { /* O encerramento da sessão não deve depender da rede. */ }
+    if (isAdmin) {
+      try { await unregisterAdminPushDevice(); } catch { /* O encerramento da sessão não deve depender da rede. */ }
+    }
     await supabase.auth.signOut();
     navigate({ to: "/auth" });
   }
