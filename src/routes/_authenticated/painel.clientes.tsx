@@ -8,5 +8,9 @@ export const Route = createFileRoute("/_authenticated/painel/clientes")({
   beforeLoad: ({ context }) => {
     if (!context.isAdmin && !context.isSecretaria) throw redirect({ to: "/painel" });
   },
-  component: () => <RegistryPage mode="customers" />,
+  component: ClientesPage,
 });
+function ClientesPage() {
+  const { isAdmin } = Route.useRouteContext();
+  return <RegistryPage mode="customers" canDelete={isAdmin} />;
+}
