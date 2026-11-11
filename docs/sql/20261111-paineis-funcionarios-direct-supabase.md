@@ -259,3 +259,39 @@ COMMIT;
 - A tabela de procedimentos conferidos tem SELECT apenas para administrador/secretária.
 - Não foram inseridos registros de teste, criadas contas, alteradas notificações ou realizadas publicações.
 - A integração dessas funções às telas e a exibição/impressão dos procedimentos conferidos ainda precisam ser implementadas no frontend.
+
+
+## Etapa E — resumo de serviços por mecânico (aplicada em 2026-11-10)
+
+```sql
+CREATE OR REPLACE FUNCTION public.staff_mechanic_service_counts()
+RETURNS TABLE (mechanic_user_id uuid, mechanic_name text, assigned_orders bigint, active_orders bigint, completed_orders bigint, technical_entries bigint, verified_procedures bigint)
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public AS $$
+BEGIN
+ IF auth.uid() IS NULL OR (NOT public.has_role(auth.uid(),'admin'::public.app_role) AND NOT public.has_role(auth.uid(),'secretaria'::public.app_role)) THEN RAISE EXCEPTION 'Somente administrador ou secretária pode consultar a produção dos mecânicos'; END IF;
+ RETURN QUERY SELECT ur.user_id, COALESCE(NULLIF(u.raw_user_meta_data->>'full_name',''),NULLIF(u.raw_user_meta_data->>'name',''),NULLIF(u.email,''),'Mecânico sem nome')::text,
+ COUNT(DISTINCT a.service_order_id) FILTER (WHERE a.active=true),
+ COUNT(DISTINCT a.service_order_id) FILTER (WHERE a.active=true AND so.status IN ('recebido','em_analise','aguardando_aprovacao','em_servico')),
+ COUNT(DISTINCT a.service_order_id) FILTER (WHERE a.active=true AND so.status IN ('pronto','entregue')),
+ COUNT(DISTINCT l.id), COUNT(DISTINCT v.id)
+ FROM public.user_roles ur JOIN auth.users u ON u.id=ur.user_id
+ LEFT JOIN public.service_order_assignments a ON a.mechanic_user_id=ur.user_id AND a.active=true
+ LEFT JOIN public.service_orders so ON so.id=a.service_order_id
+ LEFT JOIN public.technical_service_logs l ON l.mechanic_user_id=ur.user_id
+ LEFT JOIN public.verified_service_procedures v ON v.technical_log_id=l.id
+ WHERE ur.role='mecanico'::public.app_role GROUP BY ur.user_id,u.raw_user_meta_data,u.email
+ ORDER BY COALESCE(NULLIF(u.raw_user_meta_data->>'full_name',''),NULLIF(u.raw_user_meta_data->>'name',''),NULLIF(u.email,''),'Mecânico sem nome');
+END; $$;
+REVOKE ALL ON FUNCTION public.staff_mechanic_service_counts() FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.staff_mechanic_service_counts() TO authenticated;
+```
+
+### Colunas retornadas
+
+- `assigned_orders`: OS atualmente atribuídas ao mecânico.
+- `active_orders`: OS atribuídas ainda em andamento (recebido, em análise, aguardando aprovação ou em serviço).
+- `completed_orders`: OS atribuídas com status pronto ou entregue.
+- `technical_entries`: registros técnicos feitos pelo mecânico.
+- `verified_procedures`: procedimentos desses registros que foram conferidos pela secretaria/administração.
+
+A função valida o papel admin/secretaria internamente. Execução foi verificada para `authenticated` e negada a `anon`. Para preencher o painel, o frontend deve chamar `supabase.rpc('staff_mechanic_service_counts')`; a tela ainda não foi integrada e não foi publicada.
