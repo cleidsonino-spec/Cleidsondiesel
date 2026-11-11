@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { KeyRound, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/site/logo";
@@ -19,11 +19,27 @@ function AcceptInvitation() {
   const { token } = Route.useParams();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
+  const [resolvingInvite, setResolvingInvite] = useState(true);
+  const [inviteInvalid, setInviteInvalid] = useState(false);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailConfirmation, setEmailConfirmation] = useState(false);
   const [existingAccount, setExistingAccount] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (supabase as any).rpc("get_staff_invitation_email", { p_token: token }).then(({ data, error }: { data: string | null; error: { message: string } | null }) => {
+      if (!active) return;
+      setResolvingInvite(false);
+      if (error || !data) {
+        setInviteInvalid(true);
+        return;
+      }
+      setEmail(data.toLowerCase());
+    });
+    return () => { active = false; };
+  }, [token]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -67,7 +83,7 @@ function AcceptInvitation() {
   return <main className="flex min-h-screen items-center justify-center px-4 py-10">
     <div className="w-full max-w-md space-y-6 rounded-lg border bg-card p-6">
       <div className="flex justify-center"><Logo/></div>
-      <div className="text-center"><KeyRound className="mx-auto size-8 text-primary"/><h1 className="mt-3 text-2xl font-semibold">{emailConfirmation ? "Confirme seu e-mail" : "Ativar acesso da equipe"}</h1><p className="mt-2 text-sm text-muted-foreground">{emailConfirmation ? "Enviamos uma mensagem para seu e-mail. Confirme o endereço para depois entrar no painel." : existingAccount ? "Entre com o e-mail e a senha que você já usa no Cleidson Diesel para aceitar este convite." : "Informe o mesmo e-mail usado no convite e crie sua senha. O link vence em 7 dias e só pode ser usado uma vez."}</p></div>
+      <div className="text-center"><KeyRound className="mx-auto size-8 text-primary"/><h1 className="mt-3 text-2xl font-semibold">{emailConfirmation ? "Confirme seu e-mail" : "Ativar acesso da equipe"}</h1><p className="mt-2 text-sm text-muted-foreground">{emailConfirmation ? "Enviamos uma mensagem para o endereço cadastrado no convite. Confirme-o para concluir o acesso." : existingAccount ? "Informe sua senha atual para entrar e aceitar o convite." : "Crie sua senha para ativar o acesso. O link vence em 7 dias e só pode ser usado uma vez."}</p></div>
       {!emailConfirmation && <form onSubmit={submit} className="space-y-4">
         <label className="block space-y-1 text-sm"><span>E-mail cadastrado no convite</span><Input type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} /></label>
         <label className="block space-y-1 text-sm"><span>{existingAccount ? "Senha atual" : "Nova senha"}</span><Input type="password" autoComplete={existingAccount ? "current-password" : "new-password"} minLength={8} maxLength={128} required value={password} onChange={e => setPassword(e.target.value)} /></label>
