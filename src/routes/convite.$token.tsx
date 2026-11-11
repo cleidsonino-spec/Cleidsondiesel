@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { KeyRound, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/site/logo";
@@ -19,15 +19,31 @@ function AcceptInvitation() {
   const { token } = Route.useParams();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
+  const [resolvingInvite, setResolvingInvite] = useState(true);
+  const [inviteInvalid, setInviteInvalid] = useState(false);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailConfirmation, setEmailConfirmation] = useState(false);
   const [existingAccount, setExistingAccount] = useState(false);
 
+  useEffect(() => {
+    let active = true;
+    (supabase as any).rpc("get_staff_invitation_email", { p_token: token }).then(({ data, error }: { data: string | null; error: { message: string } | null }) => {
+      if (!active) return;
+      setResolvingInvite(false);
+      if (error || !data) {
+        setInviteInvalid(true);
+        return;
+      }
+      setEmail(data.toLowerCase());
+    });
+    return () => { active = false; };
+  }, [token]);
+
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { toast.error("Informe o mesmo e-mail cadastrado no convite."); return; }
+    if (!email) { toast.error("Não foi possível identificar o convite. Peça um novo link."); return; }
     if (password.length < 8) { toast.error(existingAccount ? "Informe sua senha atual (mínimo de 8 caracteres)." : "A senha deve ter pelo menos 8 caracteres."); return; }
     if (!existingAccount && password !== confirm) { toast.error("As senhas não conferem."); return; }
     setLoading(true);
@@ -67,9 +83,10 @@ function AcceptInvitation() {
   return <main className="flex min-h-screen items-center justify-center px-4 py-10">
     <div className="w-full max-w-md space-y-6 rounded-lg border bg-card p-6">
       <div className="flex justify-center"><Logo/></div>
-      <div className="text-center"><KeyRound className="mx-auto size-8 text-primary"/><h1 className="mt-3 text-2xl font-semibold">{emailConfirmation ? "Confirme seu e-mail" : "Ativar acesso da equipe"}</h1><p className="mt-2 text-sm text-muted-foreground">{emailConfirmation ? "Enviamos uma mensagem para seu e-mail. Confirme o endereço para depois entrar no painel." : existingAccount ? "Entre com o e-mail e a senha que você já usa no Cleidson Diesel para aceitar este convite." : "Informe o mesmo e-mail usado no convite e crie sua senha. O link vence em 7 dias e só pode ser usado uma vez."}</p></div>
-      {!emailConfirmation && <form onSubmit={submit} className="space-y-4">
-        <label className="block space-y-1 text-sm"><span>E-mail cadastrado no convite</span><Input type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} /></label>
+      <div className="text-center"><KeyRound className="mx-auto size-8 text-primary"/><h1 className="mt-3 text-2xl font-semibold">{emailConfirmation ? "Confirme seu e-mail" : "Ativar acesso da equipe"}</h1><p className="mt-2 text-sm text-muted-foreground">{emailConfirmation ? "Enviamos uma mensagem para o endereço cadastrado no convite. Confirme-o para concluir o acesso." : existingAccount ? "Informe sua senha atual para entrar e aceitar o convite." : "Crie sua senha para ativar o acesso. O link vence em 7 dias e só pode ser usado uma vez."}</p></div>
+      {resolvingInvite && <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin"/>Validando convite…</div>}
+      {inviteInvalid && <p className="text-center text-sm text-destructive">Este link é inválido, expirou ou já foi utilizado. Peça um novo convite ao administrador.</p>}
+      {!emailConfirmation && !resolvingInvite && !inviteInvalid && <form onSubmit={submit} className="space-y-4">
         <label className="block space-y-1 text-sm"><span>{existingAccount ? "Senha atual" : "Nova senha"}</span><Input type="password" autoComplete={existingAccount ? "current-password" : "new-password"} minLength={8} maxLength={128} required value={password} onChange={e => setPassword(e.target.value)} /></label>
         {!existingAccount && <label className="block space-y-1 text-sm"><span>Confirmar senha</span><Input type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={confirm} onChange={e => setConfirm(e.target.value)} /></label>}
         <Button type="submit" className="w-full" disabled={loading}>{loading && <Loader2 className="mr-2 size-4 animate-spin"/>}{existingAccount ? "Entrar e aceitar convite" : "Ativar minha conta"}</Button>
