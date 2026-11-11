@@ -33,6 +33,8 @@ type View = "proximos" | "pendentes" | "todos";
 
 function AgendamentosPage() {
   const { data } = useSuspenseQuery(appointmentsQuery());
+  const { isAdmin, isSecretaria } = Route.useRouteContext();
+  const canManageAppointments = isAdmin || isSecretaria;
   const [view, setView] = useState<View>("proximos");
   const today = todayISO();
   const [selectedDate, setSelectedDate] = useState(today);
@@ -143,7 +145,7 @@ function AgendamentosPage() {
           </h2>
           <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-card">
             {items.map((a) => (
-              <AppointmentRow key={a.id} a={a} />
+              <AppointmentRow key={a.id} a={a} isAdmin={isAdmin} isSecretaria={isSecretaria} />
             ))}
           </div>
         </section>
@@ -152,17 +154,33 @@ function AgendamentosPage() {
   );
 }
 
-function AppointmentRow({ a }: { a: Appointment }) {
+function AppointmentRow({ a, isAdmin, isSecretaria }: { a: Appointment; isAdmin: boolean; isSecretaria: boolean }) {
   const qc = useQueryClient();
   const info = appointmentStatusInfo(a.status);
   const confirmHref = waLink(a.phone, appointmentMessage(a));
   const chatHref = waLink(a.phone, `Olá, ${a.customer_name.split(" ")[0]}! Aqui é da Cleidson Diesel.`);
 
-  async function setStatus(status: AppointmentStatus) {
-    const { error } = await supabase.from("appointments").update({ status }).eq("id", a.id);
-    if (error) { toast.error("Não foi possível atualizar."); return; }
+  async function setStatus(status: AppointmentStatus): Promise<boolean> {
+    if (status === "confirmado" && (isAdmin || isSecretaria)) {
+      const client = supabase as any;
+      const { error } = await client.rpc("secretaria_confirm_appointment", { _appointment_id: a.id });
+      if (error) {
+        toast.error(error.message || "Não foi possível confirmar o agendamento.");
+        return false;
+      }
+    } else if (status === "cancelado" && isAdmin) {
+      const { error } = await supabase.from("appointments").update({ status }).eq("id", a.id);
+      if (error) {
+        toast.error("Não foi possível cancelar o agendamento.");
+        return false;
+      }
+    } else {
+      toast.error("Você não tem permissão para alterar este agendamento.");
+      return false;
+    }
     await qc.invalidateQueries({ queryKey: ["appointments"] });
     toast.success(status === "confirmado" ? "Agendamento confirmado." : "Agendamento atualizado.");
+    return true;
   }
 
   return (
@@ -182,12 +200,12 @@ function AppointmentRow({ a }: { a: Appointment }) {
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge tone={info.tone} label={info.label} />
-        {a.status === "pendente" && (
+        {a.status === "pendente" && (isAdmin || isSecretaria) && (
           <Button
             size="sm"
             onClick={async () => {
-              await setStatus("confirmado");
-              if (confirmHref) window.open(confirmHref, "_blank", "noopener");
+              const confirmed = await setStatus("confirmado");
+              if (confirmed && confirmHref) window.open(confirmHref, "_blank", "noopener");
             }}
           >
             <Check /> Confirmar
@@ -200,16 +218,18 @@ function AppointmentRow({ a }: { a: Appointment }) {
             </a>
           </Button>
         )}
-        {(a.status === "pendente" || a.status === "confirmado") && (
+        {(a.status === "pendente" || a.status === "confirmado") && (isAdmin || isSecretaria) && (
           <>
             <Button asChild size="sm" variant="secondary">
               <Link to="/painel/ordens/nova" search={{ agendamento: a.id }}>
                 <ClipboardPlus /> Abrir OS
               </Link>
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setStatus("cancelado")} aria-label="Cancelar agendamento">
-              <X />
-            </Button>
+            {isAdmin && (
+              <Button size="sm" variant="ghost" onClick={() => void setStatus("cancelado")} aria-label="Cancelar agendamento">
+                <X />
+              </Button>
+            )}
           </>
         )}
       </div>
