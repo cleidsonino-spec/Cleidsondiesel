@@ -58,7 +58,7 @@ DECLARE o public.service_orders; q public.quote_approvals;
 BEGIN
  IF NOT (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'secretaria')) THEN RAISE EXCEPTION 'Forbidden'; END IF;
  SELECT * INTO o FROM public.service_orders WHERE id=_order_id FOR UPDATE;
- IF NOT FOUND OR o.status NOT IN ('aguardando_aprovacao','em_analise') THEN
+ IF NOT FOUND OR o.status <> 'aguardando_aprovacao' THEN
    RAISE EXCEPTION 'A ordem precisa ter diagnóstico concluído antes de emitir orçamento';
  END IF;
  UPDATE public.quote_approvals SET state='revoked' WHERE order_id=o.id AND state IN ('pending','approved');
