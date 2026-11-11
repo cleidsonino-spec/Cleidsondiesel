@@ -38,6 +38,8 @@ function OrcamentosPage() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<Filter>("todos");
   const [search, setSearch] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const { data = [], isLoading, isError } = useQuery({
     queryKey: ["quote-approvals", "all"],
@@ -68,12 +70,15 @@ function OrcamentosPage() {
     const status = approvalStatus(item);
     const order = item.service_orders;
     if (filter !== "todos" && status.key !== filter) return false;
+    const createdDate = item.created_at ? new Date(item.created_at) : null;
+    if (fromDate && (!createdDate || createdDate < new Date(`${fromDate}T00:00:00`))) return false;
+    if (toDate && (!createdDate || createdDate > new Date(`${toDate}T23:59:59.999`))) return false;
     if (!q && !search.trim()) return true;
     const term = search.trim().toLocaleLowerCase("pt-BR");
     return normalizePlate(order?.plate ?? "").includes(q)
       || String(order?.number ?? "").includes(term)
       || (order?.customer_name ?? "").toLocaleLowerCase("pt-BR").includes(term);
-  }), [data, filter, q, search]);
+  }), [data, filter, fromDate, toDate, q, search]);
 
   async function renew(orderId: string) {
     setBusyId(orderId);
@@ -115,6 +120,16 @@ function OrcamentosPage() {
       <Summary label="Valor recusado" value={formatBRL(counts.rejectedValue)} />
     </section>
 
+    <div className="grid gap-3 sm:grid-cols-2">
+      <label className="space-y-1 text-sm">
+        <span className="text-muted-foreground">Orçamentos a partir de</span>
+        <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} aria-label="Data inicial" />
+      </label>
+      <label className="space-y-1 text-sm">
+        <span className="text-muted-foreground">Até</span>
+        <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} aria-label="Data final" min={fromDate || undefined} />
+      </label>
+    </div>
     <div className="relative">
       <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por cliente, placa ou número da OS" className="h-11 pl-10" aria-label="Buscar orçamento" />
