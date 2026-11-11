@@ -10,9 +10,12 @@ type Role = "secretaria" | "mecanico";
 
 export const Route = createFileRoute("/_authenticated/equipe")({
   beforeLoad: async ({ context }) => {
-    const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", context.user.id).maybeSingle();
-    if (error || !data || !["secretaria", "mecanico"].includes(data.role)) throw redirect({ to: "/painel" });
-    return { staffRole: data.role as Role };
+    const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", context.user.id);
+    if (error) throw error;
+    const roles = (data ?? []).map((item) => item.role);
+    const staffRole = roles.includes("mecanico") ? "mecanico" : roles.includes("secretaria") ? "secretaria" : null;
+    if (!staffRole) throw redirect({ to: "/painel" });
+    return { staffRole: staffRole as Role };
   },
   component: StaffDashboard,
 });
