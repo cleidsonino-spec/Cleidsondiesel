@@ -61,10 +61,10 @@ export type Database = {
       }
       customers: {
         Row: {
-          customer_type: string | null
-          document: string | null
           address: string | null
           created_at: string
+          customer_type: string | null
+          document: string | null
           email: string | null
           id: string
           name: string
@@ -73,10 +73,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          customer_type?: string | null
-          document?: string | null
           address?: string | null
           created_at?: string
+          customer_type?: string | null
+          document?: string | null
           email?: string | null
           id?: string
           name: string
@@ -85,10 +85,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          customer_type?: string | null
-          document?: string | null
           address?: string | null
           created_at?: string
+          customer_type?: string | null
+          document?: string | null
           email?: string | null
           id?: string
           name?: string
