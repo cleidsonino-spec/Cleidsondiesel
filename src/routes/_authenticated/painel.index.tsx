@@ -52,6 +52,7 @@ function daysUntil(date: string, today: string) {
 }
 
 function PainelIndex() {
+  const { isAdmin } = Route.useRouteContext();
   const { data: orders } = useSuspenseQuery(ordersQuery());
   const { data: appointments } = useSuspenseQuery(appointmentsQuery());
   const { data: warranties } = useSuspenseQuery(warrantiesQuery());
@@ -105,7 +106,7 @@ function PainelIndex() {
 
       <NotificationCenter />
 
-      <StaffInvitations />
+      {isAdmin && <StaffInvitations />}
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Indicadores da oficina">
         <Stat icon={<Wrench />} label="Em andamento" value={stats.open} href="/painel/" />
