@@ -138,7 +138,7 @@ function AuthPage() {
             </div>
           </>
           <p className="mt-5 text-xs text-muted-foreground">
-            A primeira conta criada vira a administradora da oficina.
+            Acesso restrito. Contas de funcionários são criadas exclusivamente pela administração.
           </p>
         </div>
       </div>
