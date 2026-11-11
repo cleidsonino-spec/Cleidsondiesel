@@ -38,7 +38,7 @@ function PainelLayout() {
     if (!isAdmin && !isSecretary) return;
     let cancelled = false;
     let stop: (() => void) | undefined;
-    void startAdminPushNotifications().then((cleanup) => {
+    void startStaffPushNotifications().then((cleanup) => {
       if (cancelled) cleanup();
       else stop = cleanup;
     }).catch(() => console.error("[Push] Falha ao iniciar notificações."));
