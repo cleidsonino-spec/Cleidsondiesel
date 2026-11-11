@@ -294,4 +294,33 @@ GRANT EXECUTE ON FUNCTION public.staff_mechanic_service_counts() TO authenticate
 - `technical_entries`: registros técnicos feitos pelo mecânico.
 - `verified_procedures`: procedimentos desses registros que foram conferidos pela secretaria/administração.
 
-A função valida o papel admin/secretaria internamente. Execução foi verificada para `authenticated` e negada a `anon`. Para preencher o painel, o frontend deve chamar `supabase.rpc('staff_mechanic_service_counts')`; a tela ainda não foi integrada e não foi publicada.
+A função valida o papel admin/secretaria internamente. Execução foi verificada para `authenticated` e negada a `anon`. Para preencher o painel, o frontend chama `supabase.rpc('staff_mechanic_service_counts')`. A integração das telas foi implementada na branch de trabalho; ainda depende de validação com contas reais e não foi publicada.
+
+
+## Etapa F — conclusão de agendamento e emissão de orçamento pela secretaria
+
+Aplicada diretamente no Supabase em 2026-11-11:
+
+- Criada `public.secretaria_complete_appointment(_appointment_id uuid)`, SECURITY DEFINER, que exige administrador ou secretária e muda somente agendamentos pendentes/confirmados para concluído.
+- A função não permite que mecânicos ou usuários comuns alterem agendamentos.
+- Atualizada `public.issue_quote_approval(_order_id uuid)` para permitir administrador ou secretária. A função continua validando o papel internamente e bloqueia OS canceladas, entregues ou prontas.
+- Execução concedida a `authenticated`; negada a `anon` e `PUBLIC`.
+
+## Integração frontend na branch feature/painel-funcionario-secretaria
+
+- Painel do mecânico com lista de OS atribuídas via RLS, detalhe somente leitura e formulário para registrar procedimento, resultado e observações por RPC.
+- Agenda completa para mecânicos somente para consulta; telefone e ação de WhatsApp ficam ocultos para esse perfil.
+- Ferramenta de atribuição/transferência de OS para administrador e secretária.
+- Registros técnicos visíveis somente para administrador e secretária; conferência por RPC e inclusão dos procedimentos conferidos na impressão da OS.
+- Rotas comerciais protegidas contra acesso direto por mecânicos.
+- Cadastro de clientes: secretária pode criar/editar, mas não excluir; veículos ficam somente para consulta pela secretária; garantias permanecem exclusivas do administrador.
+- Ao criar OS a partir de agendamento, a conclusão do agendamento usa a RPC autorizada, não UPDATE direto.
+- Logout de funcionário não tenta remover registro de dispositivo push do administrador.
+
+## Validação realizada
+
+- Vitest e build de produção passaram no GitHub Actions para o commit `93fab0aa289713cd243cd6cfdbf66d03ad0b54c4`.
+- As funções de equipe foram verificadas como SECURITY DEFINER, EXECUTE permitido a `authenticated` e negado a `anon`.
+- Política de solicitação pública de agendamento verificada como INSERT exclusivo para `anon`, com status inicial pendente.
+- Nenhuma conta de secretaria ou mecânico foi criada. Teste de login e teste visual com contas reais ainda pendentes.
+- Nenhum deploy foi feito.
