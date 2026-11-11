@@ -2,6 +2,12 @@ name: Deploy Cleidson Diesel push functions
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feature/painel-funcionarios
+    paths:
+      - 'supabase/functions/**'
+      - '.github/workflows/deploy-supabase-push-functions.yml'
 
 permissions:
   contents: read
