@@ -27,10 +27,12 @@ export function StaffInvitations() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.functions.invoke("staff-invitations", { body: { action: "list" } });
+    const { data, error } = await (supabase as any).from("staff_invitations")
+      .select("id, full_name, email, phone, role, created_at, expires_at, used_at, revoked_at")
+      .order("created_at", { ascending: false }).limit(100);
     setLoading(false);
-    if (error || data?.error) { toast.error("Não foi possível carregar os convites."); return; }
-    setItems(data.invitations ?? []);
+    if (error) { toast.error("Não foi possível carregar os convites."); return; }
+    setItems((data ?? []) as Invitation[]);
   }, []);
 
   useEffect(() => { void load(); }, [load]);
@@ -38,21 +40,35 @@ export function StaffInvitations() {
   async function createInvite(event: FormEvent) {
     event.preventDefault();
     setCreating(true);
-    const { data, error } = await supabase.functions.invoke("staff-invitations", {
-      body: { action: "create", ...form },
-    });
-    setCreating(false);
-    if (error || data?.error) { toast.error("Não foi possível criar o convite. Confira os dados."); return; }
-    const link = new URL("/convite/" + data.token, window.location.origin).toString();
-    setLastLink(link);
-    const digits = form.phone.replace(/\D/g, "");
-    const phone = digits.startsWith("55") ? digits : "55" + digits;
-    const message = `Olá, ${form.full_name}! Você foi convidado(a) para acessar o painel da Cleidson Diesel como ${form.role === "mecanico" ? "mecânico" : "secretaria"}. Acesse o link para criar sua senha (válido por 7 dias): ${link}`;
-    const whatsapp = "https://wa.me/" + phone + "?text=" + encodeURIComponent(message);
-    setWhatsappUrl(whatsapp);
-    toast.success("Convite criado. Finalize o envio no WhatsApp.");
-    setForm({ full_name: "", email: "", phone: "", role: "mecanico" });
-    await load();
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) { toast.error("Entre como administrador para criar convites."); setCreating(false); return; }
+      const bytes = crypto.getRandomValues(new Uint8Array(32));
+      const token = [...bytes].map(byte => byte.toString(16).padStart(2, "0")).join("");
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+      const token_hash = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+      const expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { error } = await (supabase as any).from("staff_invitations").insert({
+        full_name: form.full_name.trim(), email: form.email.trim().toLowerCase(),
+        phone: form.phone.trim(), role: form.role, token_hash,
+        created_by: auth.user.id, expires_at,
+      });
+      if (error) throw error;
+      const link = new URL("/convite/" + token, window.location.origin).toString();
+      setLastLink(link);
+      const digits = form.phone.replace(/\D/g, "");
+      const phone = digits.startsWith("55") ? digits : "55" + digits;
+      const message = `Olá, ${form.full_name}! Você foi convidado(a) para acessar o painel da Cleidson Diesel como ${form.role === "mecanico" ? "mecânico" : "secretaria"}. Use este link para criar sua senha com o e-mail ${form.email} (válido por 7 dias): ${link}`;
+      setWhatsappUrl("https://wa.me/" + phone + "?text=" + encodeURIComponent(message));
+      toast.success("Convite criado. Finalize o envio no WhatsApp.");
+      setForm({ full_name: "", email: "", phone: "", role: "mecanico" });
+      await load();
+    } catch (error) {
+      console.error("Staff invitation create failed", error);
+      toast.error("Não foi possível criar o convite. Confira os dados e suas permissões.");
+    } finally {
+      setCreating(false);
+    }
   }
 
   async function copyLink() {
@@ -62,8 +78,9 @@ export function StaffInvitations() {
   }
 
   async function revoke(id: string) {
-    const { data, error } = await supabase.functions.invoke("staff-invitations", { body: { action: "revoke", id } });
-    if (error || data?.error) { toast.error("Não foi possível cancelar o convite."); return; }
+    const { error } = await (supabase as any).from("staff_invitations")
+      .update({ revoked_at: new Date().toISOString() }).eq("id", id).is("used_at", null).is("revoked_at", null);
+    if (error) { toast.error("Não foi possível cancelar o convite."); return; }
     toast.success("Convite cancelado.");
     await load();
   }
