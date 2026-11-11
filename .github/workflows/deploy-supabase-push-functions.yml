@@ -30,3 +30,4 @@ jobs:
           npx --yes supabase@latest functions deploy register-device --project-ref "$SUPABASE_PROJECT_ID"
           npx --yes supabase@latest functions deploy unregister-device --project-ref "$SUPABASE_PROJECT_ID"
           npx --yes supabase@latest functions deploy notify-admin --project-ref "$SUPABASE_PROJECT_ID"
+          npx --yes supabase@latest functions deploy staff-invitations --project-ref "$SUPABASE_PROJECT_ID"
