@@ -76,14 +76,14 @@ function PainelLayout() {
             <Button variant="ghost" size="sm" onClick={signOut} aria-label="Sair"><LogOut /> <span className="hidden sm:inline">Sair</span></Button>
           </div>
         </div>
-        {isAdmin && (
+        {canAccessPanel && (
           <nav className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 pb-2">
-            <PanelLink to="/painel" icon={<ClipboardList />} label="Visão geral" exact />
+            <PanelLink to="/painel" icon={<ClipboardList />} label={isAdmin ? "Visão geral" : "Produção"} exact />
             <PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" />
             <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />
             <PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" />
             <PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" />
-            <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />
+            {isAdmin && <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />}
             <NotificationBell />
             <Button asChild size="sm" className="ml-auto shrink-0"><Link to="/painel/ordens/nova" search={{}}><Plus /> Nova OS</Link></Button>
           </nav>
