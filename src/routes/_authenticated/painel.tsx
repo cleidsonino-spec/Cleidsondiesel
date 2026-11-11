@@ -70,7 +70,7 @@ function PainelLayout() {
           <nav className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 pb-2">
             <PanelLink to="/painel" icon={<ClipboardList />} label="Visão geral" exact />
             <PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" />
-            <a href="/painel/orcamentos" className="flex shrink-0 items-center gap-2 rounded-sm px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"><FileText className="size-4" /> Orçamentos</a>
+            <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />
             <PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" />
             <PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" />
             <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />
@@ -93,7 +93,7 @@ function PainelLayout() {
 }
 
 function PanelLink({ to, icon, label, exact }: {
-  to: "/painel" | "/painel/agendamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias";
+  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias";
   icon: React.ReactNode;
   label: string;
   exact?: boolean;

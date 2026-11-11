@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { FileText, Link2, Loader2, RefreshCw, Search } from "lucide-react";
+import { CheckCircle2, FileText, Link2, Loader2, RefreshCw, Search, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { StatusBadge } from "@/components/site/status-badge";
@@ -38,6 +38,8 @@ function OrcamentosPage() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<Filter>("todos");
   const [search, setSearch] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const { data = [], isLoading, isError } = useQuery({
     queryKey: ["quote-approvals", "all"],
@@ -45,7 +47,7 @@ function OrcamentosPage() {
     queryFn: async () => {
       const fetchPage = (from: number) => supabase
         .from("quote_approvals")
-        .select("id,token,state,expires_at,approved_at,approved_by,created_at,order_id,service_orders(id,number,customer_name,phone,vehicle,plate,status,parts_value,labor_value)")
+        .select("id,token,state,expires_at,approved_at,approved_by,rejected_at,rejected_by,created_at,order_id,service_orders(id,number,customer_name,phone,vehicle,plate,status,parts_value,labor_value)")
         .order("created_at", { ascending: false })
         .range(from, from + 499);
       const first = await fetchPage(0);
@@ -68,12 +70,15 @@ function OrcamentosPage() {
     const status = approvalStatus(item);
     const order = item.service_orders;
     if (filter !== "todos" && status.key !== filter) return false;
+    const createdDate = item.created_at ? new Date(item.created_at) : null;
+    if (fromDate && (!createdDate || createdDate < new Date(`${fromDate}T00:00:00`))) return false;
+    if (toDate && (!createdDate || createdDate > new Date(`${toDate}T23:59:59.999`))) return false;
     if (!q && !search.trim()) return true;
     const term = search.trim().toLocaleLowerCase("pt-BR");
     return normalizePlate(order?.plate ?? "").includes(q)
       || String(order?.number ?? "").includes(term)
       || (order?.customer_name ?? "").toLocaleLowerCase("pt-BR").includes(term);
-  }), [data, filter, q, search]);
+  }), [data, filter, fromDate, toDate, q, search]);
 
   async function renew(orderId: string) {
     setBusyId(orderId);
@@ -90,15 +95,20 @@ function OrcamentosPage() {
   }
 
   const counts = useMemo(() => data.reduce((acc, item) => {
-    acc[approvalStatus(item).key] += 1;
+    const key = approvalStatus(item).key;
+    acc[key] += 1;
+    const order = item.service_orders;
+    const total = order ? orderTotal(order.parts_value, order.labor_value) : 0;
+    if (key === "approved") acc.approvedValue += total;
+    if (key === "rejected") acc.rejectedValue += total;
     return acc;
-  }, { pending: 0, approved: 0, rejected: 0, expired: 0 }), [data]);
+  }, { pending: 0, approved: 0, rejected: 0, expired: 0, approvedValue: 0, rejectedValue: 0 }), [data]);
 
   return <div className="space-y-6">
     <div>
       <p className="text-sm text-muted-foreground">Controle de autorização</p>
-      <h1 className="text-3xl">Orçamentos enviados</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Consulte links emitidos, aprovações e prazos de validade.</p>
+      <h1 className="text-3xl">Orçamentos por cliente</h1>
+      <p className="mt-1 text-sm text-muted-foreground">Acompanhe os orçamentos enviados e as decisões de cada cliente.</p>
     </div>
 
     <section className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="Resumo dos orçamentos">
@@ -106,8 +116,20 @@ function OrcamentosPage() {
       <Summary label="Aprovados" value={counts.approved} />
       <Summary label="Recusados" value={counts.rejected} />
       <Summary label="Expirados" value={counts.expired} />
+      <Summary label="Valor aprovado" value={formatBRL(counts.approvedValue)} />
+      <Summary label="Valor recusado" value={formatBRL(counts.rejectedValue)} />
     </section>
 
+    <div className="grid gap-3 sm:grid-cols-2">
+      <label className="space-y-1 text-sm">
+        <span className="text-muted-foreground">Orçamentos a partir de</span>
+        <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} aria-label="Data inicial" />
+      </label>
+      <label className="space-y-1 text-sm">
+        <span className="text-muted-foreground">Até</span>
+        <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} aria-label="Data final" min={fromDate || undefined} />
+      </label>
+    </div>
     <div className="relative">
       <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por cliente, placa ou número da OS" className="h-11 pl-10" aria-label="Buscar orçamento" />
@@ -146,8 +168,10 @@ function OrcamentosPage() {
             </div>
             <div className="grid gap-2 text-sm sm:grid-cols-2">
               <p><span className="text-muted-foreground">Link emitido:</span> {dateTime(item.created_at)}</p>
-              <p><span className="text-muted-foreground">Aprovação:</span> {dateTime(item.approved_at)}</p>
-              {item.approved_by && <p><span className="text-muted-foreground">Aprovado por:</span> {item.approved_by}</p>}
+              {status.key === "approved" && <p className="flex items-center gap-1 text-success"><CheckCircle2 className="size-4" /> Cliente aprovou: {dateTime(item.approved_at)}</p>}
+              {status.key === "rejected" && <p className="flex items-center gap-1 text-destructive"><XCircle className="size-4" /> Cliente recusou: {dateTime(item.rejected_at)}</p>}
+              {item.approved_by && status.key === "approved" && <p><span className="text-muted-foreground">Aprovado por:</span> {item.approved_by}</p>}
+              {item.rejected_by && status.key === "rejected" && <p><span className="text-muted-foreground">Recusado por:</span> {item.rejected_by}</p>}
               <p><span className="text-muted-foreground">Validade:</span> {dateTime(item.expires_at)}</p>
             </div>
             <div className="flex flex-wrap gap-2 border-t border-border pt-3">
@@ -163,6 +187,6 @@ function OrcamentosPage() {
   </div>;
 }
 
-function Summary({ label, value }: { label: string; value: number }) {
+function Summary({ label, value }: { label: string; value: number | string }) {
   return <div className="rounded-md border border-border bg-card p-3"><p className="font-display text-2xl tabular-nums">{value}</p><p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p></div>;
 }
