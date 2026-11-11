@@ -113,10 +113,6 @@ ON public.technical_service_logs FOR SELECT TO authenticated
 USING (
   public.has_role(auth.uid(), 'admin'::public.app_role)
   OR public.has_role(auth.uid(), 'secretaria'::public.app_role)
-  OR (
-    mechanic_user_id = auth.uid()
-    AND public.is_mechanic_assigned(service_order_id, auth.uid())
-  )
 );
 
 DROP POLICY IF EXISTS technical_logs_insert_assigned_mechanic ON public.technical_service_logs;
