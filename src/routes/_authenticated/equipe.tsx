@@ -24,6 +24,7 @@ function StaffDashboard() {
   const { user, staffRole } = Route.useRouteContext();
   const navigate = useNavigate();
   const [items, setItems] = useState<any[]>([]);
+  const [agenda, setAgenda] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("Ative as notificações do navegador para acompanhar atualizações.");
   const [drafts, setDrafts] = useState<Record<string,string>>({});
@@ -34,6 +35,11 @@ function StaffDashboard() {
   async function load() {
     setLoading(true);
     if (staffRole === "mecanico") {
+      const today = new Date();
+      const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      const { data: appointments, error: agendaError } = await supabase.from("appointments").select("id, customer_name, phone, plate, vehicle, service_type, scheduled_date, scheduled_time, status, notes").gte("scheduled_date", todayKey).neq("status", "cancelado").order("scheduled_date", { ascending: true }).order("scheduled_time", { ascending: true }).limit(50);
+      if (agendaError) toast.error("Não foi possível carregar a agenda da oficina.");
+      setAgenda(appointments ?? []);
       const { data, error } = await (supabase as any).from("service_order_assignments")
         .select("id, service_order_id, assigned_at, service_orders(id, number, customer_name, vehicle, plate, complaint, diagnosis, due_date, status)")
         .eq("mechanic_user_id", user.id).eq("active", true).order("assigned_at", { ascending: false });
@@ -47,6 +53,7 @@ function StaffDashboard() {
         setHistory(grouped);
       } else setHistory({});
     } else {
+      setAgenda([]);
       const { data, error } = await supabase.from("appointments").select("*")
         .neq("status", "cancelado").order("scheduled_date", { ascending: true }).limit(100);
       if (error) toast.error("Não foi possível carregar a agenda.");
@@ -66,7 +73,8 @@ function StaffDashboard() {
         }
         void load();
       }).subscribe();
-    return () => { void supabase.removeChannel(channel); };
+    const agendaChannel = staffRole === "mecanico" ? supabase.channel("mechanic-agenda-live-" + user.id).on("postgres_changes", { event: "*", schema: "public", table: "appointments" }, () => { void load(); }).subscribe() : null;
+    return () => { void supabase.removeChannel(channel); if (agendaChannel) void supabase.removeChannel(agendaChannel); };
   }, [user.id, staffRole]);
 
   async function enableNotifications() {
@@ -116,6 +124,18 @@ function StaffDashboard() {
       <div className="flex items-center gap-3"><Bell className="size-5 text-primary"/><div><p className="font-medium">Notificações {unread > 0 ? `(${unread} novas)` : ""}</p><p className="text-sm text-muted-foreground">{notice}</p></div></div>
       <Button variant="outline" onClick={enableNotifications}>Ativar notificações</Button>
     </section>
+    {staffRole === "mecanico" && <section className="space-y-3 rounded-lg border bg-card p-4">
+      <div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2"><CalendarDays className="size-5 text-primary"/><h2 className="text-xl font-semibold">Agenda da oficina</h2></div><span className="text-xs text-muted-foreground">{agenda.length} agendamento(s)</span></div>
+      {agenda.length === 0 ? <p className="rounded-md border border-dashed p-5 text-center text-sm text-muted-foreground">Não há atendimentos futuros agendados.</p> : <div className="space-y-2">{agenda.map((appointment) => {
+        const [year, month, day] = String(appointment.scheduled_date).slice(0, 10).split("-");
+        const dateLabel = new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "long" });
+        return <article key={appointment.id} className="flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center">
+          <div className="min-w-28"><p className="font-semibold text-primary">{String(appointment.scheduled_time).slice(0, 5)}</p><p className="text-xs capitalize text-muted-foreground">{dateLabel}</p></div>
+          <div className="min-w-0 flex-1"><p className="font-medium">{appointment.customer_name} · {appointment.vehicle}</p><p className="text-sm text-muted-foreground">Placa: {appointment.plate} · {appointment.service_type}</p>{appointment.notes && <p className="text-xs text-muted-foreground">{appointment.notes}</p>}</div>
+          <span className="w-fit rounded-full bg-muted px-2 py-1 text-xs capitalize">{appointment.status}</span>
+        </article>;
+      })}</div>}
+    </section>}
     <section className="space-y-3">
       <div className="flex items-center gap-2">{staffRole === "mecanico" ? <Wrench/> : <CalendarDays/>}<h2 className="text-xl font-semibold">{staffRole === "mecanico" ? "Minhas ordens de serviço" : "Agenda de atendimentos"}</h2></div>
       {loading ? <p className="rounded border p-5 text-muted-foreground">Carregando…</p> : items.length === 0 ? <p className="rounded border border-dashed p-8 text-center text-muted-foreground">{staffRole === "mecanico" ? "Nenhuma ordem atribuída no momento." : "Nenhum atendimento agendado."}</p> :
