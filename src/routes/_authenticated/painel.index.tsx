@@ -34,12 +34,14 @@ export const Route = createFileRoute("/_authenticated/painel/")({
     { property: "og:description", content: "Acompanhamento diário da oficina." },
     { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
   ] }),
-  loader: ({ context }) =>
-    Promise.all([
+  loader: ({ context }) => {
+    if (!context.isAdmin) return;
+    return Promise.all([
       context.queryClient.ensureQueryData(ordersQuery()),
       context.queryClient.ensureQueryData(appointmentsQuery()),
       context.queryClient.ensureQueryData(warrantiesQuery()),
-    ]),
+    ]);
+  },
   component: PainelIndex,
 });
 
@@ -52,6 +54,24 @@ function daysUntil(date: string, today: string) {
 }
 
 function PainelIndex() {
+  const { isAdmin } = Route.useRouteContext();
+  return isAdmin ? <AdminPainelIndex /> : <SecretariaPainelIndex />;
+}
+
+function SecretariaPainelIndex() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="text-sm text-muted-foreground">Acompanhamento da equipe</p>
+        <h1 className="text-3xl">Painel da secretaria</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Consulte a produção dos mecânicos. Os registros técnicos completos continuam disponíveis somente para a secretaria e o administrador.</p>
+      </div>
+      <MechanicProduction canReset={false} />
+    </div>
+  );
+}
+
+function AdminPainelIndex() {
   const { data: orders } = useSuspenseQuery(ordersQuery());
   const { data: appointments } = useSuspenseQuery(appointmentsQuery());
   const { data: warranties } = useSuspenseQuery(warrantiesQuery());
@@ -105,7 +125,7 @@ function PainelIndex() {
 
       <NotificationCenter />
 
-      <MechanicProduction />
+      <MechanicProduction canReset />
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Indicadores da oficina">
         <Stat icon={<Wrench />} label="Em andamento" value={stats.open} href="/painel/" />
