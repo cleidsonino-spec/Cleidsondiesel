@@ -107,6 +107,8 @@ export type Database = {
           expires_at: string
           id: string
           order_id: string
+          rejected_at: string | null
+          rejected_by: string | null
           snapshot: Json
           state: string
           token: string
@@ -119,6 +121,8 @@ export type Database = {
           expires_at?: string
           id?: string
           order_id: string
+          rejected_at?: string | null
+          rejected_by?: string | null
           snapshot: Json
           state?: string
           token?: string
@@ -131,6 +135,8 @@ export type Database = {
           expires_at?: string
           id?: string
           order_id?: string
+          rejected_at?: string | null
+          rejected_by?: string | null
           snapshot?: Json
           state?: string
           token?: string
@@ -402,6 +408,10 @@ export type Database = {
       normalize_plate: { Args: { _p: string }; Returns: string }
       quote_snapshot: {
         Args: { o: Database["public"]["Tables"]["service_orders"]["Row"] }
+        Returns: Json
+      }
+      reject_quote_identified: {
+        Args: { _cpf: string; _name: string; _token: string }
         Returns: Json
       }
       valid_cpf: { Args: { _cpf: string }; Returns: boolean }

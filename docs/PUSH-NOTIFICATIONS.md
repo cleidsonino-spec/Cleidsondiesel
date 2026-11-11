@@ -65,3 +65,30 @@ A geração de release também exige os secrets de assinatura Android descritos 
 6. Confirme que uma conta com role `user` não recebe notificações.
 
 A integração não deve ser considerada concluída até que os webhooks estejam criados, as funções implantadas e os testes feitos em aparelho Android real.
+
+## Notificações adicionais (lembrete, orçamento, status)
+
+Reutilizam o gatilho `push.notify_worker_on_change()` → Worker `/notify` (segredo Vault `push_webhook_secret`).
+
+- `push.notification_events` (PK `event_key`): cada evento entra uma única vez (`on conflict do nothing`); o gatilho `push_notify_events` chama o Worker só em inserções novas.
+- Payload: `{ "table": "notification_events", "type": "INSERT", "record": { "event_key", "title", "body", "route" } }`.
+
+| Evento | Origem | Chave |
+| --- | --- | --- |
+| Lembrete 1h antes | pg_cron `push-appointment-reminders` (cada minuto) → `push.send_appointment_reminders()`, fuso `America/Bahia`, só `pendente`/`confirmado`; não envia se criado com menos de 1h | `appointment:<id>:reminder:<data>T<hora>` (remarcar gera nova chave; cancelado não dispara) |
+| Orçamento aprovado/recusado | gatilho `push_quote_state` (`quote_approvals.state` → `approved`/`rejected`) | `quote:<id>:<estado>` |
+| OS em serviço | gatilho `push_order_in_service`, só transição para `em_servico` | `order:<id>:em_servico:<updated_at>` |
+| OS pronta | fluxo existente `push_notify_service_orders` (inalterado) | — |
+
+Recusa: pelo mesmo link de aprovação (nome + CPF válido), RPC `reject_quote_identified`; estado `rejected`, OS não muda.
+
+### Ação manual pendente (obrigatória)
+
+O código do Worker Cloudflare não está neste repositório. Até ele ser atualizado, os eventos novos chegam mas são ignorados. Adicione no Worker (e, se usar, em `notify-admin`):
+
+```ts
+if (table === "notification_events" && type === "INSERT") {
+  return { title: record.title, body: record.body, route: String(record.route).startsWith("/painel") ? record.route : "/painel" };
+}
+```
+Depois teste em aparelho Android real.
