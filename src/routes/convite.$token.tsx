@@ -22,7 +22,6 @@ function AcceptInvitation() {
   const [resolvingInvite, setResolvingInvite] = useState(true);
   const [inviteInvalid, setInviteInvalid] = useState(false);
   const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailConfirmation, setEmailConfirmation] = useState(false);
   const [existingAccount, setExistingAccount] = useState(false);
@@ -37,7 +36,7 @@ function AcceptInvitation() {
         return;
       }
       setEmail(data.toLowerCase());
-    });
+    }).catch(() => { if (active) { setResolvingInvite(false); setInviteInvalid(true); } });
     return () => { active = false; };
   }, [token]);
 
@@ -45,7 +44,6 @@ function AcceptInvitation() {
     event.preventDefault();
     if (!email) { toast.error("Não foi possível identificar o convite. Peça um novo link."); return; }
     if (password.length < 8) { toast.error(existingAccount ? "Informe sua senha atual (mínimo de 8 caracteres)." : "A senha deve ter pelo menos 8 caracteres."); return; }
-    if (!existingAccount && password !== confirm) { toast.error("As senhas não conferem."); return; }
     setLoading(true);
     if (existingAccount) {
       const { error: loginError } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
@@ -88,9 +86,8 @@ function AcceptInvitation() {
       {inviteInvalid && <p className="text-center text-sm text-destructive">Este link é inválido, expirou ou já foi utilizado. Peça um novo convite ao administrador.</p>}
       {!emailConfirmation && !resolvingInvite && !inviteInvalid && <form onSubmit={submit} className="space-y-4">
         <label className="block space-y-1 text-sm"><span>{existingAccount ? "Senha atual" : "Nova senha"}</span><Input type="password" autoComplete={existingAccount ? "current-password" : "new-password"} minLength={8} maxLength={128} required value={password} onChange={e => setPassword(e.target.value)} /></label>
-        {!existingAccount && <label className="block space-y-1 text-sm"><span>Confirmar senha</span><Input type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={confirm} onChange={e => setConfirm(e.target.value)} /></label>}
         <Button type="submit" className="w-full" disabled={loading}>{loading && <Loader2 className="mr-2 size-4 animate-spin"/>}{existingAccount ? "Entrar e aceitar convite" : "Ativar minha conta"}</Button>
-        <Button type="button" variant="ghost" className="w-full" onClick={() => { setExistingAccount(v => !v); setPassword(""); setConfirm(""); }}>{existingAccount ? "Ainda não tenho uma conta" : "Já tenho uma conta — entrar para aceitar convite"}</Button>
+        <Button type="button" variant="ghost" className="w-full" onClick={() => { setExistingAccount(v => !v); setPassword(""); }}>{existingAccount ? "Ainda não tenho uma conta" : "Já tenho uma conta — entrar para aceitar convite"}</Button>
       </form>}
       {emailConfirmation && <Button className="w-full" onClick={() => navigate({ to: "/auth" })}>Ir para o login</Button>}
     </div>
