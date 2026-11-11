@@ -35,13 +35,19 @@ function AuthPage() {
   const [sent, setSent] = useState(false);
 
   useEffect(() => {
+    let active = true;
+    const goToRoleHome = async (userId: string) => {
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle();
+      if (!active) return;
+      navigate({ to: data?.role === "secretaria" || data?.role === "mecanico" ? "/equipe" : "/painel" });
+    };
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/painel" });
+      if (data.session) void goToRoleHome(data.session.user.id);
     });
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) navigate({ to: "/painel" });
+      if (event === "SIGNED_IN" && session) queueMicrotask(() => void goToRoleHome(session.user.id));
     });
-    return () => data.subscription.unsubscribe();
+    return () => { active = false; data.subscription.unsubscribe(); };
   }, [navigate]);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
