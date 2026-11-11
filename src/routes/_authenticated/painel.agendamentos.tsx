@@ -33,7 +33,7 @@ type View = "proximos" | "pendentes" | "todos";
 
 function AgendamentosPage() {
   const { data } = useSuspenseQuery(appointmentsQuery());
-  const { isAdmin, isSecretaria } = Route.useRouteContext();
+  const { isAdmin, isSecretaria, isMechanic } = Route.useRouteContext();
   const canManageAppointments = isAdmin || isSecretaria;
   const [view, setView] = useState<View>("proximos");
   const today = todayISO();
@@ -145,7 +145,7 @@ function AgendamentosPage() {
           </h2>
           <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-card">
             {items.map((a) => (
-              <AppointmentRow key={a.id} a={a} isAdmin={isAdmin} isSecretaria={isSecretaria} />
+              <AppointmentRow key={a.id} a={a} isAdmin={isAdmin} isSecretaria={isSecretaria} isMechanic={isMechanic} />
             ))}
           </div>
         </section>
@@ -154,11 +154,11 @@ function AgendamentosPage() {
   );
 }
 
-function AppointmentRow({ a, isAdmin, isSecretaria }: { a: Appointment; isAdmin: boolean; isSecretaria: boolean }) {
+function AppointmentRow({ a, isAdmin, isSecretaria, isMechanic }: { a: Appointment; isAdmin: boolean; isSecretaria: boolean; isMechanic: boolean }) {
   const qc = useQueryClient();
   const info = appointmentStatusInfo(a.status);
   const confirmHref = waLink(a.phone, appointmentMessage(a));
-  const chatHref = waLink(a.phone, `Olá, ${a.customer_name.split(" ")[0]}! Aqui é da Cleidson Diesel.`);
+  const chatHref = isMechanic ? null : waLink(a.phone, `Olá, ${a.customer_name.split(" ")[0]}! Aqui é da Cleidson Diesel.`);
 
   async function setStatus(status: AppointmentStatus): Promise<boolean> {
     if (status === "confirmado" && (isAdmin || isSecretaria)) {
@@ -191,7 +191,7 @@ function AppointmentRow({ a, isAdmin, isSecretaria }: { a: Appointment; isAdmin:
       </div>
       <div className="min-w-0 flex-1">
         <p className="font-medium">
-          {a.customer_name} <span className="text-sm text-muted-foreground">· {a.phone}</span>
+          {a.customer_name} {!isMechanic && <span className="text-sm text-muted-foreground">· {a.phone}</span>}
         </p>
         <p className="text-sm text-muted-foreground">
           {a.vehicle} · {a.service_type}
