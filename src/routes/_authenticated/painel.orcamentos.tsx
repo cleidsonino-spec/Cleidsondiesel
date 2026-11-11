@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { CheckCircle2, FileText, Link2, Loader2, RefreshCw, Search, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -18,6 +18,9 @@ export const Route = createFileRoute("/_authenticated/painel/orcamentos")({
     { name: "description", content: "Consulte os orçamentos e autorizações da oficina." },
     { name: "robots", content: "noindex" },
   ] }),
+  beforeLoad: ({ context }) => {
+    if (!context.isAdmin && !context.isSecretaria) throw redirect({ to: "/painel" });
+  },
   component: OrcamentosPage,
 });
 
