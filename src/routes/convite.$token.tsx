@@ -26,7 +26,7 @@ function AcceptInvitation() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email.trim())) { toast.error("Informe o mesmo e-mail cadastrado no convite."); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { toast.error("Informe o mesmo e-mail cadastrado no convite."); return; }
     if (password.length < 8) { toast.error("A senha deve ter pelo menos 8 caracteres."); return; }
     if (password !== confirm) { toast.error("As senhas não conferem."); return; }
     setLoading(true);
