@@ -191,3 +191,40 @@ COMMIT;
 - Não altera horário de funcionamento.
 - Não dispara notificações de teste.
 - A interface e o provisionamento seguro de funcionários precisam ser implementados e testados antes de liberar acesso.
+
+
+## Etapa C — permissões operacionais adicionais (aplicada em 2026-11-10)
+
+```sql
+BEGIN;
+
+DROP POLICY IF EXISTS "Anyone can request appointment" ON public.appointments;
+CREATE POLICY "Anyone can request appointment" ON public.appointments FOR INSERT TO anon WITH CHECK (status = 'pendente'::public.appointment_status);
+
+DROP POLICY IF EXISTS "Secretaria insert orders" ON public.service_orders;
+CREATE POLICY "Secretaria insert orders" ON public.service_orders FOR INSERT TO authenticated WITH CHECK (public.has_role(auth.uid(), 'secretaria'::public.app_role));
+
+DROP POLICY IF EXISTS "Secretaria update orders" ON public.service_orders;
+CREATE POLICY "Secretaria update orders" ON public.service_orders FOR UPDATE TO authenticated USING (public.has_role(auth.uid(), 'secretaria'::public.app_role)) WITH CHECK (public.has_role(auth.uid(), 'secretaria'::public.app_role));
+
+DROP POLICY IF EXISTS "Secretaria manage customers" ON public.customers;
+CREATE POLICY "Secretaria manage customers" ON public.customers FOR INSERT TO authenticated WITH CHECK (public.has_role(auth.uid(), 'secretaria'::public.app_role));
+
+DROP POLICY IF EXISTS "Secretaria update customers" ON public.customers;
+CREATE POLICY "Secretaria update customers" ON public.customers FOR UPDATE TO authenticated USING (public.has_role(auth.uid(), 'secretaria'::public.app_role)) WITH CHECK (public.has_role(auth.uid(), 'secretaria'::public.app_role));
+
+DROP POLICY IF EXISTS "Secretaria read vehicles" ON public.vehicles;
+CREATE POLICY "Secretaria read vehicles" ON public.vehicles FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'secretaria'::public.app_role));
+
+COMMIT;
+```
+
+### Resultado e limites da etapa C
+
+- A política de solicitação pública de agendamento agora vale somente para `anon`; usuários autenticados com papel de mecânico não conseguem inserir agendamentos por essa política.
+- Mecânicos continuam com SELECT na agenda completa, sem INSERT, UPDATE ou DELETE.
+- Secretária pode inserir e atualizar OS; exclusão continua restrita ao administrador.
+- Secretária pode inserir e atualizar clientes e consultar veículos.
+- Mecânico continua sem INSERT/UPDATE/DELETE em `service_orders`, `customers` ou `vehicles`.
+- Atribuição de OS e registro técnico mantêm as políticas da etapa B.
+- Login individual, telas e provisionamento seguro de contas ainda não estão implementados.
