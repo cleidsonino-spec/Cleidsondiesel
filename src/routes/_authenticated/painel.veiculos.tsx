@@ -7,5 +7,9 @@ export const Route = createFileRoute("/_authenticated/painel/veiculos")({
   beforeLoad: ({ context }) => {
     if (!context.isAdmin && !context.isSecretaria) throw redirect({ to: "/painel" });
   },
-  component: () => <RegistryPage mode="vehicles" />,
+  component: VeiculosPage,
 });
+function VeiculosPage() {
+  const { isAdmin } = Route.useRouteContext();
+  return <RegistryPage mode="vehicles" readOnly={!isAdmin} canDelete={isAdmin} />;
+}
