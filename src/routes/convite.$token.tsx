@@ -23,13 +23,24 @@ function AcceptInvitation() {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailConfirmation, setEmailConfirmation] = useState(false);
+  const [existingAccount, setExistingAccount] = useState(false);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { toast.error("Informe o mesmo e-mail cadastrado no convite."); return; }
-    if (password.length < 8) { toast.error("A senha deve ter pelo menos 8 caracteres."); return; }
-    if (password !== confirm) { toast.error("As senhas não conferem."); return; }
+    if (password.length < 8) { toast.error(existingAccount ? "Informe sua senha atual (mínimo de 8 caracteres)." : "A senha deve ter pelo menos 8 caracteres."); return; }
+    if (!existingAccount && password !== confirm) { toast.error("As senhas não conferem."); return; }
     setLoading(true);
+    if (existingAccount) {
+      const { error: loginError } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+      if (loginError) { setLoading(false); toast.error("Não foi possível entrar. Confira o e-mail e a senha atual da conta."); return; }
+      const { error: acceptError } = await supabase.rpc("accept_staff_invitation_for_existing_user", { p_token: token });
+      setLoading(false);
+      if (acceptError) { toast.error(acceptError.message.includes("STAFF_INVITATION_INVALID_OR_EXPIRED") ? "Convite inválido, expirado ou já utilizado. Peça um novo convite." : "Login realizado, mas não foi possível concluir o convite. Tente novamente ou peça um novo convite."); return; }
+      toast.success("Convite aceito! Seu acesso à equipe foi liberado.");
+      navigate({ to: "/equipe" });
+      return;
+    }
     const { data, error } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
       password,
@@ -56,12 +67,13 @@ function AcceptInvitation() {
   return <main className="flex min-h-screen items-center justify-center px-4 py-10">
     <div className="w-full max-w-md space-y-6 rounded-lg border bg-card p-6">
       <div className="flex justify-center"><Logo/></div>
-      <div className="text-center"><KeyRound className="mx-auto size-8 text-primary"/><h1 className="mt-3 text-2xl font-semibold">{emailConfirmation ? "Confirme seu e-mail" : "Ativar acesso da equipe"}</h1><p className="mt-2 text-sm text-muted-foreground">{emailConfirmation ? "Enviamos uma mensagem para seu e-mail. Confirme o endereço para depois entrar no painel." : "Informe o mesmo e-mail usado no convite e crie sua senha. O link vence em 7 dias e só pode ser usado uma vez."}</p></div>
+      <div className="text-center"><KeyRound className="mx-auto size-8 text-primary"/><h1 className="mt-3 text-2xl font-semibold">{emailConfirmation ? "Confirme seu e-mail" : "Ativar acesso da equipe"}</h1><p className="mt-2 text-sm text-muted-foreground">{emailConfirmation ? "Enviamos uma mensagem para seu e-mail. Confirme o endereço para depois entrar no painel." : existingAccount ? "Entre com o e-mail e a senha que você já usa no Cleidson Diesel para aceitar este convite." : "Informe o mesmo e-mail usado no convite e crie sua senha. O link vence em 7 dias e só pode ser usado uma vez."}</p></div>
       {!emailConfirmation && <form onSubmit={submit} className="space-y-4">
         <label className="block space-y-1 text-sm"><span>E-mail cadastrado no convite</span><Input type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} /></label>
-        <label className="block space-y-1 text-sm"><span>Nova senha</span><Input type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={password} onChange={e => setPassword(e.target.value)} /></label>
-        <label className="block space-y-1 text-sm"><span>Confirmar senha</span><Input type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={confirm} onChange={e => setConfirm(e.target.value)} /></label>
-        <Button type="submit" className="w-full" disabled={loading}>{loading && <Loader2 className="mr-2 size-4 animate-spin"/>}Ativar minha conta</Button>
+        <label className="block space-y-1 text-sm"><span>{existingAccount ? "Senha atual" : "Nova senha"}</span><Input type="password" autoComplete={existingAccount ? "current-password" : "new-password"} minLength={8} maxLength={128} required value={password} onChange={e => setPassword(e.target.value)} /></label>
+        {!existingAccount && <label className="block space-y-1 text-sm"><span>Confirmar senha</span><Input type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={confirm} onChange={e => setConfirm(e.target.value)} /></label>}
+        <Button type="submit" className="w-full" disabled={loading}>{loading && <Loader2 className="mr-2 size-4 animate-spin"/>}{existingAccount ? "Entrar e aceitar convite" : "Ativar minha conta"}</Button>
+        <Button type="button" variant="ghost" className="w-full" onClick={() => { setExistingAccount(v => !v); setPassword(""); setConfirm(""); }}>{existingAccount ? "Ainda não tenho uma conta" : "Já tenho uma conta — entrar para aceitar convite"}</Button>
       </form>}
       {emailConfirmation && <Button className="w-full" onClick={() => navigate({ to: "/auth" })}>Ir para o login</Button>}
     </div>
