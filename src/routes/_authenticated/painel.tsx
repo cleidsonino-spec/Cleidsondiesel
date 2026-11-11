@@ -21,14 +21,21 @@ export const Route = createFileRoute("/_authenticated/painel")({
     ],
   }),
   beforeLoad: async ({ context }) => {
-    const { data } = await supabase.rpc("has_role", { _user_id: context.user.id, _role: "admin" });
-    return { isAdmin: data === true };
+    const [adminResult, secretariaResult] = await Promise.all([
+      supabase.rpc("has_role", { _user_id: context.user.id, _role: "admin" }),
+      supabase.rpc("has_role", { _user_id: context.user.id, _role: "secretaria" }),
+    ]);
+    return {
+      isAdmin: adminResult.data === true,
+      isSecretaria: secretariaResult.data === true,
+    };
   },
   component: PainelLayout,
 });
 
 function PainelLayout() {
-  const { isAdmin, user } = Route.useRouteContext();
+  const { isAdmin, isSecretaria, user } = Route.useRouteContext();
+  const canAccessPanel = isAdmin || isSecretaria;
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -80,11 +87,11 @@ function PainelLayout() {
         )}
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6 md:py-8">
-        {isAdmin ? <Outlet /> : (
+        {canAccessPanel ? <Outlet /> : (
           <div className="mx-auto max-w-md rounded-md border border-border bg-card p-8 text-center">
             <ShieldAlert className="mx-auto size-10 text-warning" />
             <h1 className="mt-4 text-xl">Acesso aguardando liberação</h1>
-            <p className="mt-2 text-sm text-muted-foreground">A conta <strong className="text-foreground">{user.email}</strong> não tem permissão para acessar o painel. Somente a conta administradora da oficina pode entrar.</p>
+            <p className="mt-2 text-sm text-muted-foreground">A conta <strong className="text-foreground">{user.email}</strong> não tem permissão para acessar o painel.</p>
           </div>
         )}
       </main>
