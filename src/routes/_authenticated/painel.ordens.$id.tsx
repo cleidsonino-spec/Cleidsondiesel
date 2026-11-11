@@ -121,7 +121,7 @@ function OrdemPage() {
       {/* WhatsApp */}
       <ApprovalActions order={order} />
       {(isAdmin || isSecretary) && order.status === "recebido" && <MechanicAssignment serviceOrderId={id} stage="diagnostico" />}
-      {(isAdmin || isSecretary) && order.status === "aprovado_aguardando_encaminhamento" && <MechanicAssignment serviceOrderId={id} stage="servico" />}
+      {(isAdmin || isSecretary) && String(order.status) === "aprovado_aguardando_encaminhamento" && <MechanicAssignment serviceOrderId={id} stage="servico" />}
       <div className="rounded-md border border-success/40 bg-success/10 p-4 print:hidden">
         <div className="mb-3 flex items-center gap-2">
           <MessageCircle className="size-5 text-success" />
