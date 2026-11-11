@@ -149,6 +149,14 @@ CREATE POLICY appointments_read_secretaria
 ON public.appointments FOR SELECT TO authenticated
 USING (public.has_role(auth.uid(), 'secretaria'::public.app_role));
 
+CREATE POLICY appointments_read_mecanico
+ON public.appointments FOR SELECT TO authenticated
+USING (public.has_role(auth.uid(), 'mecanico'::public.app_role));
+
+CREATE POLICY quote_approvals_read_secretaria
+ON public.quote_approvals FOR SELECT TO authenticated
+USING (public.has_role(auth.uid(), 'secretaria'::public.app_role));
+
 CREATE OR REPLACE FUNCTION public.secretaria_confirm_appointment(_appointment_id uuid)
 RETURNS void
 LANGUAGE plpgsql
