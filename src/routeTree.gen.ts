@@ -17,6 +17,7 @@ import { Route as ConsultaRouteImport } from './routes/consulta'
 import { Route as ServicosRouteImport } from './routes/servicos'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
+import { Route as AuthenticatedAgendaEquipeRouteImport } from './routes/_authenticated/agenda-equipe'
 import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as AuthenticatedPainelIndexRouteImport } from './routes/_authenticated/painel.index'
@@ -62,6 +63,11 @@ const ServicosRoute = ServicosRouteImport.update({
 const AuthenticatedEquipeRoute = AuthenticatedEquipeRouteImport.update({
   id: '/equipe',
   path: '/equipe',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAgendaEquipeRoute = AuthenticatedAgendaEquipeRouteImport.update({
+  id: '/agenda-equipe',
+  path: '/agenda-equipe',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/consulta': typeof ConsultaRoute
   '/servicos': typeof ServicosRoute
   '/equipe': typeof AuthenticatedEquipeRoute
+  '/agenda-equipe': typeof AuthenticatedAgendaEquipeRoute
   '/painel': typeof AuthenticatedPainelRouteWithChildren
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/convite/$token': typeof ConviteTokenRoute
@@ -212,6 +219,7 @@ export interface FileRouteTypes {
     | '/servicos'
     | '/painel'
     | '/equipe'
+    | '/agenda-equipe'
     | '/orcamento/$token'
     | '/convite/$token'
     | '/equipe'
@@ -253,6 +261,7 @@ export interface FileRouteTypes {
     | '/servicos'
     | '/_authenticated/painel'
     | '/_authenticated/equipe'
+    | '/_authenticated/agenda-equipe'
     | '/orcamento/$token'
     | '/convite/$token'
     | '/_authenticated/painel/agendamentos'
@@ -321,6 +330,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/servicos'
       preLoaderRoute: typeof ServicosRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/agenda-equipe': {
+      id: '/_authenticated/agenda-equipe'
+      path: '/agenda-equipe'
+      fullPath: '/agenda-equipe'
+      preLoaderRoute: typeof AuthenticatedAgendaEquipeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/equipe': {
       id: '/_authenticated/equipe'
@@ -468,11 +484,13 @@ const AuthenticatedPainelRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
+  AuthenticatedAgendaEquipeRoute: typeof AuthenticatedAgendaEquipeRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRouteWithChildren
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
+  AuthenticatedAgendaEquipeRoute: AuthenticatedAgendaEquipeRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRouteWithChildren,
 }
 
