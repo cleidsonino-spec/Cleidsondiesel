@@ -21,9 +21,12 @@ export const Route = createFileRoute("/_authenticated/painel")({
     ],
   }),
   beforeLoad: async ({ context }) => {
+    // The generated Supabase types still list only the original roles.
+    // Keep this role check typed dynamically until Lovable regenerates the schema types.
+    const client = supabase as any;
     const [adminResult, secretariaResult] = await Promise.all([
-      supabase.rpc("has_role", { _user_id: context.user.id, _role: "admin" }),
-      supabase.rpc("has_role", { _user_id: context.user.id, _role: "secretaria" }),
+      client.rpc("has_role", { _user_id: context.user.id, _role: "admin" }),
+      client.rpc("has_role", { _user_id: context.user.id, _role: "secretaria" }),
     ]);
     return {
       isAdmin: adminResult.data === true,
