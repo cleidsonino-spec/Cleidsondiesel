@@ -57,7 +57,7 @@ function daysUntil(date: string, today: string) {
 
 function PainelIndex() {
   const { isAdmin, isMechanic } = Route.useRouteContext();
-  if (isMechanic) return <MechanicDashboard />;
+  if (isMechanic && !isAdmin) return <MechanicDashboard />;
   return isAdmin ? <AdminPainelIndex /> : <SecretariaPainelIndex />;
 }
 
