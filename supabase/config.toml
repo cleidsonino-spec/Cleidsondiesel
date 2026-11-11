@@ -2,3 +2,6 @@ project_id = "vmmfifpikycnmvzibrfn"
 
 [functions.notify-admin]
 verify_jwt = false
+
+[functions.staff-invitations]
+verify_jwt = false
