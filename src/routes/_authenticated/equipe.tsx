@@ -49,6 +49,9 @@ function StaffDashboard() {
       .on("postgres_changes", { event: "*", schema: "public", table: staffRole === "mecanico" ? "service_order_assignments" : "appointments" }, () => {
         setUnread((n) => n + 1);
         setNotice("Você tem uma atualização nova.");
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("Cleidson Diesel", { body: staffRole === "mecanico" ? "Sua lista de ordens foi atualizada." : "A agenda de atendimentos foi atualizada." });
+        }
         void load();
       }).subscribe();
     return () => { void supabase.removeChannel(channel); };
