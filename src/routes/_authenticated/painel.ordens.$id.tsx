@@ -1,4 +1,4 @@
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, BellRing, MessageCircle, Printer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ import { OrderForm, type OrderFormValues } from "@/components/painel/order-form"
 import { QuotePdfActions } from "@/components/painel/quote-pdf-actions";
 import { ApprovalActions } from "@/components/painel/approval-actions";
 import { WarrantyEditor } from "@/components/painel/warranty-editor";
+import { StaffOrderTools } from "@/components/painel/staff-order-tools";
 import { warrantiesQuery } from "@/lib/warranty";
 import { StatusBadge } from "@/components/site/status-badge";
 import {
@@ -78,6 +79,18 @@ function OrdemPage() {
   const { id } = Route.useParams();
   const { isMechanic } = Route.useRouteContext();
   const { data: order } = useSuspenseQuery(orderQuery(id));
+  const { data: verifiedProcedures = [] } = useQuery({
+    queryKey: ["verified-procedures", id],
+    enabled: !isMechanic && Boolean(order),
+    queryFn: async () => {
+      const client = supabase as any;
+      const { data, error } = await client.from("verified_service_procedures")
+        .select("id,procedure,description,result,observations,created_at")
+        .eq("service_order_id", id).order("created_at", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -121,6 +134,8 @@ function OrdemPage() {
           <StatusBadge tone={info.tone} label={info.label} className="text-sm" />
         </div>
       </div>
+
+      {<StaffOrderTools orderId={id} />}
 
       {/* WhatsApp */}
       <ApprovalActions order={order} />
@@ -189,7 +204,7 @@ function OrdemPage() {
       </div>
 
       <WarrantyEditor orderId={id} orderStatus={order.status} />
-      <PrintSheet order={order} />
+      <PrintSheet order={order} verifiedProcedures={verifiedProcedures} />
     </div>
   );
 }
@@ -216,7 +231,7 @@ function MechanicOrderView({ order }: { order: Order }) {
   );
 }
 
-function PrintSheet({ order: o }: { order: Order }) {
+function PrintSheet({ order: o, verifiedProcedures }: { order: Order; verifiedProcedures: { id: string; procedure: string; description: string; result: string | null; observations: string | null; created_at: string }[] }) {
   const rows: [string, string | null][] = [
     ["Cliente", o.customer_name],
     ["Telefone", o.phone],
@@ -278,6 +293,15 @@ function PrintSheet({ order: o }: { order: Order }) {
           <span>Total</span> <span>{formatBRL(orderTotal(o.parts_value, o.labor_value))}</span>
         </p>
       </div>
+      {verifiedProcedures.length > 0 && <div className="mt-6">
+        <p className="mb-2 font-bold">Procedimentos técnicos conferidos</p>
+        {verifiedProcedures.map((item, index) => <div key={item.id} className="mb-3 border-b border-foreground/30 pb-2">
+          <p className="font-semibold">{index + 1}. {item.procedure.replaceAll("_", " ")}</p>
+          <p className="whitespace-pre-wrap">{item.description}</p>
+          {item.result && <p><strong>Resultado:</strong> {item.result}</p>}
+          {item.observations && <p className="whitespace-pre-wrap"><strong>Observações:</strong> {item.observations}</p>}
+        </div>)}
+      </div>}
       <div className="mt-16 grid grid-cols-2 gap-10 text-center">
         <p className="border-t border-foreground pt-1">Assinatura do cliente</p>
         <p className="border-t border-foreground pt-1">Cleidson Diesel</p>
