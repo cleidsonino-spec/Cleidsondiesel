@@ -48,9 +48,18 @@ function QuotePage() {
   async function approve() {
     if (!accepted || !isFullName(name) || !isValidCpf(cpf)) return;
     setBusy(true);
-    const { error } = await supabase.rpc("approve_quote_identified", { _token: token, _name: name.trim(), _cpf: cpf });
+    const { error } = await supabase.rpc("approve_quote_identified", { _token: token, _name: name.trim().replace(/\\s+/g, " "), _cpf: cpf });
     setBusy(false);
-    if (error) { toast.error("O orçamento pode ter sido alterado ou vencido. Solicite um novo link à oficina."); await qc.invalidateQueries({ queryKey: ["public-approval", token] }); return; }
+    if (error) {
+      const message = error.message.includes("Invalid name or CPF")
+        ? "Confira o nome completo e o CPF informado."
+        : error.message.includes("Quote unavailable")
+          ? "Este orçamento foi alterado, vencido ou já não está disponível. Solicite um novo link à oficina."
+          : "Não foi possível registrar a aprovação. Tente novamente ou entre em contato com a oficina.";
+      toast.error(message);
+      await qc.invalidateQueries({ queryKey: ["public-approval", token] });
+      return;
+    }
     setConfirmed(true);
     const whatsapp = data?.quote ? approvalShopLink(data.quote, name.trim()) : null;
     void qc.invalidateQueries({ queryKey: ["public-approval", token] });
