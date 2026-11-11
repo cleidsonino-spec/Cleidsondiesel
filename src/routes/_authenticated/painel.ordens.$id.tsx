@@ -226,7 +226,7 @@ function MechanicOrderView({ order }: { order: Order }) {
         {order.parts && <div className="sm:col-span-2"><p className="text-xs text-muted-foreground">Peças / serviços informados</p><p className="whitespace-pre-wrap">{order.parts}</p></div>}
         {order.notes && <div className="sm:col-span-2"><p className="text-xs text-muted-foreground">Observações</p><p className="whitespace-pre-wrap">{order.notes}</p></div>}
       </section>
-      <p className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm">Para registrar o que foi executado, volte ao painel e use **Registrar procedimento** na OS. O registro será enviado para conferência e não altera os valores nem a OS oficial.</p>
+      <p className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm">Para registrar o que foi executado, volte ao painel e use o botão <strong>Registrar procedimento</strong> na OS. O registro será enviado para conferência e não altera os valores nem a OS oficial.</p>
     </div>
   );
 }
