@@ -228,3 +228,34 @@ COMMIT;
 - Mecânico continua sem INSERT/UPDATE/DELETE em `service_orders`, `customers` ou `vehicles`.
 - Atribuição de OS e registro técnico mantêm as políticas da etapa B.
 - Login individual, telas e provisionamento seguro de contas ainda não estão implementados.
+
+
+## Etapa D — atribuição, apontamentos e conferência técnica (aplicada em 2026-11-10)
+
+```sql
+BEGIN;
+CREATE OR REPLACE FUNCTION public.staff_assign_service_order(_service_order_id uuid, _mechanic_user_id uuid) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$ DECLARE _assignment_id uuid; BEGIN IF auth.uid() IS NULL OR (NOT public.has_role(auth.uid(),'admin'::public.app_role) AND NOT public.has_role(auth.uid(),'secretaria'::public.app_role)) THEN RAISE EXCEPTION 'Sem permissão para atribuir ordem de serviço'; END IF; IF NOT EXISTS (SELECT 1 FROM public.service_orders WHERE id=_service_order_id) THEN RAISE EXCEPTION 'Ordem de serviço não encontrada'; END IF; IF NOT public.has_role(_mechanic_user_id,'mecanico'::public.app_role) THEN RAISE EXCEPTION 'O usuário selecionado não possui perfil de mecânico'; END IF; UPDATE public.service_order_assignments SET active=false WHERE service_order_id=_service_order_id AND active=true; INSERT INTO public.service_order_assignments(service_order_id,mechanic_user_id,assigned_by,active) VALUES(_service_order_id,_mechanic_user_id,auth.uid(),true) RETURNING id INTO _assignment_id; RETURN _assignment_id; END; $$;
+CREATE OR REPLACE FUNCTION public.mechanic_add_technical_log(_service_order_id uuid,_procedure text,_description text,_result text DEFAULT NULL,_observations text DEFAULT NULL) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$ DECLARE _log_id uuid; BEGIN IF auth.uid() IS NULL OR NOT public.has_role(auth.uid(),'mecanico'::public.app_role) OR NOT public.is_mechanic_assigned(_service_order_id,auth.uid()) THEN RAISE EXCEPTION 'Você não está atribuído a esta ordem de serviço'; END IF; IF length(trim(coalesce(_procedure,'')))=0 OR length(trim(coalesce(_description,'')))=0 THEN RAISE EXCEPTION 'Procedimento e descrição são obrigatórios'; END IF; INSERT INTO public.technical_service_logs(service_order_id,mechanic_user_id,procedure,description,result,observations) VALUES(_service_order_id,auth.uid(),trim(_procedure),trim(_description),nullif(trim(coalesce(_result,'')),''),nullif(trim(coalesce(_observations,'')),'')) RETURNING id INTO _log_id; RETURN _log_id; END; $$;
+CREATE TABLE IF NOT EXISTS public.verified_service_procedures(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),service_order_id uuid NOT NULL REFERENCES public.service_orders(id) ON DELETE CASCADE,technical_log_id uuid NOT NULL UNIQUE REFERENCES public.technical_service_logs(id) ON DELETE RESTRICT,reviewed_by uuid NOT NULL DEFAULT auth.uid(),procedure text NOT NULL,description text NOT NULL,result text,observations text,created_at timestamptz NOT NULL DEFAULT now());
+ALTER TABLE public.verified_service_procedures ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS verified_procedures_read_staff ON public.verified_service_procedures;
+CREATE POLICY verified_procedures_read_staff ON public.verified_service_procedures FOR SELECT TO authenticated USING(public.has_role(auth.uid(),'admin'::public.app_role) OR public.has_role(auth.uid(),'secretaria'::public.app_role));
+CREATE OR REPLACE FUNCTION public.staff_verify_technical_log(_technical_log_id uuid) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$ DECLARE _log public.technical_service_logs%ROWTYPE; _verified_id uuid; BEGIN IF auth.uid() IS NULL OR (NOT public.has_role(auth.uid(),'admin'::public.app_role) AND NOT public.has_role(auth.uid(),'secretaria'::public.app_role)) THEN RAISE EXCEPTION 'Somente administrador ou secretária pode conferir procedimentos'; END IF; SELECT * INTO _log FROM public.technical_service_logs WHERE id=_technical_log_id; IF NOT FOUND THEN RAISE EXCEPTION 'Registro técnico não encontrado'; END IF; INSERT INTO public.verified_service_procedures(service_order_id,technical_log_id,reviewed_by,procedure,description,result,observations) VALUES(_log.service_order_id,_log.id,auth.uid(),_log.procedure,_log.description,_log.result,_log.observations) RETURNING id INTO _verified_id; RETURN _verified_id; END; $$;
+REVOKE ALL ON FUNCTION public.staff_assign_service_order(uuid,uuid) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.mechanic_add_technical_log(uuid,text,text,text,text) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.staff_verify_technical_log(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.staff_assign_service_order(uuid,uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.mechanic_add_technical_log(uuid,text,text,text,text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.staff_verify_technical_log(uuid) TO authenticated;
+COMMIT;
+```
+
+### Verificação da etapa D
+
+- As três funções existem como `SECURITY DEFINER`; execução concedida a `authenticated` e negada a `anon`.
+- Atribuição exige administrador/secretária, OS existente e usuário com papel `mecanico`; desativa atribuição ativa anterior e cria a nova.
+- Registro técnico exige papel `mecanico` e atribuição ativa do usuário à OS; os logs não ficam legíveis para mecânicos.
+- Conferência exige administrador/secretária e copia o log para `verified_service_procedures`; cada log pode ser conferido uma única vez.
+- A tabela de procedimentos conferidos tem SELECT apenas para administrador/secretária.
+- Não foram inseridos registros de teste, criadas contas, alteradas notificações ou realizadas publicações.
+- A integração dessas funções às telas e a exibição/impressão dos procedimentos conferidos ainda precisam ser implementadas no frontend.
