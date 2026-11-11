@@ -41,7 +41,10 @@ export const Route = createFileRoute("/_authenticated/painel/ordens/$id")({
     { property: "og:description", content: "Peças, orçamento e acompanhamento da ordem de serviço." },
     { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
   ] }),
-  loader: async ({ context, params }) => { await Promise.all([context.queryClient.ensureQueryData(orderQuery(params.id)), context.queryClient.ensureQueryData(warrantiesQuery())]); },
+  loader: async ({ context, params }) => {
+    if (context.isMechanic) return context.queryClient.ensureQueryData(orderQuery(params.id));
+    await Promise.all([context.queryClient.ensureQueryData(orderQuery(params.id)), context.queryClient.ensureQueryData(warrantiesQuery())]);
+  },
   component: OrdemPage,
 });
 
@@ -73,6 +76,7 @@ function toForm(o: Order): OrderFormValues {
 
 function OrdemPage() {
   const { id } = Route.useParams();
+  const { isMechanic } = Route.useRouteContext();
   const { data: order } = useSuspenseQuery(orderQuery(id));
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -87,6 +91,8 @@ function OrdemPage() {
       </div>
     );
   }
+
+  if (isMechanic) return <MechanicOrderView order={order} />;
 
   const info = orderStatusInfo(order.status);
   const siteUrl = typeof window !== "undefined" ? window.location.origin : undefined;
@@ -184,6 +190,28 @@ function OrdemPage() {
 
       <WarrantyEditor orderId={id} orderStatus={order.status} />
       <PrintSheet order={order} />
+    </div>
+  );
+}
+
+function MechanicOrderView({ order }: { order: Order }) {
+  const info = orderStatusInfo(order.status);
+  return (
+    <div className="space-y-5">
+      <div><Link to="/painel" className="text-sm text-muted-foreground hover:text-foreground">← Voltar às minhas OS</Link>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-muted-foreground">Ordem atribuída · nº {order.number}</p><h1 className="plate text-3xl">{formatPlate(order.plate)}</h1></div><StatusBadge tone={info.tone} label={info.label} /></div>
+      </div>
+      <section className="grid gap-4 rounded-md border border-border bg-card p-4 sm:grid-cols-2">
+        <div><p className="text-xs text-muted-foreground">Cliente</p><p className="font-medium">{order.customer_name}</p></div>
+        <div><p className="text-xs text-muted-foreground">Veículo</p><p className="font-medium">{order.vehicle} {order.vehicle_year ?? ""}</p></div>
+        <div><p className="text-xs text-muted-foreground">Entrada</p><p>{formatDateBR(order.entry_date)}</p></div>
+        <div><p className="text-xs text-muted-foreground">Previsão</p><p>{formatDateBR(order.due_date)}</p></div>
+        <div className="sm:col-span-2"><p className="text-xs text-muted-foreground">Serviço solicitado</p><p className="whitespace-pre-wrap">{order.complaint}</p></div>
+        {order.diagnosis && <div className="sm:col-span-2"><p className="text-xs text-muted-foreground">Diagnóstico</p><p className="whitespace-pre-wrap">{order.diagnosis}</p></div>}
+        {order.parts && <div className="sm:col-span-2"><p className="text-xs text-muted-foreground">Peças / serviços informados</p><p className="whitespace-pre-wrap">{order.parts}</p></div>}
+        {order.notes && <div className="sm:col-span-2"><p className="text-xs text-muted-foreground">Observações</p><p className="whitespace-pre-wrap">{order.notes}</p></div>}
+      </section>
+      <p className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm">Para registrar o que foi executado, volte ao painel e use **Registrar procedimento** na OS. O registro será enviado para conferência e não altera os valores nem a OS oficial.</p>
     </div>
   );
 }
