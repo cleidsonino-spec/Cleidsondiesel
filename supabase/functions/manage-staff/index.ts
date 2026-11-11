@@ -20,7 +20,7 @@ const adminClient = () => createClient(
 const staffEmail = (username: string) => `${username}@staff.cleidsondiesel.invalid`;
 
 async function requireAdmin(req: Request) {
-  const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\\s+/i, "");
+  const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (!token) throw new Error("AUTH_REQUIRED");
   const supabase = adminClient();
   const { data: { user }, error } = await supabase.auth.getUser(token);
@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
     const metadata = target.app_metadata ?? {};
     const role = metadata.staff_role;
     if (role !== "secretaria" && role !== "mecanico") return json({ error: "NOT_STAFF_ACCOUNT" }, 400);
-    if (target.id === (await supabase.auth.getUser((req.headers.get("Authorization") ?? "").replace(/^Bearer\\s+/i, ""))).data.user?.id) {
+    if (target.id === (await supabase.auth.getUser((req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, ""))).data.user?.id) {
       return json({ error: "CANNOT_MANAGE_SELF" }, 400);
     }
 
