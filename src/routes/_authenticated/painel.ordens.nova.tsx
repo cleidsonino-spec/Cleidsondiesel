@@ -1,5 +1,5 @@
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import { OrderForm, type OrderFormValues } from "@/components/painel/order-form";
@@ -24,6 +24,9 @@ export const Route = createFileRoute("/_authenticated/painel/ordens/nova")({
   loader: async ({ context, deps }) => {
     await Promise.all([context.queryClient.ensureQueryData(customersQuery()), context.queryClient.ensureQueryData(vehiclesQuery())]);
     if (deps.agendamento) await context.queryClient.ensureQueryData(appointmentQuery(deps.agendamento));
+  },
+  beforeLoad: ({ context }) => {
+    if (!context.isAdmin && !context.isSecretaria) throw redirect({ to: "/painel" });
   },
   component: NovaOS,
 });
