@@ -182,6 +182,7 @@ export interface FileRoutesByTo {
   '/painel/orcamentos': typeof AuthenticatedPainelOrcamentosRoute
   '/painel/veiculos': typeof AuthenticatedPainelVeiculosRoute
   '/painel': typeof AuthenticatedPainelIndexRoute
+  '/agenda-equipe': typeof AuthenticatedAgendaEquipeRoute
   '/painel/garantias/$id': typeof AuthenticatedPainelGarantiasIdRoute
   '/painel/ordens/$id': typeof AuthenticatedPainelOrdensIdRoute
   '/painel/ordens/nova': typeof AuthenticatedPainelOrdensNovaRoute
@@ -218,6 +219,7 @@ export interface FileRouteTypes {
     | '/consulta'
     | '/servicos'
     | '/painel'
+    | '/agenda-equipe'
     | '/equipe'
     | '/agenda-equipe'
     | '/orcamento/$token'
