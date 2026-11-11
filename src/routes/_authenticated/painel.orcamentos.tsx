@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { FileText, Link2, Loader2, RefreshCw, Search } from "lucide-react";
+import { CheckCircle2, FileText, Link2, Loader2, RefreshCw, Search, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { StatusBadge } from "@/components/site/status-badge";
@@ -45,7 +45,7 @@ function OrcamentosPage() {
     queryFn: async () => {
       const fetchPage = (from: number) => supabase
         .from("quote_approvals")
-        .select("id,token,state,expires_at,approved_at,approved_by,created_at,order_id,service_orders(id,number,customer_name,phone,vehicle,plate,status,parts_value,labor_value)")
+        .select("id,token,state,expires_at,approved_at,approved_by,rejected_at,rejected_by,created_at,order_id,service_orders(id,number,customer_name,phone,vehicle,plate,status,parts_value,labor_value)")
         .order("created_at", { ascending: false })
         .range(from, from + 499);
       const first = await fetchPage(0);
@@ -106,6 +106,8 @@ function OrcamentosPage() {
       <Summary label="Aprovados" value={counts.approved} />
       <Summary label="Recusados" value={counts.rejected} />
       <Summary label="Expirados" value={counts.expired} />
+      <Summary label="Valor aprovado" value={formatBRL(counts.approvedValue)} />
+      <Summary label="Valor recusado" value={formatBRL(counts.rejectedValue)} />
     </section>
 
     <div className="relative">
@@ -163,6 +165,6 @@ function OrcamentosPage() {
   </div>;
 }
 
-function Summary({ label, value }: { label: string; value: number }) {
+function Summary({ label, value }: { label: string; value: number | string }) {
   return <div className="rounded-md border border-border bg-card p-3"><p className="font-display text-2xl tabular-nums">{value}</p><p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p></div>;
 }
