@@ -166,7 +166,7 @@ function StaffManagementPage() {
                     <div className="rounded-full bg-secondary p-2"><UserRound className="size-5" /></div>
                     <div className="min-w-0">
                       <p className="truncate font-semibold">{member.full_name}</p>
-                      <p className="text-sm text-muted-foreground">@{member.username ? `@${member.username}` : "Usuário liberado"} · {member.role === "mecanico" ? "Mecânico" : "Secretária"}</p>
+                      <p className="text-sm text-muted-foreground">{member.username ? `@${member.username}` : "Usuário liberado"} · {member.role === "mecanico" ? "Mecânico" : "Secretária"}</p>
                       <p className={`mt-1 flex items-center gap-1 text-xs ${member.status === "active" ? "text-success" : member.status === "blocked" ? "text-warning" : "text-muted-foreground"}`}>
                         {member.status === "active" ? <ShieldCheck className="size-3" /> : <LockKeyhole className="size-3" />}
                         {member.status === "active" ? "Ativo" : member.status === "blocked" ? "Bloqueado" : "Removido"}
