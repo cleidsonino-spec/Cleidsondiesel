@@ -31,11 +31,14 @@ export function SiteHeader() {
               {l.label}
             </Link>
           ))}
-          <Button asChild size="sm" variant="outline" className="ml-2">
-            <Link to="/painel">
-              <Wrench /> Painel
-            </Link>
-          </Button>
+          <div className="ml-2 flex items-center gap-2">
+            <Button asChild size="sm" variant="outline">
+              <Link to="/painel"><Wrench /> Painel geral</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link to="/equipe"><Users /> Painel equipe</Link>
+            </Button>
+          </div>
         </nav>
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
@@ -60,12 +63,11 @@ export function SiteHeader() {
                   {l.label}
                 </Link>
               ))}
-              <Link
-                to="/painel"
-                onClick={() => setOpen(false)}
-                className="mt-2 flex items-center gap-2 rounded-sm border border-border px-3 py-3 text-base font-medium"
-              >
-                <Wrench className="size-4" /> Painel da oficina
+              <Link to="/painel" onClick={() => setOpen(false)} className="mt-2 flex items-center gap-2 rounded-sm border border-border px-3 py-3 text-base font-medium">
+                <Wrench className="size-4" /> Painel geral
+              </Link>
+              <Link to="/equipe" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-sm border border-border px-3 py-3 text-base font-medium">
+                <Users className="size-4" /> Painel equipe
               </Link>
             </nav>
           </SheetContent>
