@@ -22,6 +22,7 @@ export function StaffInvitations() {
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [lastLink, setLastLink] = useState("");
+  const [whatsappUrl, setWhatsappUrl] = useState("");
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", role: "mecanico" as "mecanico" | "secretaria" });
 
   const load = useCallback(async () => {
@@ -48,7 +49,7 @@ export function StaffInvitations() {
     const phone = digits.startsWith("55") ? digits : "55" + digits;
     const message = `Olá, ${form.full_name}! Você foi convidado(a) para acessar o painel da Cleidson Diesel como ${form.role === "mecanico" ? "mecânico" : "secretaria"}. Acesse o link para criar sua senha (válido por 7 dias): ${link}`;
     const whatsapp = "https://wa.me/" + phone + "?text=" + encodeURIComponent(message);
-    window.open(whatsapp, "_blank", "noopener,noreferrer");
+    setWhatsappUrl(whatsapp);
     toast.success("Convite criado. Finalize o envio no WhatsApp.");
     setForm({ full_name: "", email: "", phone: "", role: "mecanico" });
     await load();
@@ -81,7 +82,7 @@ export function StaffInvitations() {
       <div className="sm:col-span-2"><Button type="submit" disabled={creating}><UserPlus className="mr-2 size-4"/>{creating ? "Criando convite…" : "Criar e enviar pelo WhatsApp"}</Button></div>
     </form>
 
-    {lastLink && <div className="flex flex-wrap items-center gap-2 rounded-md border border-primary/30 bg-primary/5 p-3"><p className="min-w-0 flex-1 break-all text-xs">{lastLink}</p><Button type="button" variant="outline" size="sm" onClick={() => void copyLink()}><Copy className="mr-1 size-4"/>Copiar</Button></div>}
+    {lastLink && <div className="flex flex-wrap items-center gap-2 rounded-md border border-primary/30 bg-primary/5 p-3"><p className="min-w-0 flex-1 break-all text-xs">{lastLink}</p><Button type="button" variant="outline" size="sm" onClick={() => void copyLink()}><Copy className="mr-1 size-4"/>Copiar link</Button><a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground"><MessageCircle className="mr-2 size-4"/>Abrir WhatsApp</a></div>}
 
     <div className="space-y-2">
       <h3 className="font-medium">Histórico de convites</h3>
