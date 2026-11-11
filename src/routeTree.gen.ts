@@ -190,6 +190,7 @@ export interface FileRoutesById {
   '/servicos': typeof ServicosRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRouteWithChildren
   '/orcamento/$token': typeof OrcamentoTokenRoute
+  '/convite/$token': typeof ConviteTokenRoute
   '/_authenticated/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/_authenticated/painel/clientes': typeof AuthenticatedPainelClientesRoute
   '/_authenticated/painel/garantias': typeof AuthenticatedPainelGarantiasRouteWithChildren
@@ -483,6 +484,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConsultaRoute: ConsultaRoute,
   ServicosRoute: ServicosRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
+  ConviteTokenRoute: ConviteTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
