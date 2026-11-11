@@ -6,7 +6,7 @@ import { Logo } from "@/components/site/logo";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationBell } from "@/components/painel/notifications";
-import { startAdminPushNotifications, unregisterAdminPushDevice } from "@/lib/push-notifications";
+import { startStaffPushNotifications, unregisterAdminPushDevice } from "@/lib/push-notifications";
 
 export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({
@@ -35,7 +35,7 @@ function PainelLayout() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!isAdmin && !isSecretary) return;
     let cancelled = false;
     let stop: (() => void) | undefined;
     void startAdminPushNotifications().then((cleanup) => {
@@ -46,7 +46,7 @@ function PainelLayout() {
       cancelled = true;
       stop?.();
     };
-  }, [isAdmin]);
+  }, [isAdmin, isSecretary]);
 
   async function signOut() {
     try { await unregisterAdminPushDevice(); } catch { /* O encerramento da sessão não deve depender da rede. */ }

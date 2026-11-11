@@ -25,7 +25,7 @@ async function sendTokenToWorker(path: "register" | "unregister", token: string)
   }
 }
 
-export async function startAdminPushNotifications() {
+export async function startStaffPushNotifications() {
   if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") return () => {};
 
   let active = true;
