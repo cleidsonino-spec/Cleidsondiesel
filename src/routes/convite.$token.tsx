@@ -66,7 +66,7 @@ function AcceptInvitation() {
     setLoading(false);
     if (error) {
       const invalid = /STAFF_INVITATION_INVALID_OR_EXPIRED/i.test(error.message);
-      toast.error(invalid ? "Convite inválido, expirado ou já utilizado. Peça um novo convite." : "Não foi possível ativar a conta. Verifique o e-mail ou peça um novo convite.");
+      toast.error(invalid ? "Convite inválido, expirado ou já utilizado. Peça um novo convite." : `Falha ao criar conta: ${error.message.slice(0, 220)}`);
       return;
     }
     if (data.session) {
