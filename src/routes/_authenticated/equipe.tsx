@@ -85,6 +85,7 @@ function StaffDashboard() {
     if (error) { toast.error("Não foi possível salvar o andamento."); return; }
     setDrafts((old) => ({ ...old, [orderId]: "" }));
     toast.success("Andamento registrado.");
+    await load();
   }
 
   async function changeStatus(orderId: string, status: "em_servico" | "pronto") {
