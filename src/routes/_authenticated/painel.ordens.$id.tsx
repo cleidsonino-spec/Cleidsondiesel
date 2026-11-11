@@ -120,6 +120,14 @@ function OrdemPage() {
 
       {/* WhatsApp */}
       <ApprovalActions order={order} />
+      {(isAdmin || isSecretary) && ((order as any).fuel_filter_replacement !== null || (order as any).system_cleaning !== null) && <section className="rounded-md border border-primary/30 bg-primary/5 p-4">
+        <h2 className="font-semibold">Recomendações do mecânico para o orçamento</h2>
+        <p className="mb-3 text-xs text-muted-foreground">Respostas registradas durante o diagnóstico.</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div><p className="text-sm text-muted-foreground">Troca dos filtros de combustível</p><p className="font-semibold">{(order as any).fuel_filter_replacement === null ? "Não informado" : (order as any).fuel_filter_replacement ? "Sim — incluir no orçamento" : "Não"}</p></div>
+          <div><p className="text-sm text-muted-foreground">Limpeza do sistema</p><p className="font-semibold">{(order as any).system_cleaning === null ? "Não informado" : (order as any).system_cleaning ? "Sim — incluir no orçamento" : "Não"}</p></div>
+        </div>
+      </section>}
       {(isAdmin || isSecretary) && order.status === "recebido" && <MechanicAssignment serviceOrderId={id} stage="diagnostico" />}
       {(isAdmin || isSecretary) && String(order.status) === "aprovado_aguardando_encaminhamento" && <MechanicAssignment serviceOrderId={id} stage="servico" />}
       <div className="rounded-md border border-success/40 bg-success/10 p-4 print:hidden">
