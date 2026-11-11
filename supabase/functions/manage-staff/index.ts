@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
         password,
         email_confirm: true,
         user_metadata: { username, full_name: fullName },
-        app_metadata: { staff_role: role, staff_status: "active" },
+        app_metadata: { staff_role: role, staff_status: "active", staff_username: username, staff_full_name: fullName },
       });
       if (createError || !created.user) {
         return json({ error: createError?.message.includes("already") ? "USERNAME_TAKEN" : "CREATE_FAILED" }, 400);
