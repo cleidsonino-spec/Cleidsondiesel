@@ -22,10 +22,10 @@ export const Route = createFileRoute("/_authenticated/painel")({
   }),
   beforeLoad: async ({ context }) => {
     const { data, error } = await supabase.from("user_roles")
-      .select("role").eq("user_id", context.user.id).maybeSingle();
+      .select("role").eq("user_id", context.user.id);
     if (error) throw error;
-    const role = data?.role ?? "user";
-    return { isAdmin: role === "admin", isSecretary: role === "secretaria" };
+    const roles = (data ?? []).map((item) => item.role);
+    return { isAdmin: roles.includes("admin"), isSecretary: roles.includes("secretaria") };
   },
   component: PainelLayout,
 });
@@ -73,7 +73,7 @@ function PainelLayout() {
           <nav className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 pb-2">
             <PanelLink to="/painel" icon={<ClipboardList />} label="Visão geral" exact />
             <PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" />
-            {isAdmin && <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />}
+            {(isAdmin || isSecretary) && <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />}
             <PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" />
             {isAdmin && <PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" />}
             {isAdmin && <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />}
