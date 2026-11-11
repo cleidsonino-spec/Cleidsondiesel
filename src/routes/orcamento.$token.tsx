@@ -51,12 +51,15 @@ function QuotePage() {
     const { error } = await supabase.rpc("approve_quote_identified", { _token: token, _name: name.trim().replace(/\s+/g, " "), _cpf: cpf });
     setBusy(false);
     if (error) {
+      // Exibe somente o código e a mensagem retornados pelo Supabase; nunca registra nome, CPF ou token.
+      console.error("Falha na aprovação do orçamento", { code: error.code, message: error.message, details: error.details, hint: error.hint });
       const message = error.message.includes("Invalid name or CPF")
         ? "Confira o nome completo e o CPF informado."
         : error.message.includes("Quote unavailable")
           ? "Este orçamento foi alterado, vencido ou já não está disponível. Solicite um novo link à oficina."
-          : "Não foi possível registrar a aprovação. Tente novamente ou entre em contato com a oficina.";
-      toast.error(message);
+          : "Não foi possível registrar a aprovação.";
+      const diagnostic = [error.code, error.message].filter(Boolean).join(" — ").slice(0, 220);
+      toast.error(message, { description: diagnostic || "O servidor não informou o motivo do erro." });
       await qc.invalidateQueries({ queryKey: ["public-approval", token] });
       return;
     }
