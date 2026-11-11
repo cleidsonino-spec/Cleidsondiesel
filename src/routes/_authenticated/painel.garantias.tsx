@@ -13,7 +13,7 @@ import { formatPlate, normalizePlate } from "@/lib/plate";
 
 export const Route = createFileRoute("/_authenticated/painel/garantias")({
   beforeLoad: ({ context }) => {
-    if (!context.isAdmin && !context.isSecretaria) throw redirect({ to: "/painel" });
+    if (!context.isAdmin) throw redirect({ to: "/painel" });
   },
   component: () => <Outlet />,
 });
