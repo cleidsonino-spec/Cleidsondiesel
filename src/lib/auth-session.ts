@@ -46,9 +46,10 @@ export function handleAuthStateChange(
   }
 
   if (event === "USER_UPDATED") {
-    const version = ++authEventVersion;
+    // A profile update must not cancel a pending SIGNED_OUT redirect.
+    // Route invalidation is safe here because the authenticated route guard
+    // re-checks the current user with Supabase before rendering protected pages.
     schedule(() => {
-      if (version !== authEventVersion) return;
       void router.invalidate();
     });
   }
