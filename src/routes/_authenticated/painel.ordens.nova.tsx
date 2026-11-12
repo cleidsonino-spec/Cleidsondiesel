@@ -102,12 +102,24 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
             toast.error(`Falha ao salvar: ${error.message}`);
             return;
           }
+          let appointmentUpdateFailed = false;
           if (appointmentId) {
-            await supabase.from("appointments").update({ status: "concluido" }).eq("id", appointmentId);
-            qc.invalidateQueries({ queryKey: ["appointments"] });
+            const { error: appointmentError } = await supabase
+              .from("appointments")
+              .update({ status: "concluido" })
+              .eq("id", appointmentId);
+            appointmentUpdateFailed = Boolean(appointmentError);
+            if (appointmentError) {
+              console.error("OS aberta, mas não foi possível concluir o agendamento:", appointmentError);
+            }
+            await qc.invalidateQueries({ queryKey: ["appointments"] });
           }
           await qc.invalidateQueries({ queryKey: ["orders"] });
-          toast.success(`OS nº ${data.number} aberta!`);
+          if (appointmentUpdateFailed) {
+            toast.error(`OS nº ${data.number} aberta, mas o agendamento não foi marcado como concluído. Confira a agenda antes de abrir outra OS.`);
+          } else {
+            toast.success(`OS nº ${data.number} aberta!${appointmentId ? " Agendamento convertido." : ""}`);
+          }
           navigate({ to: "/painel/ordens/$id", params: { id: data.id } });
         }}
       />
