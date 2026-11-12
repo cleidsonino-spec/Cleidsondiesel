@@ -21,7 +21,7 @@ const returnLabels: Record<string, string> = {
   not_covered: "Fora da cobertura",
 };
 
-export function WarrantyEditor({ orderId, orderStatus }: { orderId: string; orderStatus: string }) {
+export function WarrantyEditor({ orderId, orderStatus, canManage }: { orderId: string; orderStatus: string; canManage: boolean }) {
   const { data } = useSuspenseQuery(warrantiesQuery());
   const list = data.filter((w) => w.service_order_id === orderId);
   const canIssue = canIssueWarranty(orderStatus);
@@ -51,7 +51,7 @@ export function WarrantyEditor({ orderId, orderStatus }: { orderId: string; orde
   return <section className="space-y-4 border-t border-border pt-6 print:hidden">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h2 className="flex items-center gap-2 text-xl"><ShieldCheck className="text-primary" />Garantia da OS</h2>
-      <Button type="button" variant="outline" disabled={!canIssue || list.length > 0} onClick={() => setDraft({ start: todayISO(), months: "", coverage: "", terms: "" })}><Plus />Emitir garantia</Button>
+      <Button type="button" variant="outline" disabled={!canManage || !canIssue || list.length > 0} onClick={() => setDraft({ start: todayISO(), months: "", coverage: "", terms: "" })}><Plus />Emitir garantia</Button>
     </div>
     {!canIssue && list.length === 0 && <p className="text-sm text-muted-foreground">A garantia será liberada somente quando a OS estiver com status “Pronto p/ retirada”.</p>}
     {list.length === 0 && !draft && canIssue && <p className="text-sm text-muted-foreground">Nenhuma garantia emitida.</p>}
@@ -64,13 +64,13 @@ export function WarrantyEditor({ orderId, orderStatus }: { orderId: string; orde
         </div>
         <div className="flex gap-1">
           <Button asChild variant="outline" size="sm"><Link to="/painel/garantias/$id" params={{ id: w.id }}><Printer />Certificado</Link></Button>
-          <Button type="button" variant="ghost" size="icon" title="Editar garantia" aria-label="Editar garantia" onClick={() => setDraft({ id: w.id, start: w.start_date, months: String(w.duration_months), coverage: w.coverage, terms: w.terms })}><Pencil /></Button>
+          {canManage && <Button type="button" variant="ghost" size="icon" title="Editar garantia" aria-label="Editar garantia" onClick={() => setDraft({ id: w.id, start: w.start_date, months: String(w.duration_months), coverage: w.coverage, terms: w.terms })}><Pencil /></Button>
         </div>
       </div>
       <WarrantyAudit warrantyId={w.id} />
       <WarrantyReturnPanel warrantyId={w.id} />
     </div>)}
-    {draft && <form onSubmit={save} className="grid gap-4 rounded-lg border border-border p-4 sm:grid-cols-2">
+    {draft && canManage && <form onSubmit={save} className="grid gap-4 rounded-lg border border-border p-4 sm:grid-cols-2">
       <div className="space-y-2"><Label htmlFor="warranty-start">Início da garantia</Label><Input id="warranty-start" required type="date" value={draft.start} disabled={Boolean(draft.id)} onChange={(e) => setDraft({ ...draft, start: e.target.value })} /></div>
       <div className="space-y-2"><Label htmlFor="warranty-months">Prazo (meses)</Label><Input id="warranty-months" required type="number" min={1} max={120} step={1} value={draft.months} onChange={(e) => setDraft({ ...draft, months: e.target.value })} /></div>
       <p className="text-sm text-muted-foreground sm:col-span-2">Vencimento: {formatDateBR(warrantyEndDate(draft.start, Number(draft.months)))}</p>
@@ -100,7 +100,7 @@ function WarrantyAudit({ warrantyId }: { warrantyId: string }) {
   </details>;
 }
 
-function WarrantyReturnPanel({ warrantyId }: { warrantyId: string }) {
+function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; canManage: boolean }) {
   const qc = useQueryClient();
   const [draft, setDraft] = useState<ReturnDraft | null>(null);
   const [saving, setSaving] = useState(false);
@@ -146,12 +146,12 @@ function WarrantyReturnPanel({ warrantyId }: { warrantyId: string }) {
   return <div className="space-y-3 border-t border-border pt-3">
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h3 className="flex items-center gap-2 font-semibold"><Wrench className="size-4" />Retornos em garantia</h3>
-      <Button type="button" size="sm" variant="outline" onClick={() => setDraft({ complaint: "", diagnosis: "", resolution: "", parts_used: "", labor_description: "", status: "received" })}><Plus />Registrar retorno</Button>
+      {canManage && <Button type="button" size="sm" variant="outline" onClick={() => setDraft({ complaint: "", diagnosis: "", resolution: "", parts_used: "", labor_description: "", status: "received" })}><Plus />Registrar retorno</Button>}
     </div>
     {isLoading && <p className="text-sm text-muted-foreground">Carregando retornos…</p>}
     {error && <p className="text-sm text-destructive">Não foi possível carregar os retornos. Verifique a migration e as permissões do banco.</p>}
     {!isLoading && !error && data.length === 0 && <p className="text-sm text-muted-foreground">Nenhum retorno registrado para esta garantia.</p>}
-    {data.map((item) => <ReturnHistory key={item.id} item={item} onEdit={() => setDraft({
+    {data.map((item) => <ReturnHistory key={item.id} item={item} canManage={canManage} onEdit={() => setDraft({
       id: item.id, complaint: item.complaint, diagnosis: item.diagnosis, resolution: item.resolution,
       parts_used: item.parts_used, labor_description: item.labor_description, status: item.status,
     })} />)}
@@ -174,7 +174,7 @@ function WarrantyReturnPanel({ warrantyId }: { warrantyId: string }) {
   </div>;
 }
 
-function ReturnHistory({ item, onEdit }: { item: { id: string; status: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; received_at: string; closed_at: string | null }; onEdit: () => void }) {
+function ReturnHistory({ item, onEdit, canManage }: { canManage: boolean; item: { id: string; status: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; received_at: string; closed_at: string | null }; onEdit: () => void }) {
   const { data: events = [] } = useQuery({
     queryKey: ["warranty-return-events", item.id],
     queryFn: async () => {
@@ -187,7 +187,7 @@ function ReturnHistory({ item, onEdit }: { item: { id: string; status: string; c
   return <article className="space-y-2 rounded-md border border-border p-3">
     <div className="flex flex-wrap items-center justify-between gap-2">
       <div><p className="font-medium">{returnLabels[item.status] ?? item.status}</p><p className="text-xs text-muted-foreground">Recebido em {new Date(item.received_at).toLocaleString("pt-BR")}{item.closed_at ? ` · Encerrado em ${new Date(item.closed_at).toLocaleString("pt-BR")}` : ""}</p></div>
-      {!closed && <Button type="button" size="sm" variant="outline" onClick={onEdit}><Pencil />Atualizar</Button>}
+      {!closed && canManage && <Button type="button" size="sm" variant="outline" onClick={onEdit}><Pencil />Atualizar</Button>}
     </div>
     <p className="text-sm"><strong>Motivo:</strong> {item.complaint}</p>
     {item.diagnosis && <p className="text-sm"><strong>Diagnóstico:</strong> {item.diagnosis}</p>}
