@@ -15,6 +15,7 @@ type PortalResult = {
   order: { number: number; status: string; vehicle: string; plate: string; complaint: string; entry_date: string; due_date: string | null; updated_at: string };
   quote: { state: string; token: string; expires_at: string; approved_at: string | null; snapshot: { parts_value: number; labor_value: number; part_items: unknown; parts: string | null } } | null;
   warranty: { coverage: string; start_date: string; end_date: string; terms: string } | null;
+  warranty_returns: { status: string; received_at: string; closed_at: string | null; customer_update: string }[];
   expires_at: string;
 };
 
