@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/status";
+import { remainingOrderBalance } from "@/lib/financial";
 import { formatDateBR, todayISO } from "@/lib/schedule";
 
 export const Route = createFileRoute("/_authenticated/painel/financeiro")({
@@ -243,7 +244,7 @@ function FinancialPage() {
   const data = finance.data;
   const selectedOrder = data?.orders.find((order) => order.id === paymentOrder);
   const orderPaid = selectedOrder ? data?.payments.filter((payment) => payment.service_order_id === selectedOrder.id).reduce((sum, payment) => sum + Number(payment.amount), 0) ?? 0 : 0;
-  const orderDue = selectedOrder ? Math.max(0, Number(selectedOrder.parts_value) + Number(selectedOrder.labor_value) - orderPaid) : 0;
+  const orderDue = selectedOrder ? remainingOrderBalance(selectedOrder.parts_value, selectedOrder.labor_value, data?.payments.filter((payment) => payment.service_order_id === selectedOrder.id).map((payment) => payment.amount) ?? [], selectedOrder.status) : 0;
 
   return (
     <div className="space-y-6">
