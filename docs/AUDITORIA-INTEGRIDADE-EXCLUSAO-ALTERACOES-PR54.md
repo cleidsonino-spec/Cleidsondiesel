@@ -161,3 +161,46 @@ A FK `service_orders.appointment_id` usa `ON DELETE SET NULL`: a exclusão do ag
 
 ### Limite de execução
 O arquivo `AGENTS.md` determina que migrations `supabase/` e `drizzle/` são gerenciadas pelo fluxo do projeto e não devem ser editadas manualmente. Por isso, esta etapa registra a especificação e os critérios de aceite; não modifica migrations, não acessa Supabase e não executa alterações de banco. A proteção de API só poderá ser declarada depois que a mudança de schema for aplicada pelo fluxo gerenciado e testada.
+
+## 6. Clientes e veículos — proteção de exclusão e plano de inativação (2026-11-12)
+
+### Situação encontrada
+- O schema inicial cria `customers` e `vehicles` sem coluna de situação ativa/inativa.
+- Os grants concedem DELETE a `authenticated`, enquanto RLS limita as operações a admin.
+- A interface anterior apresentava exclusão física para admin em ambos os cadastros.
+- FKs sem cascata protegem registros que já possuem dependências, mas não impedem apagar cadastros sem vínculos.
+- OS mantém snapshots próprios de nome, telefone, placa e veículo; esses snapshots não substituem o cadastro mestre nem uma trilha de arquivamento.
+
+### Proteção aplicada na interface
+- Removida a função que executava DELETE em `customers` e `vehicles`.
+- Removidos os botões de exclusão física dos dois cadastros.
+- Incluído aviso explicando que a exclusão foi desativada e que a inativação depende de atualização gerenciada do banco.
+- Edição, criação, histórico e abertura de OS foram preservados.
+- Arquivo: `src/components/painel/registry-page.tsx`.
+- Esta alteração evita exclusão acidental pela interface, mas não revoga a permissão DELETE existente na API para admin.
+
+### Especificação necessária para inativação real
+A mudança de schema deve ser incremental e preservar IDs e relações:
+1. Adicionar estado ativo/inativo a clientes e veículos, com padrão ativo para registros existentes.
+2. Registrar autoria e data/hora da inativação e reativação; preferir trilha de eventos imutável para não perder mudanças anteriores.
+3. Impedir seleção de cadastros inativos em novos vínculos e novos cadastros de veículo, sem removê-los de históricos e OS existentes.
+4. Permitir consulta histórica de clientes/veículos inativos e oferecer filtro explícito entre ativos e inativos.
+5. Definir fluxo administrativo de reativação, com auditoria.
+6. Revogar DELETE de `authenticated` nas duas tabelas e remover/ajustar policies que permitam exclusão; manter privilégios de leitura, criação e edição conforme a regra admin-only.
+7. Preservar snapshots existentes das OS e validar que a inativação não altera OS, garantias, pagamentos, recebimentos, estoque ou portal do cliente.
+
+### Critérios de aceite
+- Admin não consegue excluir cliente ou veículo via API direta.
+- Cadastro ativo pode ser inativado sem apagar linha, ID ou relações.
+- Cadastro inativo não aparece como opção para novo vínculo; permanece pesquisável no histórico.
+- OS antiga continua exibindo os snapshots originais mesmo após edição, inativação ou reativação do cadastro mestre.
+- Veículo vinculado a cliente inativo continua acessível no histórico; não pode ser usado para novo vínculo enquanto inativo.
+- Reativação exige permissão admin e deixa evento de auditoria.
+- Busca pública por placa não deve revelar dados adicionais de cadastros inativos; o contrato da RPC deve ser revisado junto com a regra de inativação.
+- Testes devem cobrir duplicidade de CPF/CNPJ e placa quando um registro está inativo, definindo antes se reativação deve ocorrer ou se é permitido novo cadastro. Não criar duplicatas automaticamente.
+
+### Limites
+- Nenhuma migration foi criada ou executada, conforme a regra de `AGENTS.md`.
+- Nenhum teste de banco/API foi executado.
+- A UI não oferece mais exclusão física, mas a API ainda pode permitir DELETE a admin até a mudança gerenciada do schema.
+- Inativação real, filtros, reativação e auditoria permanecem pendentes.
