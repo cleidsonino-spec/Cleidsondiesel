@@ -261,3 +261,33 @@ A consulta do painel deve usar essa RPC para obter os dados mínimos, sem depend
 - Não foi acessado banco, aplicado SQL/migration, alterado schema ou feito deploy.
 - A correção depende do fluxo gerenciado de schema: `AGENTS.md` proíbe edição manual de `supabase/migrations/` e `drizzle/`.
 - Testes necessários: mecânico A consulta OS atribuída; mecânico A tenta consultar OS atribuída somente ao mecânico B; tenta consultar OS sem atribuição; tenta chamar RPC diretamente com UUID de terceiro; verificar ausência de telefone, CPF/CNPJ, valores financeiros e dados de caixa; confirmar que admin/secretaria mantêm seus fluxos.
+
+
+## Revisão específica — troca e encerramento de atribuição de mecânicos (2026-11-12)
+
+### Controles confirmados
+- A RPC `assign_order_to_mechanic` exige admin ou secretaria, bloqueia a linha da OS com `FOR UPDATE`, valida o papel `mecanico` do usuário selecionado, encerra todas as atribuições ativas da OS e insere a nova atribuição na mesma transação.
+- A troca gera eventos distintos na linha do tempo: encerramento da atribuição anterior (`mechanic_unassigned`) e nova atribuição (`mechanic_assigned`), com usuário responsável pela mudança, mecânico, IDs e horários.
+- Concluir diagnóstico encerra a atribuição ativa após gravar o diagnóstico e o log técnico.
+- Concluir serviço registra o mecânico em `service_order_completions` e encerra sua atribuição ativa na mesma função/transação.
+- O histórico técnico não é apagado na troca. Admin e secretaria podem consultar os logs; mecânicos só podem consultar logs enquanto possuem atribuição ativa para a OS.
+- O painel atualiza a lista por Realtime ao receber alterações em `service_order_assignments`.
+
+### Riscos e lacunas identificados
+1. **Concorrência entre troca e ação do mecânico (prioridade alta).** As RPCs de iniciar/concluir diagnóstico, registrar andamento e concluir serviço verificam a atribuição ativa antes de executar a mutação. A função de troca bloqueia a linha da OS, mas as RPCs do mecânico não fazem uma validação final da atribuição depois de adquirir o mesmo bloqueio. Uma troca concorrente pode ocorrer entre a checagem de atribuição e a gravação da ação, permitindo que uma ação iniciada pelo mecânico anterior termine após a transferência. É necessário serializar todas essas operações pela mesma linha da OS e revalidar papel/atribuição ativa depois de obter o lock, dentro da transação.
+2. **Validação do usuário selecionado na RPC.** A interface lista apenas convites de mecânico aceitos e não revogados, mas a RPC `assign_order_to_mechanic` valida apenas `has_role(..., 'mecanico')`. Chamada direta pode tentar atribuir um usuário que ainda mantenha papel de mecânico, mas cujo convite esteja revogado/inativo. A regra de elegibilidade deve ser aplicada também no banco, não só no seletor.
+3. **Consulta de atribuição ativa.** A UI usa `maybeSingle()`; o fluxo transacional atual encerra as atribuições anteriores antes de inserir a nova, mas não foi identificada restrição UNIQUE parcial garantindo uma única atribuição ativa por OS. Recomenda-se índice único parcial para `service_order_id WHERE active`, após saneamento de eventuais duplicidades históricas.
+4. **Histórico para o mecânico anterior.** Após a troca, a policy de logs deixa de permitir ao mecânico anterior consultar o histórico daquela OS, pois exige atribuição ativa. Isso não apaga o histórico: admin e secretaria continuam com acesso. Decidir se o mecânico anterior deve manter leitura somente dos registros que ele próprio criou; se sim, criar leitura histórica restrita por `mechanic_user_id = auth.uid()`, sem permitir novas gravações.
+
+### Correção recomendada
+- Alterar, pelo fluxo gerenciado de schema, todas as RPCs de ação do mecânico para bloquear a OS com `SELECT ... FOR UPDATE` antes de validar a atribuição e repetir a validação após adquirir o lock.
+- Aplicar a mesma ordem de bloqueio em `assign_order_to_mechanic`, diagnóstico, andamento e conclusão para evitar deadlocks e janelas de corrida.
+- Validar que o usuário designado possui papel mecânico e convite aceito, utilizado e não revogado, ou um estado de equipe equivalente que seja a fonte oficial.
+- Adicionar unicidade de atribuição ativa por OS e teste de concorrência.
+- Preservar todos os logs e eventos existentes. Se a oficina quiser histórico visível ao antigo responsável, liberar apenas leitura dos próprios registros, sem reativar acesso operacional.
+
+### Limites e testes pendentes
+- Auditoria estática dos arquivos e migrations versionados; não foram feitas sessões simultâneas reais nem chamadas REST/RPC.
+- Nenhum banco foi acessado, migration criada/executada ou deploy realizado.
+- `AGENTS.md` proíbe editar migrations manualmente; correções dependem do fluxo gerenciado de schema.
+- Testes necessários: A é substituído por B; A tenta registrar andamento depois da troca; A tenta concluir diagnóstico/serviço depois da troca; convite revogado; duas trocas simultâneas; uma única atribuição ativa; preservação de logs e timeline; leitura histórica por A conforme decisão da oficina.
