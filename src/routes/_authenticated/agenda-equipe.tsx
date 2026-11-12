@@ -25,9 +25,9 @@ type AgendaRole = "admin" | "secretaria" | "mecanico";
 
 export const Route = createFileRoute("/_authenticated/agenda-equipe")({
   beforeLoad: async ({ context }) => {
-    const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", context.user.id);
+    const { data, error } = await (supabase as any).from("user_roles").select("role,is_active").eq("user_id", context.user.id);
     if (error) throw error;
-    const roles = (data ?? []).map((item) => item.role);
+    const roles = (data ?? []).filter((item: any) => item.is_active !== false).map((item: any) => item.role);
     const staffRole: AgendaRole | null = roles.includes("admin")
       ? "admin"
       : roles.includes("secretaria")
