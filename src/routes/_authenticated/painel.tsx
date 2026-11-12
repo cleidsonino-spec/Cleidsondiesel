@@ -76,7 +76,8 @@ function PainelLayout() {
             {(isAdmin || isSecretary) && <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />}
             <PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" />
             {isAdmin && <PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" />}
-            {isAdmin && <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />}\n            {isAdmin && <PanelLink to="/painel/indicadores" icon={<Activity />} label="Indicadores" />}
+            {isAdmin && <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />}
+            {isAdmin && <PanelLink to="/painel/indicadores" icon={<Activity />} label="Indicadores" />}
             {isAdmin && <NotificationBell />}
             <Button asChild size="sm" className="ml-auto shrink-0"><Link to="/painel/ordens/nova" search={{}}><Plus /> Nova OS</Link></Button>
           </nav>
