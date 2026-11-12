@@ -75,7 +75,7 @@ BEGIN
       'exterior_condition', row_data->>'exterior_condition'
     );
   ELSIF TG_TABLE_NAME = 'technical_service_logs' THEN
-    IF COALESCE(row_data->>'procedure', '') = 'diagnostico' THEN
+    IF lower(trim(COALESCE(row_data->>'procedure', ''))) IN ('diagnostico', 'diagnóstico') THEN
       v_type := 'diagnosis_logged';
       v_label := 'Diagnóstico técnico registrado';
     ELSE
