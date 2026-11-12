@@ -28,6 +28,7 @@ const previewStorage = vi.mocked(brokeredPreviewStorage);
 
 describe("supabaseAuthStorage", () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     vi.clearAllMocks();
     window.localStorage.clear();
     nativePlatform.mockReturnValue(true);
