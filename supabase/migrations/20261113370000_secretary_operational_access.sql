@@ -4,6 +4,26 @@ DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'customers'
+      AND policyname = 'Secretaria read customers'
+  ) THEN
+    CREATE POLICY "Secretaria read customers"
+      ON public.customers FOR SELECT TO authenticated
+      USING (public.has_role(auth.uid(), 'secretaria'::public.app_role));
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'vehicles'
+      AND policyname = 'Secretaria read vehicles'
+  ) THEN
+    CREATE POLICY "Secretaria read vehicles"
+      ON public.vehicles FOR SELECT TO authenticated
+      USING (public.has_role(auth.uid(), 'secretaria'::public.app_role));
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
     WHERE schemaname = 'public' AND tablename = 'service_orders'
       AND policyname = 'Secretaria read service orders'
   ) THEN
