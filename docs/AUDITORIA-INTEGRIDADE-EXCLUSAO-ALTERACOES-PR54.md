@@ -204,3 +204,24 @@ A mudança de schema deve ser incremental e preservar IDs e relações:
 - Nenhum teste de banco/API foi executado.
 - A UI não oferece mais exclusão física, mas a API ainda pode permitir DELETE a admin até a mudança gerenciada do schema.
 - Inativação real, filtros, reativação e auditoria permanecem pendentes.
+
+## 7. Vínculo de clientes e veículos na abertura de OS (2026-11-12)
+
+### Achado e correção na interface
+- A seleção de um cliente diferente na abertura da OS limpava `vehicle_id`, mas mantinha placa, modelo, ano e quilometragem do veículo anteriormente selecionado.
+- Como o vínculo de veículo era removido, a validação do banco `validate_order_registry()` não verificava esses campos manuais; a OS poderia ser salva com cliente novo e dados visuais do veículo anterior, sem vínculo formal com esse veículo.
+- Corrigido em `src/components/painel/order-form.tsx`: ao trocar o cliente, limpa o vínculo e os campos do veículo anterior. Se o cliente não mudar, preserva os dados.
+- Adicionada validação antes do envio: quando há `vehicle_id`, o veículo precisa existir na lista carregada e seu `customer_id` deve corresponder ao cliente selecionado. Se não corresponder, a OS não é enviada e a tela informa o conflito.
+
+### Controles mantidos
+- Seleção manual continua permitida, inclusive OS sem vínculo com cadastro, conforme o fluxo atual.
+- A seleção de veículo cadastrado continua preenchendo cliente, telefone, placa, modelo, ano e quilometragem.
+- O trigger de banco `validate_order_registry()` continua sendo a barreira para veículos vinculados: exige veículo, cliente e placa compatíveis.
+- A OS mantém snapshots próprios dos dados de cliente/veículo; a correção não reescreve OS antigas.
+
+### Limitações e próximos requisitos
+- Como o schema ainda não possui `is_active`/estado de arquivamento, a interface não consegue filtrar clientes e veículos inativos. A inativação real exige alteração de schema pelo fluxo gerenciado.
+- A validação de propriedade no frontend melhora a mensagem e evita envio inconsistente na operação normal, mas não substitui a validação do banco para chamadas diretas à API.
+- O trigger atual valida relação e placa apenas quando `vehicle_id` não é nulo; OS com dados manuais sem vínculo permanecem permitidas intencionalmente.
+- Testes pendentes: trocar cliente após selecionar veículo; selecionar veículo de outro cliente; digitar placa manual após selecionar veículo; abrir OS sem vínculo; editar OS antiga; verificar snapshots históricos; API direta com cliente/veículo incompatíveis.
+- Nenhum banco ou API live foi acessado; nenhuma migration foi alterada ou executada.
