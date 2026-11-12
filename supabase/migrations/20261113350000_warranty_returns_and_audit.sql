@@ -249,7 +249,7 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION public.register_warranty_return(uuid, text, uuid, text, text, text, text, text, text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.register_warranty_return(uuid, text, uuid, text, text, text, text, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.register_warranty_return(uuid, text, uuid, text, text, text, text, text, text) TO authenticated;
 
 
 CREATE OR REPLACE FUNCTION public.guard_warranty_identity()
