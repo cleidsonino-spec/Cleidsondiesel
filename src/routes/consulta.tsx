@@ -75,7 +75,6 @@ function ConsultaPage() {
             <Info label="Última atualização" value={new Date(order.updated_at).toLocaleString("pt-BR")} />
           </div>
           <div><h2 className="font-semibold">Serviço solicitado</h2><p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{order.complaint}</p></div>
-          {order.diagnosis && <div><h2 className="flex items-center gap-2 font-semibold"><Wrench className="size-4" /> Diagnóstico técnico</h2><p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{order.diagnosis}</p></div>}
           {order.status === "cancelado" ? <p className="rounded-md border border-destructive/30 p-3 text-sm text-destructive">Esta ordem de serviço foi cancelada. Entre em contato com a oficina para mais informações.</p> : <ol className="grid grid-cols-3 gap-3 sm:grid-cols-6">
             {ORDER_PROGRESS.map((status, index) => {
               const reached = currentIdx >= index;
