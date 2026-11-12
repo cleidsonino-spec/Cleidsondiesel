@@ -51,7 +51,7 @@ function AuthorizationsPage() {
     queryFn: async () => {
       const [orders, records] = await Promise.all([
         supabase.from("service_orders").select("id,number,customer_name,plate,vehicle,status").neq("status", "cancelado").order("number", { ascending: false }).limit(500),
-        (supabase as any).from("customer_authorizations").select("id,service_order_id,authorization_type,signer_name,signer_document,consent_text,accepted_at").order("accepted_at", { ascending: false }).limit(1000),
+        (supabase as any).from("customer_authorizations").select("id,service_order_id,authorization_type,signer_name,consent_text,accepted_at").order("accepted_at", { ascending: false }).limit(1000),
       ]);
       if (orders.error) throw orders.error;
       if (records.error) throw records.error;
@@ -83,7 +83,7 @@ function AuthorizationsPage() {
       });
       if (error) throw error;
       toast.success("Aceite registrado no histórico da ordem de serviço.");
-      setOrderId(""); setSigner(""); setDocument(""); setAccepted(false);
+      setOrderId(""); setSigner(""); setAccepted(false);
       await qc.invalidateQueries({ queryKey: ["customer-authorizations"] });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível registrar o aceite.");
@@ -152,7 +152,7 @@ function AuthorizationsPage() {
           return <article key={record.id} className="space-y-1 rounded-md border p-4">
             <p className="font-semibold">{typeLabel(record.authorization_type)} · OS {order?.number ?? "—"}</p>
             <p className="text-sm text-muted-foreground">{order?.customer_name ?? "Cliente"} · {order?.plate ?? "—"} · {order?.vehicle ?? ""}</p>
-            <p className="text-sm">Autorizado por: {record.signer_name}{record.signer_document ? " · Documento: " + record.signer_document : ""}</p>
+            <p className="text-sm">Autorizado por: {record.signer_name}</p>
             <p className="text-xs text-muted-foreground">{new Date(record.accepted_at).toLocaleString("pt-BR")}</p>
             <p className="text-xs text-muted-foreground">{record.consent_text}</p>
           </article>;
