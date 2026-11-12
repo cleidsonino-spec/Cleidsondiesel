@@ -181,3 +181,15 @@ Nenhum PR foi mesclado, nenhum deploy foi realizado e nenhuma migration foi apli
 
 - **#41 histórico:** ampliada a linha do tempo interna para mostrar vistoria de recebimento, recebimentos financeiros, movimentações de estoque vinculadas e assinaturas, com consultas em lotes. Depende das migrations #36, #38, #39 e #40 no ambiente integrado; o portal público não utiliza essa consulta interna.
 - **CI #41 após a ampliação:** commit `b06227be81433d18886ca295265bc8da90bd2ec7` enviado; execução ainda não apareceu no momento da consulta.
+
+
+### Revisão adicional de permissões e triggers — 12/11/2026
+
+- **#39 recebimento:** corrigido o trigger para separar explicitamente o caminho INSERT do caminho UPDATE, sem consultar OLD durante uma inserção. O workflow de validação concluiu com sucesso no commit `a2429b03f4dd7786c708c5e0c22ca6e0632a6233`.
+- **#41 histórico:** a primeira ampliação consultava tabelas financeiras e de estoque com RLS restrita a administradores, e assinaturas com leitura restrita a administradores/secretaria. Como a tela de OS pode ser aberta por outros papéis, isso poderia fazer a consulta completa falhar. O componente agora recebe as permissões do contexto da rota e só consulta pagamentos/estoque para administrador e assinaturas para administrador/secretaria. O workflow concluiu com sucesso no commit `768c449021eba047a25a7de618b05c887456cd98`.
+- **#42 portal:** workflow consultado no SHA `0fd20cabc3950624724d022facfa30a33a22c4ed`, resultado success. Testes reais de isolamento, expiração e revogação continuam pendentes.
+- A revisão dos SQLs de garantia, financeiro e estoque confirmou os nomes das colunas usados nas migrations iniciais e nas correções versionadas. Isso é revisão estática, não execução contra PostgreSQL.
+
+### Estado de integração após esta rodada
+
+Todos os PRs continuam abertos em draft e baseados em `main`. Nenhuma branch de homologação integrada foi publicada nesta rodada: os arquivos compartilhados de navegação e detalhe da OS ainda precisam ser combinados com resolução manual, em vez de escolher arbitrariamente uma branch. Não houve merge, deploy, execução de migrations ou acesso ao banco real. O CI de #41 foi executado com sucesso no SHA atualizado acima.
