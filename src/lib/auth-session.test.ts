@@ -85,6 +85,26 @@ describe("handleAuthStateChange", () => {
     expect(second.router.invalidate).toHaveBeenCalledOnce();
   });
 
+
+  it("ignores a stale route refresh when sign-out happens before it runs", () => {
+    const { queryCache, router } = setup();
+    const scheduled: Array<() => void> = [];
+
+    handleAuthStateChange("SIGNED_IN", queryCache, router, (callback) => {
+      scheduled.push(callback);
+    });
+    handleAuthStateChange("SIGNED_OUT", queryCache, router, (callback) => {
+      scheduled.push(callback);
+    });
+
+    scheduled[0]();
+    scheduled[1]();
+
+    expect(router.invalidate).not.toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledOnce();
+    expect(queryCache.clear).toHaveBeenCalledTimes(2);
+  });
+
   it("does nothing for unrelated auth events", () => {
     const { queryCache, router } = setup();
     const schedule = vi.fn();
