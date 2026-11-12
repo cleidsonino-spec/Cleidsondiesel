@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { CalendarDays, Car, Users, ShieldCheck, ClipboardList, Download, ExternalLink, FileText, LogOut, Plus, ShieldAlert } from "lucide-react";
 
