@@ -27,7 +27,7 @@ function detailText(event: TimelineEvent) {
   if (typeof details.fuel_level === "string" && details.fuel_level.trim()) parts.push(`Combustível: ${details.fuel_level.replace("_", " ")}`);
   if (typeof details.exterior_condition === "string" && details.exterior_condition.trim()) parts.push(`Condição: ${details.exterior_condition}`);
   if (typeof details.consent_text === "string" && details.consent_text.trim()) parts.push(details.consent_text);
-  if (typeof details.mechanic_user_id === "string") parts.push(`Mecânico vinculado: ${details.mechanic_user_id}`);
+  if (typeof details.mechanic_user_id === "string") parts.push(`Mecânico da atribuição (ID): ${details.mechanic_user_id}`);
   return parts;
 }
 
@@ -63,7 +63,7 @@ export function ServiceOrderStatusHistory({ orderId }: { orderId: string }) {
               <p className="text-sm font-semibold">{event.event_label || (event.event_type === "created" ? "OS criada" : event.event_type === "status_changed" ? "Status alterado" : "Evento da ordem")}</p>
               {isStatus && <p className="text-sm">{previous ? `${previous.label} → ${current.label}` : current.label}</p>}
               <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><Clock3 className="size-3" />{new Date(event.changed_at).toLocaleString("pt-BR")}</p>
-              <p className="text-xs text-muted-foreground">{event.changed_by ? `Conta da equipe responsável: ${event.changed_by}` : "Conta da equipe não identificada nesta ação"}</p>
+              <p className="text-xs text-muted-foreground">{event.changed_by ? `Usuário da equipe que registrou a ação (ID): ${event.changed_by}` : "Usuário da equipe não identificado nesta ação"}</p>
               {details.length > 0 && <div className="mt-2 space-y-1 rounded bg-muted/50 p-2">{details.map((detail, index) => <p key={index} className="whitespace-pre-wrap text-xs text-muted-foreground">{detail}</p>)}</div>}
             </li>;
           })}
