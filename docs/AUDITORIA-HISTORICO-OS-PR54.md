@@ -78,3 +78,9 @@ Arquivos conferidos nesta etapa:
 
 ### Limites
 Revisão estática de código e migrations versionadas. Nenhum banco foi acessado, nenhuma migration foi executada e nenhum teste de API foi realizado. A implementação de RPC/migration permanece bloqueada pelas regras do repositório que proíbem editar migrations manualmente.
+
+## Verificação complementar — política de exclusão no banco
+
+A definição inicial em `drizzle/migrations/0000_oficina_schema.sql` concede permissões SQL de SELECT/INSERT/UPDATE/DELETE a `authenticated`, mas a RLS habilitada em `service_orders` limita DELETE à policy `Admins delete orders`, que exige `has_role(auth.uid(), 'admin')`. A migration posterior de acesso da secretaria (`20261113370000_secretary_operational_access.sql`) cria policies de SELECT, INSERT e UPDATE para secretaria, mas não cria policy de DELETE. Assim, no conjunto versionado revisado, secretaria não recebe autorização de exclusão; o controle de exclusão fica alinhado entre interface e RLS para admin.
+
+A mesma tabela possui a FK do histórico com `ON DELETE RESTRICT`, então uma OS com evento de status não pode ser removida sem violar a integridade referencial. Ainda é necessário testar por API em banco descartável, pois esta é uma conclusão estática das migrations, não um teste efetivo de autorização.
