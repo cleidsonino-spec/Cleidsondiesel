@@ -57,7 +57,7 @@ BEGIN
   IF _accepted IS DISTINCT FROM true THEN
     RAISE EXCEPTION 'A confirmação do cliente é obrigatória';
   END IF;
-  IF _authorization_type NOT IN ('execution_authorization', 'delivery_confirmation') THEN
+  IF _authorization_type IS NULL OR _authorization_type NOT IN ('execution_authorization', 'delivery_confirmation') THEN
     RAISE EXCEPTION 'Tipo de autorização inválido';
   END IF;
 
