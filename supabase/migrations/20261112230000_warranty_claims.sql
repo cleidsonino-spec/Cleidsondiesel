@@ -75,6 +75,10 @@ BEGIN
     RAISE EXCEPTION 'Um retorno concluído não pode ser reaberto; registre um novo retorno';
   END IF;
 
+  IF NEW.status = 'concluido' AND length(trim(coalesce(NEW.resolution, ''))) < 3 THEN
+    RAISE EXCEPTION 'Descreva a solução antes de concluir o retorno';
+  END IF;
+
   IF NEW.status = 'concluido' AND OLD.status <> 'concluido' THEN
     NEW.resolved_at := coalesce(NEW.resolved_at, now());
   ELSIF NEW.status <> 'concluido' THEN
