@@ -161,18 +161,18 @@ export function RegistryPage({ mode }: { mode: "customers" | "vehicles" }) {
                 </div>
                 <div className="rounded-md border p-3">
                   <p className="font-medium">Autorizações do cliente</p>
-                  {relatedHistory.authorizations.map((item: any) => <div key={item.id} className="border-t py-2 text-sm"><p>OS {historyOrders.find((order) => order.id === item.service_order_id)?.number ?? "—"} · {item.authorization_type === "execution_authorization" ? "Autorização de execução" : "Confirmação de entrega"}</p><p className="text-muted-foreground">{item.signer_name} · {new Date(item.accepted_at).toLocaleString("pt-BR")}</p><p>{item.consent_text}</p></div>)}
-                  {relatedHistory.authorizations.length === 0 && <p className="pt-2 text-sm text-muted-foreground">Sem autorizações registradas.</p>}
+                  {relatedHistory.authorizations.filter((item: any) => customerOrderIds.has(item.service_order_id)).map((item: any) => <div key={item.id} className="border-t py-2 text-sm"><p>OS {historyOrders.find((order) => order.id === item.service_order_id)?.number ?? "—"} · {item.authorization_type === "execution_authorization" ? "Autorização de execução" : "Confirmação de entrega"}</p><p className="text-muted-foreground">{item.signer_name} · {new Date(item.accepted_at).toLocaleString("pt-BR")}</p><p>{item.consent_text}</p></div>)}
+                  {relatedHistory.authorizations.filter((item: any) => customerOrderIds.has(item.service_order_id)).length === 0 && <p className="pt-2 text-sm text-muted-foreground">Sem autorizações registradas.</p>}
                 </div>
                 {isAdmin && <div className="rounded-md border p-3">
                   <p className="font-medium">Pagamentos registrados</p>
-                  {relatedHistory.payments.map((item: any) => <div key={item.id} className="border-t py-2 text-sm"><p>OS {historyOrders.find((order) => order.id === item.service_order_id)?.number ?? "—"} · {formatBRL(item.amount)} · {item.payment_method}</p><p className="text-muted-foreground">{new Date(item.paid_at).toLocaleString("pt-BR")}</p></div>)}
-                  {relatedHistory.payments.length === 0 && <p className="pt-2 text-sm text-muted-foreground">Sem pagamentos lançados ou acesso financeiro indisponível.</p>}
+                  {relatedHistory.payments.filter((item: any) => customerOrderIds.has(item.service_order_id)).map((item: any) => <div key={item.id} className="border-t py-2 text-sm"><p>OS {historyOrders.find((order) => order.id === item.service_order_id)?.number ?? "—"} · {formatBRL(item.amount)} · {item.payment_method}</p><p className="text-muted-foreground">{new Date(item.paid_at).toLocaleString("pt-BR")}</p></div>)}
+                  {relatedHistory.payments.filter((item: any) => customerOrderIds.has(item.service_order_id)).length === 0 && <p className="pt-2 text-sm text-muted-foreground">Sem pagamentos lançados ou acesso financeiro indisponível.</p>}
                 </div>}
                 {isAdmin && <div className="rounded-md border p-3">
                   <p className="font-medium">Peças movimentadas para as OS</p>
-                  {relatedHistory.movements.map((item: any) => <div key={item.id} className="border-t py-2 text-sm"><p>OS {historyOrders.find((order) => order.id === item.service_order_id)?.number ?? "—"} · {item.movement_type} · {item.quantity} unidade(s)</p><p className="text-muted-foreground">{item.reference || item.notes || "Sem observação"}{item.unit_cost != null ? " · Custo unitário " + formatBRL(item.unit_cost) : ""}</p></div>)}
-                  {relatedHistory.movements.length === 0 && <p className="pt-2 text-sm text-muted-foreground">Sem movimentações de estoque vinculadas.</p>}
+                  {relatedHistory.movements.filter((item: any) => customerOrderIds.has(item.service_order_id)).map((item: any) => <div key={item.id} className="border-t py-2 text-sm"><p>OS {historyOrders.find((order) => order.id === item.service_order_id)?.number ?? "—"} · {item.movement_type} · {item.quantity} unidade(s)</p><p className="text-muted-foreground">{item.reference || item.notes || "Sem observação"}{item.unit_cost != null ? " · Custo unitário " + formatBRL(item.unit_cost) : ""}</p></div>)}
+                  {relatedHistory.movements.filter((item: any) => customerOrderIds.has(item.service_order_id)).length === 0 && <p className="pt-2 text-sm text-muted-foreground">Sem movimentações de estoque vinculadas.</p>}
                 </div>}
               </>}
             </section>}
