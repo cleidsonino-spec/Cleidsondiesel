@@ -1,82 +1,81 @@
 # Notificações push — Cleidson Diesel (Android)
 
-A implementação usa Capacitor Push Notifications + Firebase Cloud Messaging (FCM) no APK Android e Supabase Edge Functions no servidor. O token do aparelho é registrado no armazenamento KV do Worker por usuário autenticado com role `admin` ou `secretaria`. O envio alcança os aparelhos registrados por esses perfis. Contas com role `user` não podem registrar aparelhos nem recebem essas notificações.
+## Arquitetura ativa
 
-## Secrets necessários
+O APK Android usa Capacitor Push Notifications + Firebase Cloud Messaging (FCM). O registro do aparelho e o envio passam pelo Cloudflare Worker `cleidson-diesel-push`:
 
-### Supabase → Edge Functions → Secrets
+**Aplicativo → Worker `/register` e `/unregister` → KV `PUSH_TOKENS`**
 
-- `FIREBASE_SERVICE_ACCOUNT_JSON`: conteúdo integral da chave JSON de uma conta de serviço do Firebase Admin SDK. Nunca colocar no GitHub, no APK ou em mensagens.
-- `PUSH_WEBHOOK_SECRET`: valor aleatório forte compartilhado somente com os Database Webhooks que chamam `notify-admin`.
+**Triggers PostgreSQL → Worker `/notify` → FCM → aparelhos da equipe**
 
-O projeto já fornece `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` no ambiente das Edge Functions. Não cadastrar nem expor esses valores manualmente no código.
+O Worker implantado valida a sessão e a role `admin` ou `secretaria` no registro do aparelho. O envio é feito aos aparelhos que esses perfis registraram. A role `user` não pode registrar aparelhos.
 
-### GitHub → Settings → Secrets and variables → Actions
+O código do Worker implantado é administrado no Cloudflare e não está versionado neste repositório. A versão atualmente consultada já possui rotas `/register`, `/unregister` e `/notify`, além de suporte a `notification_events`.
 
-- `GOOGLE_SERVICES_JSON`: conteúdo integral do arquivo `google-services.json` baixado para o app Android `br.com.cleidsondiesel.painel`. Esse arquivo contém identificadores de configuração do app, não a chave privada da conta de serviço.
-- `SUPABASE_ACCESS_TOKEN`: token pessoal de acesso do Supabase, usado somente pelo workflow manual de deploy.
-- `SUPABASE_PROJECT_ID`: referência do projeto Supabase oficial (`vmmfifpikycnmvzibrfn`).
+## Configuração necessária
 
-Não envie os valores desses secrets pelo chat nem os grave em arquivos versionados.
+### Cloudflare Worker
 
-## Publicar as Edge Functions sem usar créditos da Lovable
+O Worker precisa ter:
+- Secret `FIREBASE_SERVICE_ACCOUNT_JSON`: JSON da conta de serviço Firebase, armazenado somente como secret do Worker.
+- Secret `PUSH_WEBHOOK_SECRET`: segredo forte compartilhado com o Vault do Supabase.
+- Binding KV `PUSH_TOKENS`.
+- Variáveis `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY` para validar a sessão e as roles.
 
-1. Cadastre os secrets do Supabase e do GitHub listados acima.
-2. No GitHub, abra **Actions → Deploy Cleidson Diesel push functions → Run workflow**. Selecione a branch de integração `feat/notificacoes-push-admin`.
-3. Confira a execução: as três funções `register-device`, `unregister-device` e `notify-admin` devem ser implantadas no projeto indicado por `SUPABASE_PROJECT_ID`.
-4. `notify-admin` precisa permanecer com verificação JWT desativada porque recebe chamadas de Database Webhooks autenticadas pelo cabeçalho secreto. As funções de registro e remoção mantêm a verificação JWT ativada e ainda verificam a role `admin`.
+Nunca coloque a chave privada Firebase, tokens FCM ou o segredo do webhook no GitHub, APK ou mensagens.
 
-## Caminho ativo de notificações
+### Supabase
 
-O fluxo principal é **trigger PostgreSQL → Cloudflare Worker `/notify` → Firebase Cloud Messaging → aparelhos Android da administração**.
+- Salvar o mesmo segredo do Worker no Vault com o nome `push_webhook_secret`.
+- A função `push.notify_worker_on_change()` precisa de `pg_net`, Vault e acesso ao endpoint do Worker.
+- Aplicar as migrations de push na ordem prevista somente após revisão e autorização.
 
-A migration `20261110170000_cloudflare_push_triggers.sql` registra os eventos:
-- `appointments`: novo agendamento;
-- `service_orders`: nova OS e transições de status relevantes;
-- `warranties`: garantia emitida;
-- `push.notification_events`: eventos adicionais com chave idempotente.
+### GitHub Actions / Android
 
-A função `push.notify_worker_on_change()` envia o payload padrão ao Worker com o segredo do Vault. A proteção para `OLD.status` fica restrita a atualizações de `service_orders`, evitando falhas em tabelas sem essa coluna.
+- `GOOGLE_SERVICES_JSON`: arquivo de configuração Firebase do pacote Android `br.com.cleidsondiesel.painel`.
+- Os secrets de assinatura Android também são necessários para gerar uma release oficial; consulte `ANDROID-RELEASE.md`.
 
-**Não crie Database Webhooks para encaminhar os mesmos eventos à função Supabase `notify-admin`.** Essa função é um caminho legado separado; mantê-la ativa junto do Worker pode gerar notificações duplicadas. Se algum webhook antigo para `notify-admin` já existir, confira e remova-o antes do teste integrado. A configuração de webhooks do projeto Supabase não é versionada neste repositório e precisa ser conferida no painel.
+O aplicativo chama diretamente o Cloudflare Worker para registrar/remover aparelhos. O workflow `Deploy Cleidson Diesel push functions` e as Edge Functions `register-device`, `unregister-device` e `notify-admin` são um caminho legado separado; não são necessários para o fluxo ativo do APK.
 
-O Worker atualmente implantado já reconhece `notification_events`, limita título/corpo e restringe o destino a rotas internas `/painel`. A tabela `push.notification_events` usa `event_key` como chave primária; `push.dispatch_event()` usa `ON CONFLICT DO NOTHING` para impedir a repetição do mesmo evento lógico.
+## Eventos enviados à equipe
 
-## Gerar o APK oficial com FCM
+A migration `20261110170000_cloudflare_push_triggers.sql` configura:
+- Novo agendamento (`appointments` INSERT).
+- Nova OS (`service_orders` INSERT).
+- Mudanças relevantes de status da OS, incluindo diagnóstico concluído e veículo pronto.
+- Garantia emitida (`warranties` INSERT).
 
-1. Cadastre `GOOGLE_SERVICES_JSON` nos secrets do GitHub Actions.
-2. Execute **Actions → Build Cleidson Diesel official Android release → Run workflow**.
-3. O workflow valida que o JSON contém o pacote `br.com.cleidsondiesel.painel`, instala o plugin Capacitor Push Notifications, sincroniza o projeto Android e gera os artefatos assinados.
+A migration `20261112110000_guard_push_trigger_old_status.sql` restringe o acesso a `OLD.status` ao ramo de atualização de `service_orders`, evitando falhas em tabelas sem essa coluna.
 
-A geração de release também exige os secrets de assinatura Android descritos em [ANDROID-RELEASE.md](./ANDROID-RELEASE.md).
+Eventos adicionais usam `push.notification_events`:
+- Lembrete de agendamento uma hora antes, pelo `pg_cron` no fuso `America/Bahia`.
+- Orçamento aprovado ou recusado.
+- OS encaminhada para `em_servico`.
+
+A tabela usa `event_key` como chave primária e `push.dispatch_event()` usa `ON CONFLICT DO NOTHING`. Isso impede a criação repetida do mesmo evento lógico. Reagendar cria uma chave de lembrete diferente para a nova data/hora.
+
+O Worker limita título e corpo e aceita somente destinos internos que começam com `/painel`. As notificações push são internas à equipe; não são mensagens enviadas ao cliente.
+
+## Evitar duplicidade
+
+**Não configure Database Webhooks para encaminhar os mesmos eventos à Edge Function `notify-admin`.** Esse caminho legado é separado do Worker e pode duplicar avisos se for ativado junto. A configuração de Database Webhooks do Supabase não está versionada no Git; antes do teste, confirme no painel que não existe webhook antigo apontando para `notify-admin`.
+
+Não confundir:
+- Central de notificações do painel: alertas calculados a partir das OS, garantias e agendamentos atuais; não são push e não têm marcação de leitura.
+- Push: aviso operacional enviado aos aparelhos registrados da equipe.
+- WhatsApp: mensagens ao cliente preparadas para envio manual; não há disparo automático de mensagens ao cliente.
+
+Para acompanhamento online, a oficina gera um link individual de 30 dias na tela da OS e compartilha manualmente. A consulta pública não usa placa como credencial.
 
 ## Teste de ponta a ponta
 
-1. Instale o APK oficial recém-gerado no Android e entre com a conta administradora.
-2. Autorize notificações quando o Android solicitar. Ao registrar, o token será salvo no `app_metadata` da conta administradora.
-3. Crie um agendamento de teste e uma OS de teste; confirme as notificações no aparelho.
-4. Altere uma OS de teste para `pronto` e confirme o alerta de serviço pronto.
-5. Emita uma garantia de teste e confirme o alerta.
-6. Confirme que uma conta com role `user` não recebe notificações.
+1. Gerar/instalar o APK Android oficial com o arquivo Firebase e secrets de assinatura configurados.
+2. Entrar com uma conta admin ou secretaria e permitir notificações no Android.
+3. Confirmar que o aparelho foi registrado pelo Worker.
+4. Criar um agendamento e uma OS de teste; conferir os avisos internos.
+5. Concluir um diagnóstico, mudar uma OS de teste para `pronto` e emitir uma garantia de teste.
+6. Testar lembrete, aprovação/recusa de orçamento e transição para `em_servico`.
+7. Confirmar que o mesmo evento lógico não gera push repetido e que uma conta com role `user` não registra aparelho.
+8. Confirmar que nenhum aviso interno contém diagnóstico detalhado, CPF ou dados financeiros do cliente.
 
-A integração não deve ser considerada concluída até que os webhooks estejam criados, as funções implantadas e os testes feitos em aparelho Android real.
-
-## Notificações adicionais (lembrete, orçamento, status)
-
-Reutilizam o gatilho `push.notify_worker_on_change()` → Worker `/notify` (segredo Vault `push_webhook_secret`).
-
-- `push.notification_events` (PK `event_key`): cada evento entra uma única vez (`on conflict do nothing`); o gatilho `push_notify_events` chama o Worker só em inserções novas.
-- Payload: `{ "table": "notification_events", "type": "INSERT", "record": { "event_key", "title", "body", "route" } }`.
-
-| Evento | Origem | Chave |
-| --- | --- | --- |
-| Lembrete 1h antes | pg_cron `push-appointment-reminders` (cada minuto) → `push.send_appointment_reminders()`, fuso `America/Bahia`, só `pendente`/`confirmado`; não envia se criado com menos de 1h | `appointment:<id>:reminder:<data>T<hora>` (remarcar gera nova chave; cancelado não dispara) |
-| Orçamento aprovado/recusado | gatilho `push_quote_state` (`quote_approvals.state` → `approved`/`rejected`) | `quote:<id>:<estado>` |
-| OS em serviço | gatilho `push_order_in_service`, só transição para `em_servico` | `order:<id>:em_servico:<updated_at>` |
-| OS pronta | fluxo existente `push_notify_service_orders` (inalterado) | — |
-
-Recusa: pelo mesmo link de aprovação (nome + CPF válido), RPC `reject_quote_identified`; estado `rejected`, OS não muda.
-
-### Ação manual pendente (obrigatória)
-
-O Worker implantado já contém o tratamento de `notification_events`; não é necessário acrescentar esse bloco novamente. Ainda é obrigatório testar o fluxo de ponta a ponta em aparelho Android real após confirmar que não há Database Webhooks legados duplicando os eventos.
+A integração só deve ser considerada concluída depois do teste real em Android e da conferência das configurações do Worker, Vault, triggers e ausência de webhooks legados duplicados.
