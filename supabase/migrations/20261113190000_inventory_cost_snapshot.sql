@@ -22,7 +22,7 @@ BEGIN
   END IF;
 
   IF NEW.movement_type = 'saida' THEN
-    NEW.unit_cost := COALESCE(NEW.unit_cost, v_unit_cost);
+    NEW.unit_cost := COALESCE(NEW.unit_cost, NULLIF(v_unit_cost, 0));
   END IF;
 
   IF NEW.created_by IS NULL THEN
