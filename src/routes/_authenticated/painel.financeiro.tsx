@@ -97,7 +97,9 @@ function FinancialPage() {
   const [expenseDate, setExpenseDate] = useState(today);
   const [expenseMethod, setExpenseMethod] = useState("pix");
   const [expenseSupplier, setExpenseSupplier] = useState("");
-  const [saving, setSaving] = useState(false);\n  const paymentRequest = useRef<{ signature: string; key: string } | null>(null);\n  const expenseRequest = useRef<{ signature: string; key: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const paymentRequest = useRef<{ signature: string; key: string } | null>(null);
+  const expenseRequest = useRef<{ signature: string; key: string } | null>(null);
 
   const finance = useQuery({
     queryKey: ["financial-dashboard"],
