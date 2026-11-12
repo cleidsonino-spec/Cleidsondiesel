@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 type IssuedAccess = { token: string; expires_at: string };
 
-export function CustomerPortalActions({ orderId, orderNumber, phone }: { orderId: string; orderNumber: number; phone: string | null }) {
+export function CustomerPortalActions({ orderId, orderNumber, phone, orderStatus }: { orderId: string; orderNumber: number; phone: string | null; orderStatus: string }) {
   const [busy, setBusy] = useState(false);
   const [access, setAccess] = useState<IssuedAccess | null>(null);
   const url = access && typeof window !== "undefined"
@@ -38,7 +38,7 @@ export function CustomerPortalActions({ orderId, orderNumber, phone }: { orderId
       <p className="mt-1 text-sm text-muted-foreground">Gere um link individual com validade de 30 dias. Ao gerar outro, o link anterior deixa de funcionar.</p>
     </div>
     <div className="flex flex-wrap gap-2">
-      <Button type="button" variant="outline" disabled={busy || ["cancelado"].includes("")} onClick={() => void issue()}>
+      <Button type="button" variant="outline" disabled={busy || orderStatus === "cancelado"} onClick={() => void issue()}>
         {busy ? <Loader2 className="animate-spin" /> : access ? <RefreshCw /> : <Link2 />}
         {access ? "Gerar novo link" : "Gerar link do cliente"}
       </Button>
