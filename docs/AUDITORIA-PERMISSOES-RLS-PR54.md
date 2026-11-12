@@ -109,3 +109,19 @@ A função `public.is_mechanic_assigned(uuid, uuid)` é SECURITY DEFINER e tem E
 - Nenhum deploy foi realizado.
 - PR #54 permanece em rascunho e não mesclada.
 - No commit revisado, os workflows Android e Web terminaram com sucesso; isso não substitui os testes de integração/RLS acima.
+
+
+## Complemento da revisão direta de RPCs e payload público
+
+Revisão adicional das definições efetivas das funções, considerando as migrações posteriores que substituem funções criadas anteriormente:
+
+- A função `mechanic_update_order_status` inicialmente permitia ao mecânico selecionar `em_servico` ou `pronto`. A migração posterior `20261112120000_record_mechanic_service_completion.sql` substitui essa definição: na versão final examinada, o mecânico só pode enviar `pronto`, e a função exige OS em `em_servico`, atribuição ativa e grava conclusão única. Não tratar a definição antiga como vulnerabilidade ativa.
+- A sobrecarga antiga de `mechanic_complete_diagnosis(uuid,text)` tem EXECUTE revogado para PUBLIC, anon e authenticated em `20261113240000_disable_legacy_diagnosis_rpc.sql`.
+- A versão final de `get_customer_portal(text)`, substituída em `20261113360000_customer_portal_warranty_return_updates.sql`, não inclui o campo interno `diagnosis` nem os logs técnicos. Também constrói o snapshot do orçamento com campos selecionados, em vez de devolver o JSON integral. Isso corrige a exposição mais ampla da definição inicial da função.
+- O payload público ainda inclui dados da OS destinados ao acompanhamento, como número, status, veículo, placa, reclamação registrada pelo cliente e datas; acesso condicionado ao token bearer válido.
+
+### Achado residual confirmado
+
+A definição de `public.is_mechanic_assigned(uuid,uuid)` em `20261111180500_create_mechanic_core_tables.sql` continua concedendo EXECUTE a authenticated e aceita qualquer UUID de mecânico como segundo argumento. O retorno é somente booleano, mas permite testar associações de terceiros. É um achado de hardening de baixo impacto relativo, não uma leitura direta de dados nem evidência de acesso a OS sem atribuição.
+
+A recomendação permanece restringir a função exposta ao próprio `auth.uid()` ou remover EXECUTE para authenticated se a função só for necessária internamente. A mudança não foi feita porque exige migração SQL, fora do escopo permitido para esta etapa.
