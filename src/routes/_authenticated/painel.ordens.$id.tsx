@@ -7,6 +7,7 @@ import { OrderForm, type OrderFormValues } from "@/components/painel/order-form"
 import { QuotePdfActions } from "@/components/painel/quote-pdf-actions";
 import { ApprovalActions } from "@/components/painel/approval-actions";
 import { WarrantyEditor } from "@/components/painel/warranty-editor";
+import { WarrantyClaims } from "@/components/painel/warranty-claims";
 import { MechanicAssignment } from "@/components/painel/mechanic-assignment";
 import { warrantiesQuery } from "@/lib/warranty";
 import { StatusBadge } from "@/components/site/status-badge";
@@ -195,6 +196,7 @@ function OrdemPage() {
       </div>
 
       <WarrantyEditor orderId={id} orderStatus={order.status} />
+      {(isAdmin || isSecretary) && <WarrantyClaims orderId={id} />}
       <PrintSheet order={order} />
     </div>
   );
