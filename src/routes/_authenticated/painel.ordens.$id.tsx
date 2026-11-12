@@ -9,6 +9,7 @@ import { ApprovalActions } from "@/components/painel/approval-actions";
 import { CustomerPortalActions } from "@/components/painel/customer-portal-actions";
 import { WarrantyEditor } from "@/components/painel/warranty-editor";
 import { MechanicAssignment } from "@/components/painel/mechanic-assignment";
+import { ServiceOrderStatusHistory } from "@/components/painel/service-order-status-history";
 import { warrantiesQuery } from "@/lib/warranty";
 import { StatusBadge } from "@/components/site/status-badge";
 import {
@@ -196,6 +197,7 @@ function OrdemPage() {
         />
       </div>
 
+      {(isAdmin || isSecretary) && <ServiceOrderStatusHistory orderId={id} />}
       <WarrantyEditor orderId={id} orderStatus={order.status} />
       <PrintSheet order={order} />
     </div>
