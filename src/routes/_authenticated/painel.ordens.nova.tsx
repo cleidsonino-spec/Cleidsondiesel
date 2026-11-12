@@ -89,6 +89,7 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
       <OrderForm
         initial={initial}
         submitLabel="Abrir OS"
+        allowStatusEdit={false}
         onSubmit={async (input) => {
           const { data: auth } = await supabase.auth.getUser();
           const { data, error } = await supabase
