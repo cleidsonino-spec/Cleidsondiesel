@@ -373,9 +373,9 @@ export type Database = {
         Relationships: []
       }
       warranty_returns: {
-        Row: { id: string; warranty_id: string; service_order_id: string; status: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; created_by: string; updated_by: string; received_at: string; updated_at: string; closed_at: string | null }
-        Insert: { id?: string; warranty_id: string; service_order_id: string; status?: string; complaint: string; diagnosis?: string; resolution?: string; parts_used?: string; labor_description?: string; created_by: string; updated_by: string; received_at?: string; updated_at?: string; closed_at?: string | null }
-        Update: { id?: string; warranty_id?: string; service_order_id?: string; status?: string; complaint?: string; diagnosis?: string; resolution?: string; parts_used?: string; labor_description?: string; created_by?: string; updated_by?: string; received_at?: string; updated_at?: string; closed_at?: string | null }
+        Row: { id: string; warranty_id: string; service_order_id: string; status: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; customer_update: string; created_by: string; updated_by: string; received_at: string; updated_at: string; closed_at: string | null }
+        Insert: { id?: string; warranty_id: string; service_order_id: string; status?: string; complaint: string; diagnosis?: string; resolution?: string; parts_used?: string; labor_description?: string; customer_update?: string; created_by: string; updated_by: string; received_at?: string; updated_at?: string; closed_at?: string | null }
+        Update: { id?: string; warranty_id?: string; service_order_id?: string; status?: string; complaint?: string; diagnosis?: string; resolution?: string; parts_used?: string; labor_description?: string; customer_update?: string; created_by?: string; updated_by?: string; received_at?: string; updated_at?: string; closed_at?: string | null }
         Relationships: [
           { foreignKeyName: "warranty_returns_warranty_id_fkey"; columns: ["warranty_id"]; isOneToOne: false; referencedRelation: "warranties"; referencedColumns: ["id"] },
           { foreignKeyName: "warranty_returns_service_order_id_fkey"; columns: ["service_order_id"]; isOneToOne: false; referencedRelation: "service_orders"; referencedColumns: ["id"] }
