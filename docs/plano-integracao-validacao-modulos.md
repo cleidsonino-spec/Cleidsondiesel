@@ -100,3 +100,40 @@ O PR #35 e o PR #45 também precisam ser conferidos em conjunto para manter os i
 ## Critério de conclusão
 
 A fase só pode ser considerada concluída quando o conjunto integrado tiver build aprovado, testes automatizados aprovados, migrações revisadas e testadas em ambiente não produtivo, e testes funcionais dos fluxos críticos. A abertura de um PR ou a aprovação isolada de build não comprova funcionamento em produção.
+
+
+## Revisão integrada dos módulos — 12/11/2026
+
+### Resultado da revisão estática conjunta
+
+A revisão foi feita sobre os arquivos das branches dos PRs #33–#46, comparando cada branch com `main`. As branches analisadas estão à frente de `main` e sem commits atrás no momento da comparação, mas continuam independentes. Isso não substitui a validação em um ambiente integrado.
+
+#### Achados que precisam ser resolvidos antes da integração
+
+1. **Indicadores (#45) dependem do registro de conclusão (#35).** O painel atual classifica OS concluídas pelo status atual (`pronto`/`entregue`) e agrupa pelo `entry_date`. Isso não representa necessariamente quando o serviço foi concluído. Integrar o relatório à tabela `service_order_completions` e usar `completed_at` para os totais por período. A consulta do painel de desempenho (#35) também precisa de paginação/contagem no servidor para não ficar limitada ao teto de linhas da API em oficinas com histórico grande.
+2. **Assinatura de recebimento (#39/#40).** A função de assinatura cria snapshot da OS, mas não inclui o JSON `vehicle_receipt` com hodômetro/horímetro, combustível, avarias e observações. Além disso, a função permite assinar recebimento apenas pelo status `recebido`, sem exigir que os campos obrigatórios da vistoria estejam preenchidos. Antes de aceitar a assinatura, validar os campos no servidor e incluir o snapshot completo do recebimento.
+3. **Recebimento (#39).** O formulário exige os campos principais na criação, mas a migration protege apenas que `vehicle_receipt` seja um objeto JSON. A regra de obrigatoriedade deve ser validada no servidor no fluxo de criação/recebimento, sem exigir preenchimento retroativo em OS antigas.
+4. **Retornos de garantia (#43).** O trigger impede reabrir um retorno concluído e exige solução para concluir, mas não restringe as transições intermediárias. Definir e validar transições permitidas no banco, impedindo saltos de estado incoerentes e alterações após conclusão.
+5. **Financeiro (#36).** O trigger bloqueia pagamentos acima do total atual da OS e serializa lançamentos por OS. Falta proteger o caso inverso: uma edição posterior de peças/mão de obra pode reduzir o total da OS abaixo do que já foi recebido. A integração deve impedir essa redução ou exigir ajuste financeiro auditável.
+6. **Estoque (#38).** O saldo é atualizado transacionalmente por movimentação e saídas sem saldo são bloqueadas. Reforçar a autoria no banco: a política de INSERT permite que um administrador informe `created_by` diferente do próprio usuário. O registro de movimentação deve atribuir o autor pelo servidor (`auth.uid()`) e não confiar no payload.
+7. **Histórico do veículo (#41).** A primeira versão consulta OS e garantias. Depois da integração dos módulos, ampliar a linha do tempo para exibir recebimentos/assinaturas, pagamentos e movimentações de estoque vinculadas à OS, mantendo os dados internos fora do portal público.
+
+#### Itens revisados sem bloqueio estático identificado
+
+- **#33 andamento:** a alteração usa a categoria `outro`, compatível com a constraint conhecida, e preserva a mensagem real do backend. O teste de gravação com mecânico atribuído continua pendente.
+- **#34 trigger push:** a função revisada acessa `OLD.status` somente dentro dos blocos de `service_orders` e `UPDATE`. Os triggers existentes são INSERT em `appointments`, INSERT/UPDATE de status em `service_orders` e INSERT em `warranties`, o que corresponde ao escopo da correção.
+- **#42 portal:** token de 256 bits, hash no banco, expiração/revogação e retorno de uma única OS com campos explicitamente selecionados. Ainda exige testes de token inválido/expirado/revogado e de isolamento com papel anon.
+- **#44 lembretes:** o envio continua manual; a RPC registra apenas o ato informado pela equipe e não afirma entrega automática do WhatsApp.
+- **#36/#38/#45 navegação:** cada PR altera separadamente `src/routes/_authenticated/painel.tsx`. Consolidar os três links e tipos de rota em uma única alteração.
+- **#39–#43 detalhes da OS:** todos alteram `src/routes/_authenticated/painel.ordens.$id.tsx`. Consolidar imports, consultas e componentes em uma única versão, sem sobrescrever as adições anteriores.
+
+### Estado de CI observado
+
+As execuções de validação do GitHub Actions consultadas para os commits registrados dos PRs #33, #34, #35, #36, #38, #39, #41, #44, #45 e #46 estavam concluídas com sucesso. Isso comprova a execução bem-sucedida do workflow nesses SHAs específicos, não a integração entre branches, nem a aplicação das migrations ou o funcionamento com dados reais. Para #40, #42 e #43, o estado de CI precisa ser confirmado no SHA atual antes da integração.
+
+### Limites desta revisão
+
+- Revisão estática de código e SQL versionado; nenhum teste foi executado contra o banco real.
+- Nenhuma migration foi aplicada, nenhum dado foi alterado, nenhum PR foi mesclado e nenhum deploy foi realizado.
+- A validação de RLS, triggers e RPCs com usuários reais continua pendente de ambiente de teste autorizado.
+- Não foi usado crédito da Lovable.
