@@ -1,4 +1,4 @@
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CalendarClock, Check, ClipboardPlus, MessageCircle, X } from "lucide-react";
 import { useState } from "react";
@@ -13,7 +13,7 @@ import { appointmentsQuery } from "@/lib/queries";
 import { formatDateBR, getSlotsForDate, todayISO } from "@/lib/schedule";
 import { appointmentStatusInfo, type AppointmentStatus } from "@/lib/status";
 import { cn } from "@/lib/utils";
-import { appointmentMessage, waLink } from "@/lib/whatsapp";
+import { appointmentMessage, appointmentReminderMessage, waLink } from "@/lib/whatsapp";
 
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 
@@ -33,6 +33,23 @@ type View = "proximos" | "pendentes" | "todos";
 
 function AgendamentosPage() {
   const { data } = useSuspenseQuery(appointmentsQuery());
+  const reminderLogsQuery = useQuery({
+    queryKey: ["appointment-reminder-logs", data.map((appointment) => appointment.id)],
+    enabled: data.length > 0,
+    queryFn: async () => {
+      const { data: logs, error } = await (supabase as any)
+        .from("appointment_reminder_logs")
+        .select("appointment_id,sent_at")
+        .in("appointment_id", data.map((appointment) => appointment.id))
+        .order("sent_at", { ascending: false });
+      if (error) throw error;
+      return (logs ?? []) as { appointment_id: string; sent_at: string }[];
+    },
+  });
+  const latestReminderByAppointment = new Map<string, string>();
+  for (const log of reminderLogsQuery.data ?? []) {
+    if (!latestReminderByAppointment.has(log.appointment_id)) latestReminderByAppointment.set(log.appointment_id, log.sent_at);
+  }
   const [view, setView] = useState<View>("proximos");
   const today = todayISO();
   const [selectedDate, setSelectedDate] = useState(today);
@@ -143,7 +160,7 @@ function AgendamentosPage() {
           </h2>
           <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-card">
             {items.map((a) => (
-              <AppointmentRow key={a.id} a={a} />
+              <AppointmentRow key={a.id} a={a} lastReminderAt={latestReminderByAppointment.get(a.id) ?? null} />
             ))}
           </div>
         </section>
@@ -152,11 +169,21 @@ function AgendamentosPage() {
   );
 }
 
-function AppointmentRow({ a }: { a: Appointment }) {
+function AppointmentRow({ a, lastReminderAt }: { a: Appointment; lastReminderAt: string | null }) {
   const qc = useQueryClient();
   const info = appointmentStatusInfo(a.status);
   const confirmHref = waLink(a.phone, appointmentMessage(a));
   const chatHref = waLink(a.phone, `Olá, ${a.customer_name.split(" ")[0]}! Aqui é da Cleidson Diesel.`);
+  const reminderHref = waLink(a.phone, appointmentReminderMessage(a));
+  async function recordReminder() {
+    const { error } = await (supabase as any).rpc("record_appointment_reminder", {
+      _appointment_id: a.id,
+      _channel: "whatsapp",
+    });
+    if (error) { toast.error(error.message || "Não foi possível registrar o lembrete."); return; }
+    await qc.invalidateQueries({ queryKey: ["appointment-reminder-logs"] });
+    toast.success("Envio registrado no histórico.");
+  }
 
   async function setStatus(status: AppointmentStatus) {
     const { error } = await supabase.from("appointments").update({ status }).eq("id", a.id);
@@ -192,6 +219,17 @@ function AppointmentRow({ a }: { a: Appointment }) {
           >
             <Check /> Confirmar
           </Button>
+        )}
+        {reminderHref && a.status === "confirmado" && (
+          <Button asChild size="sm" variant="outline">
+            <a href={reminderHref} target="_blank" rel="noopener noreferrer"><MessageCircle /> Enviar lembrete</a>
+          </Button>
+        )}
+        {lastReminderAt && (
+          <span className="text-xs text-muted-foreground">Último lembrete registrado em {new Date(lastReminderAt).toLocaleString("pt-BR")}</span>
+        )}
+        {reminderHref && a.status === "confirmado" && (
+          <Button size="sm" variant="ghost" onClick={() => void recordReminder()}>Registrar envio</Button>
         )}
         {chatHref && (
           <Button asChild size="sm" variant="outline" aria-label="Conversar no WhatsApp">
