@@ -162,7 +162,7 @@ function StaffDashboard() {
       <div className="flex items-center gap-3"><Bell className="size-5 text-primary"/><div><p className="font-medium">Notificações {unread > 0 ? `(${unread} novas)` : ""}</p><p className="text-sm text-muted-foreground">{notice}</p></div></div>
       <Button variant="outline" onClick={enableNotifications}>Ativar notificações</Button>
     </section>
-    <div className="rounded-lg border bg-card p-4"><a href="/agenda-equipe" className="flex items-center gap-2 font-medium text-primary hover:underline"><CalendarDays className="size-5"/>Abrir agenda da equipe</a><p className="mt-1 text-sm text-muted-foreground">Consulte horários agendados e o histórico de atendimentos.</p></div>
+    {staffRole === "secretaria" && <div className="rounded-lg border bg-card p-4"><a href="/agenda-equipe" className="flex items-center gap-2 font-medium text-primary hover:underline"><CalendarDays className="size-5"/>Abrir agenda da equipe</a><p className="mt-1 text-sm text-muted-foreground">Consulte horários agendados e o histórico de atendimentos.</p></div>}
     <section className="space-y-3">
       <div className="flex items-center gap-2">{staffRole === "mecanico" ? <Wrench/> : <CalendarDays/>}<h2 className="text-xl font-semibold">{staffRole === "mecanico" ? "Minhas ordens de serviço" : "Agenda de atendimentos"}</h2></div>
       {loading ? <p className="rounded border p-5 text-muted-foreground">Carregando…</p> : items.length === 0 ? <p className="rounded border border-dashed p-8 text-center text-muted-foreground">{staffRole === "mecanico" ? "Nenhuma ordem atribuída no momento." : "Nenhum atendimento agendado."}</p> :
