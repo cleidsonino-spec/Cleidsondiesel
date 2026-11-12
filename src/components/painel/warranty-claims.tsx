@@ -31,6 +31,14 @@ const statusLabels: Record<Claim["status"], string> = {
   concluido: "Concluído",
 };
 
+const nextStatuses: Record<Claim["status"], Claim["status"][]> = {
+  recebido: ["em_avaliacao"],
+  em_avaliacao: ["coberto", "nao_coberto"],
+  coberto: ["concluido"],
+  nao_coberto: ["concluido"],
+  concluido: [],
+};
+
 export function WarrantyClaims({ orderId }: { orderId: string }) {
   const qc = useQueryClient();
   const { data: warranties = [] } = useQuery(warrantiesQuery());
@@ -74,6 +82,10 @@ export function WarrantyClaims({ orderId }: { orderId: string }) {
       resolution: draft.resolution ?? claim.resolution,
       follow_up_order_id: draft.follow_up_order_id === undefined ? claim.follow_up_order_id : (draft.follow_up_order_id || null),
     };
+    if (update.status !== "recebido" && update.assessment.trim().length < 3) {
+      toast.error("Registre a avaliação técnica antes de avançar o retorno.");
+      return;
+    }
     if (update.status === "concluido" && !update.resolution.trim()) {
       toast.error("Descreva a solução antes de concluir o retorno.");
       return;
@@ -105,6 +117,7 @@ export function WarrantyClaims({ orderId }: { orderId: string }) {
       const draft = drafts[claim.id] ?? {};
       const value = <K extends keyof Claim>(key: K) => (draft[key] ?? claim[key]) as Claim[K];
       const locked = claim.status === "concluido";
+      const allowedStatuses = [claim.status, ...nextStatuses[claim.status]];
       return <article key={claim.id} className="space-y-3 rounded-md border border-border p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm text-muted-foreground">Recebido em {new Date(claim.reported_at).toLocaleString("pt-BR")}</p>
@@ -112,7 +125,7 @@ export function WarrantyClaims({ orderId }: { orderId: string }) {
         </div>
         <p className="whitespace-pre-wrap text-sm">{claim.complaint}</p>
         <div className="grid gap-3">
-          <div className="space-y-1"><Label>Status</Label><Select disabled={locked} value={value("status")} onValueChange={(status) => setDrafts((current) => ({ ...current, [claim.id]: { ...current[claim.id], status: status as Claim["status"] } }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(statusLabels).map(([status, label]) => <SelectItem key={status} value={status}>{label}</SelectItem>)}</SelectContent></Select></div>
+          <div className="space-y-1"><Label>Status</Label><Select disabled={locked} value={value("status")} onValueChange={(status) => setDrafts((current) => ({ ...current, [claim.id]: { ...current[claim.id], status: status as Claim["status"] } }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{allowedStatuses.map((status) => <SelectItem key={status} value={status}>{statusLabels[status]}</SelectItem>)}</SelectContent></Select></div>
         </div>
         <div className="space-y-1"><Label>Avaliação técnica</Label><Textarea disabled={locked} value={String(value("assessment") ?? "")} onChange={(event) => setDrafts((current) => ({ ...current, [claim.id]: { ...current[claim.id], assessment: event.target.value } }))} /></div>
         <div className="space-y-1"><Label>Solução / providência</Label><Textarea disabled={locked} value={String(value("resolution") ?? "")} onChange={(event) => setDrafts((current) => ({ ...current, [claim.id]: { ...current[claim.id], resolution: event.target.value } }))} /></div>
