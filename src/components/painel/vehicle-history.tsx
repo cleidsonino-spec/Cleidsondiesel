@@ -15,7 +15,7 @@ type PaymentHistory = { id: string; service_order_id: string; amount: number; pa
 type MovementHistory = { id: string; service_order_id: string | null; item_id: string; movement_type: string; quantity: number; created_at: string; notes: string | null };
 type SignatureHistory = { id: string; service_order_id: string; event_type: string; signer_name: string; signer_relation: string; signed_at: string };
 
-async function fetchVehicleHistory(vehicleId: string | null, plate: string) {
+async function fetchVehicleHistory(vehicleId: string | null, plate: string, canViewRestrictedRecords: boolean, canViewSignatures: boolean) {
   const allOrders: ServiceOrder[] = [];
   const pageSize = 500;
   for (let offset = 0; ; offset += pageSize) {
@@ -45,15 +45,15 @@ async function fetchVehicleHistory(vehicleId: string | null, plate: string) {
   for (let start = 0; start < ids.length; start += 100) {
     const batch = ids.slice(start, start + 100);
     const [paymentResult, movementResult, signatureResult] = await Promise.all([
-      (supabase as any).from("service_order_payments")
-        .select("id,service_order_id,amount,payment_method,paid_at")
-        .in("service_order_id", batch),
-      (supabase as any).from("inventory_movements")
-        .select("id,service_order_id,item_id,movement_type,quantity,created_at,notes")
-        .in("service_order_id", batch),
-      (supabase as any).from("service_order_signatures")
-        .select("id,service_order_id,event_type,signer_name,signer_relation,signed_at")
-        .in("service_order_id", batch),
+      canViewRestrictedRecords
+        ? (supabase as any).from("service_order_payments").select("id,service_order_id,amount,payment_method,paid_at").in("service_order_id", batch)
+        : Promise.resolve({ data: [], error: null }),
+      canViewRestrictedRecords
+        ? (supabase as any).from("inventory_movements").select("id,service_order_id,item_id,movement_type,quantity,created_at,notes").in("service_order_id", batch)
+        : Promise.resolve({ data: [], error: null }),
+      canViewSignatures
+        ? (supabase as any).from("service_order_signatures").select("id,service_order_id,event_type,signer_name,signer_relation,signed_at").in("service_order_id", batch)
+        : Promise.resolve({ data: [], error: null }),
     ]);
     if (paymentResult.error) throw paymentResult.error;
     if (movementResult.error) throw movementResult.error;
@@ -75,10 +75,10 @@ async function fetchVehicleHistory(vehicleId: string | null, plate: string) {
   return { orders: allOrders, warranties, payments, movements, signatures, itemNames };
 }
 
-export function VehicleHistory({ order }: { order: Pick<ServiceOrder, "id" | "vehicle_id" | "plate"> }) {
+export function VehicleHistory({ order, canViewRestrictedRecords, canViewSignatures }: { order: Pick<ServiceOrder, "id" | "vehicle_id" | "plate">; canViewRestrictedRecords: boolean; canViewSignatures: boolean }) {
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["vehicle-history", order.vehicle_id, order.plate],
-    queryFn: () => fetchVehicleHistory(order.vehicle_id, order.plate),
+    queryKey: ["vehicle-history", order.vehicle_id, order.plate, canViewRestrictedRecords, canViewSignatures],
+    queryFn: () => fetchVehicleHistory(order.vehicle_id, order.plate, canViewRestrictedRecords, canViewSignatures),
     staleTime: 30_000,
   });
 
