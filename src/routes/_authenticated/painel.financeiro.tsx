@@ -65,6 +65,22 @@ function shiftDate(value: string, days: number) {
   date.setDate(date.getDate() + days);
   return localDate(date);
 }
+async function fetchAllRows<T>(table: string, columns: string, orderColumn: string, ascending: boolean): Promise<T[]> {
+  const rows: T[] = [];
+  const pageSize = 500;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await (supabase as any)
+      .from(table)
+      .select(columns)
+      .order(orderColumn, { ascending })
+      .range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    const page = (data ?? []) as T[];
+    rows.push(...page);
+    if (page.length < pageSize) return rows;
+  }
+}
+
 function FinancialPage() {
   const { isAdmin } = Route.useRouteContext();
   const queryClient = useQueryClient();
@@ -87,19 +103,12 @@ function FinancialPage() {
     queryKey: ["financial-dashboard"],
     enabled: isAdmin,
     queryFn: async () => {
-      const [ordersResult, paymentsResult, expensesResult] = await Promise.all([
-        supabase.from("service_orders").select("id,number,customer_name,plate,vehicle,parts_value,labor_value,status").order("number", { ascending: false }).limit(1000),
-        (supabase as any).from("service_order_payments").select("id,service_order_id,amount,payment_method,paid_at,notes").order("paid_at", { ascending: false }).limit(2000),
-        (supabase as any).from("shop_expenses").select("id,description,category,amount,expense_date,payment_method,supplier_name").order("expense_date", { ascending: false }).limit(2000),
+      const [orders, payments, expenses] = await Promise.all([
+        fetchAllRows<Order>("service_orders", "id,number,customer_name,plate,vehicle,parts_value,labor_value,status", "number", false),
+        fetchAllRows<Payment>("service_order_payments", "id,service_order_id,amount,payment_method,paid_at,notes", "paid_at", false),
+        fetchAllRows<Expense>("shop_expenses", "id,description,category,amount,expense_date,payment_method,supplier_name", "expense_date", false),
       ]);
-      if (ordersResult.error) throw ordersResult.error;
-      if (paymentsResult.error) throw paymentsResult.error;
-      if (expensesResult.error) throw expensesResult.error;
-      return {
-        orders: (ordersResult.data ?? []) as Order[],
-        payments: (paymentsResult.data ?? []) as Payment[],
-        expenses: (expensesResult.data ?? []) as Expense[],
-      };
+      return { orders, payments, expenses };
     },
   });
 
