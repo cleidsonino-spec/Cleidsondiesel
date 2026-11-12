@@ -17,6 +17,7 @@ type OrderRow = {
 };
 
 type Period = "30" | "90" | "365" | "all";
+type CompletionRow = { service_order_id: string; completed_at: string };
 
 export const Route = createFileRoute("/_authenticated/painel/indicadores")({
   head: () => ({ meta: [
@@ -39,6 +40,7 @@ function IndicatorsPage() {
     queryKey: ["operational-indicators-orders"],
     queryFn: async () => {
       const all: OrderRow[] = [];
+      const completions: CompletionRow[] = [];
       const pageSize = 500;
       for (let offset = 0; ; offset += pageSize) {
         const { data, error } = await supabase.from("service_orders")
@@ -47,34 +49,55 @@ function IndicatorsPage() {
           .range(offset, offset + pageSize - 1);
         if (error) throw error;
         all.push(...(data ?? []) as OrderRow[]);
-        if (!data || data.length < pageSize) return all;
+        if (!data || data.length < pageSize) break;
       }
+      for (let offset = 0; ; offset += pageSize) {
+        const { data, error } = await (supabase as any).from("service_order_completions")
+          .select("service_order_id,completed_at")
+          .order("completed_at", { ascending: true })
+          .range(offset, offset + pageSize - 1);
+        if (error) throw error;
+        const page = (data ?? []) as CompletionRow[];
+        completions.push(...page);
+        if (page.length < pageSize) break;
+      }
+      return { orders: all, completions };
     },
   });
 
   const today = todayISO();
   const filtered = useMemo(() => {
     const start = period === "all" ? null : dateDaysAgo(Number(period));
-    return (ordersQuery.data ?? []).filter((order) => !start || order.entry_date >= start && order.entry_date <= today);
+    return (ordersQuery.data?.orders ?? []).filter((order) => !start || order.entry_date >= start && order.entry_date <= today);
   }, [ordersQuery.data, period, today]);
 
   const stats = useMemo(() => {
-    const completed = filtered.filter((o) => o.status === "pronto" || o.status === "entregue");
+    const start = period === "all" ? null : dateDaysAgo(Number(period));
     const open = filtered.filter((o) => !["pronto", "entregue", "cancelado"].includes(o.status));
     const waiting = filtered.filter((o) => o.status === "aguardando_aprovacao");
-    const completedTotal = completed.reduce((sum, o) => sum + orderTotal(o.parts_value, o.labor_value), 0);
+    const allOrders = ordersQuery.data?.orders ?? [];
+    const orderById = new Map(allOrders.map((order) => [order.id, order]));
+    const completions = (ordersQuery.data?.completions ?? []).filter((row) => {
+      const completedDate = new Date(row.completed_at);
+      const key = `${completedDate.getFullYear()}-${String(completedDate.getMonth() + 1).padStart(2, "0")}-${String(completedDate.getDate()).padStart(2, "0")}`;
+      return !start || (key >= start && key <= today);
+    });
+    const completedOrders = completions.map((row) => orderById.get(row.service_order_id)).filter((order): order is OrderRow => Boolean(order));
+    const completedTotal = completedOrders.reduce((sum, order) => sum + orderTotal(order.parts_value, order.labor_value), 0);
     const monthMap = new Map<string, { count: number; total: number }>();
-    for (const order of completed) {
-      const month = order.entry_date.slice(0, 7);
+    for (const row of completions) {
+      const completedDate = new Date(row.completed_at);
+      const month = `${completedDate.getFullYear()}-${String(completedDate.getMonth() + 1).padStart(2, "0")}`;
       const current = monthMap.get(month) ?? { count: 0, total: 0 };
+      const order = orderById.get(row.service_order_id);
       current.count += 1;
-      current.total += orderTotal(order.parts_value, order.labor_value);
+      if (order) current.total += orderTotal(order.parts_value, order.labor_value);
       monthMap.set(month, current);
     }
     const months = [...monthMap.entries()].sort(([a], [b]) => a.localeCompare(b)).slice(-6);
     const max = Math.max(1, ...months.map(([, value]) => value.count));
-    return { total: filtered.length, completed: completed.length, open: open.length, waiting: waiting.length, completedTotal, average: completed.length ? completedTotal / completed.length : 0, months: months.map(([month, value]) => ({ month, ...value, width: value.count / max * 100 })) };
-  }, [filtered]);
+    return { total: filtered.length, completed: completions.length, open: open.length, waiting: waiting.length, completedTotal, average: completedOrders.length ? completedTotal / completedOrders.length : 0, months: months.map(([month, value]) => ({ month, ...value, width: value.count / max * 100 })) };
+  }, [filtered, ordersQuery.data, period, today]);
 
   if (ordersQuery.isLoading) return <div className="rounded-lg border p-8 text-muted-foreground">Carregando indicadores…</div>;
   if (ordersQuery.isError) return <div className="rounded-lg border border-destructive/40 p-8 text-destructive">Não foi possível carregar os indicadores. Tente atualizar a página.</div>;
@@ -98,7 +121,7 @@ function IndicatorsPage() {
       <div className="rounded-lg border border-border bg-card p-5">
         <p className="text-sm text-muted-foreground">Total lançado nas OS concluídas</p>
         <p className="mt-2 text-3xl font-semibold tabular-nums">{formatBRL(stats.completedTotal)}</p>
-        <p className="mt-2 text-xs text-muted-foreground">Soma de peças e mão de obra das OS com status pronto ou entregue. Não representa necessariamente valores recebidos.</p>
+        <p className="mt-2 text-xs text-muted-foreground">Soma de peças e mão de obra das OS com conclusão registrada no período. Não representa necessariamente valores recebidos.</p>
       </div>
       <div className="rounded-lg border border-border bg-card p-5">
         <p className="text-sm text-muted-foreground">Valor médio lançado por OS concluída</p>
@@ -118,7 +141,7 @@ function IndicatorsPage() {
       </div>}
     </section>
 
-    <p className="flex items-start gap-2 rounded-md border border-border p-4 text-xs text-muted-foreground"><CalendarDays className="size-4 shrink-0" />Período filtrado até {formatDateBR(today)}. Estes indicadores são operacionais e usam os valores lançados nas ordens. Lucro, despesas e recebimentos só serão apresentados depois que o módulo financeiro e os custos estiverem integrados e validados.</p>
+    <p className="flex items-start gap-2 rounded-md border border-border p-4 text-xs text-muted-foreground"><CalendarDays className="size-4 shrink-0" />Período filtrado até {formatDateBR(today)}. Conclusões anteriores à implantação do registro específico não são atribuídas retroativamente. Estes indicadores são operacionais e usam os valores lançados nas ordens. Lucro, despesas e recebimentos só serão apresentados depois que o módulo financeiro e os custos estiverem integrados e validados.</p>
   </div>;
 }
 
