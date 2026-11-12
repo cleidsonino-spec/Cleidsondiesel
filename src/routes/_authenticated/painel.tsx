@@ -24,7 +24,16 @@ export const Route = createFileRoute("/_authenticated/painel")({
     const { data, error } = await (supabase as any).from("user_roles")
       .select("role,is_active").eq("user_id", context.user.id);
     if (error) throw error;
-    const roles = (data ?? []).filter((item: any) => item.is_active !== false).map((item: any) => item.role);
+    const rows = data ?? [];
+    const roles = rows.filter((item: any) => item.is_active !== false).map((item: any) => item.role);
+    const hasStaffRole = rows.some((item: any) => item.role === "mecanico" || item.role === "secretaria");
+    const hasActiveStaffRole = rows.some((item: any) =>
+      item.is_active !== false && ["admin", "secretaria", "mecanico"].includes(item.role)
+    );
+    if (hasStaffRole && !hasActiveStaffRole) {
+      await supabase.auth.signOut({ scope: "local" });
+      throw redirect({ to: "/auth" });
+    }
     return { isAdmin: roles.includes("admin"), isSecretary: roles.includes("secretaria") };
   },
   component: PainelLayout,
