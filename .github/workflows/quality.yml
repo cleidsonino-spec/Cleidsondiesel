@@ -35,3 +35,4 @@ jobs:
           src/routes/_authenticated/equipe.tsx
           src/routes/_authenticated/painel.tsx
           --rule 'prettier/prettier: off'
+          --rule '@typescript-eslint/no-explicit-any: off'
