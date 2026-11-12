@@ -171,7 +171,11 @@ function OrdemPage() {
           submitLabel="Salvar alterações"
           allowStatusEdit={false}
           onSubmit={async (input) => {
-            const { error } = await supabase.from("service_orders").update(input).eq("id", id);
+            // O status só pode mudar pelas RPCs e validações do fluxo da OS.
+            // A edição administrativa atualiza apenas os demais campos.
+            const editableFields = { ...input };
+            delete editableFields.status;
+            const { error } = await supabase.from("service_orders").update(editableFields).eq("id", id);
             if (error) {
               console.error("Erro ao atualizar OS:", error);
               toast.error(`Falha ao salvar: ${error.message}`);
