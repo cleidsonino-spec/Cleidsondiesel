@@ -101,6 +101,17 @@ function ConsultaPage() {
             <h2 className="flex items-center gap-2 font-semibold"><ShieldCheck className="size-4" /> Garantia</h2>
             <p className="text-sm">{data.warranty.coverage || "Cobertura registrada"} · {formatDateBR(data.warranty.start_date)} até {formatDateBR(data.warranty.end_date)}</p>
             {data.warranty.terms && <p className="whitespace-pre-wrap text-sm text-muted-foreground">{data.warranty.terms}</p>}
+            {data.warranty_returns?.length > 0 && <div className="space-y-3 border-t border-border pt-3">
+              <h3 className="font-semibold">Acompanhamento de retorno em garantia</h3>
+              {data.warranty_returns.map((item, index) => {
+                const labels: Record<string, string> = { received: "Retorno recebido", in_review: "Em análise pela oficina", resolved: "Retorno concluído", not_covered: "Análise concluída — fora da cobertura" };
+                return <div key={index} className="rounded-md border border-border p-3 text-sm">
+                  <p className="font-medium">{labels[item.status] ?? "Retorno registrado"}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Recebido em {formatDateBR(item.received_at)}{item.closed_at ? ` · Encerrado em ${formatDateBR(item.closed_at)}` : ""}</p>
+                  {item.customer_update && <p className="mt-2 whitespace-pre-wrap">{item.customer_update}</p>}
+                </div>;
+              })}
+            </div>}
           </section>}
           <p className="flex items-center gap-2 border-t border-border pt-4 text-xs text-muted-foreground"><Clock3 className="size-4 shrink-0" /> Link individual válido até {new Date(data.expires_at).toLocaleDateString("pt-BR")}. Se precisar, solicite renovação à oficina.</p>
         </div>
