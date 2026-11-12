@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Activity, CalendarDays, CheckCircle2, ClipboardList, Clock3, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { formatBRL, orderTotal, orderStatusInfo } from "@/lib/status";
+import { formatBRL, orderTotal } from "@/lib/status";
 import { formatDateBR, todayISO } from "@/lib/schedule";
 
 type OrderRow = {
