@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, ClipboardCheck, Loader2, Plus, Save, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -112,9 +111,8 @@ export function WarrantyClaims({ orderId }: { orderId: string }) {
           <span className="rounded-full border border-border px-3 py-1 text-xs">{statusLabels[claim.status]}</span>
         </div>
         <p className="whitespace-pre-wrap text-sm">{claim.complaint}</p>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3">
           <div className="space-y-1"><Label>Status</Label><Select disabled={locked} value={value("status")} onValueChange={(status) => setDrafts((current) => ({ ...current, [claim.id]: { ...current[claim.id], status: status as Claim["status"] } }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(statusLabels).map(([status, label]) => <SelectItem key={status} value={status}>{label}</SelectItem>)}</SelectContent></Select></div>
-          <div className="space-y-1"><Label>OS de retorno (opcional)</Label><Input disabled={locked} value={String(value("follow_up_order_id") ?? "")} onChange={(event) => setDrafts((current) => ({ ...current, [claim.id]: { ...current[claim.id], follow_up_order_id: event.target.value } }))} placeholder="ID da OS relacionada" /></div>
         </div>
         <div className="space-y-1"><Label>Avaliação técnica</Label><Textarea disabled={locked} value={String(value("assessment") ?? "")} onChange={(event) => setDrafts((current) => ({ ...current, [claim.id]: { ...current[claim.id], assessment: event.target.value } }))} /></div>
         <div className="space-y-1"><Label>Solução / providência</Label><Textarea disabled={locked} value={String(value("resolution") ?? "")} onChange={(event) => setDrafts((current) => ({ ...current, [claim.id]: { ...current[claim.id], resolution: event.target.value } }))} /></div>
