@@ -51,10 +51,26 @@ function StaffDashboard() {
         setHistory(grouped);
       } else setHistory({});
     } else {
-      const { data, error } = await supabase.from("appointments").select("*")
-        .neq("status", "cancelado").order("scheduled_date", { ascending: true }).limit(100);
-      if (error) toast.error("Não foi possível carregar a agenda.");
-      setItems(data ?? []);
+      // A secretaria usa a mesma RPC protegida da tela "Agenda da equipe".
+      // Isso evita depender de uma leitura direta em appointments, cuja RLS
+      // histórica libera SELECT apenas ao administrador.
+      const { data, error } = await (supabase as any).rpc("get_staff_appointment_agenda");
+      if (error) {
+        toast.error("Não foi possível carregar a agenda.");
+        setItems([]);
+      } else {
+        setItems((data ?? []).map((row: any) => ({
+          id: row.appointment_id,
+          customer_name: row.customer_name,
+          vehicle: row.vehicle,
+          status: row.appointment_status,
+          scheduled_date: row.scheduled_date,
+          scheduled_time: row.scheduled_time,
+          plate: row.plate,
+          service_type: row.service_type,
+          phone: row.phone,
+        })));
+      }
     }
     setLoading(false);
   }
