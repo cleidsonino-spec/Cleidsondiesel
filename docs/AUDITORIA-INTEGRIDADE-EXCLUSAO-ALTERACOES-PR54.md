@@ -225,3 +225,38 @@ A mudança de schema deve ser incremental e preservar IDs e relações:
 - O trigger atual valida relação e placa apenas quando `vehicle_id` não é nulo; OS com dados manuais sem vínculo permanecem permitidas intencionalmente.
 - Testes pendentes: trocar cliente após selecionar veículo; selecionar veículo de outro cliente; digitar placa manual após selecionar veículo; abrir OS sem vínculo; editar OS antiga; verificar snapshots históricos; API direta com cliente/veículo incompatíveis.
 - Nenhum banco ou API live foi acessado; nenhuma migration foi alterada ou executada.
+
+## 8. Edição de OS — coerência entre cadastro e snapshots (2026-11-12)
+
+### Controles revisados
+- A tela de edição carrega a OS pelo ID e inicializa o formulário com os vínculos customer_id e vehicle_id, além dos snapshots customer_name, phone, plate, vehicle e vehicle_year armazenados na própria OS.
+- A troca de cliente no formulário limpa o vínculo do veículo e os campos de veículo anteriores; a escolha de um veículo cadastrado atualiza cliente, telefone e dados do veículo.
+- Antes de salvar, o formulário verifica se o veículo vinculado ainda existe na lista carregada e se pertence ao customer_id selecionado.
+- O salvamento da edição atualiza os campos operacionais da OS, removendo status do payload. As mudanças de status continuam reservadas aos fluxos autorizados.
+- O trigger validate_order_registry() no schema revisado rejeita veículo vinculado que não pertença ao cliente indicado ou cuja placa normalizada não corresponda à placa da OS. A proteção ocorre no banco para INSERT/UPDATE dos campos de vínculo e placa.
+
+### Decisão de integridade dos snapshots
+- Nome, telefone, placa e descrição do veículo na OS são snapshots operacionais próprios. Não devem ser sincronizados automaticamente com alterações posteriores do cadastro mestre, pois isso poderia reescrever documentos e registros históricos.
+- O formulário permite edição desses snapshots sem necessariamente alterar o cadastro mestre. Isso é compatível com o modelo de snapshots independentes, mas a tela deve deixar claro que está alterando os dados registrados naquela OS, não o cadastro do cliente/veículo.
+- O schema revisado não demonstra uma trilha genérica de versões para todas as alterações da OS. A linha do tempo atual registra status e eventos específicos, mas não recupera automaticamente versões anteriores de nome, telefone, placa, veículo, reclamação, diagnóstico, valores, datas ou observações.
+
+### Riscos e requisitos pendentes
+1. A validação do banco é forte para veículo cadastrado vinculado, mas não exige vínculo de cadastro: OS com vehicle_id nulo e dados manuais continua sendo permitida intencionalmente.
+2. O banco não valida que customer_name e phone sejam iguais aos dados atuais do cadastro. Não se deve adicionar essa igualdade sem decisão de negócio, pois os snapshots podem precisar preservar o que foi informado/confirmado no atendimento.
+3. Como clientes e veículos ainda não têm estado ativo/inativo no schema revisado, não há como impedir por banco a utilização de cadastros futuramente inativados. A regra de inativação deverá bloquear novos vínculos, sem invalidar OS existentes.
+4. A ausência de versionamento genérico significa que uma edição pode substituir snapshots anteriores sem recuperabilidade. Recomenda-se trilha administrativa de UPDATE com ator, horário e campos/snapshots anterior e novo, com acesso restrito.
+
+### Testes de aceitação pendentes
+- Editar OS com veículo vinculado e manter cliente/veículo/placa compatíveis.
+- Tentar trocar somente cliente, somente veículo e somente placa, confirmando que combinações incompatíveis são rejeitadas.
+- Editar OS sem vínculo cadastral e confirmar que os dados manuais continuam permitidos.
+- Alterar o cadastro mestre e confirmar que snapshots de OS anteriores não mudam.
+- Alterar snapshots na OS e confirmar que o cadastro mestre não é alterado.
+- Quando a inativação for implementada pelo schema gerenciado, confirmar que cadastros inativos não podem ser usados em novos vínculos, mas continuam legíveis no histórico.
+- Confirmar trilha de antes/depois das edições após implementação de auditoria genérica.
+
+### Limites
+- Revisão estática dos arquivos da branch; não houve teste real de formulário, banco ou API.
+- Nenhum código adicional foi alterado nesta etapa porque os controles atuais de vínculo já existem e uma mudança de sincronização dos snapshots poderia corromper o histórico.
+- Nenhuma migration foi criada, editada ou executada; nenhuma alteração de banco ou deploy foi realizada.
+
