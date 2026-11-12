@@ -42,6 +42,7 @@ function AuthorizationsPage() {
   const [signer, setSigner] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [finalizingId, setFinalizingId] = useState("");
 
   const query = useQuery({
     queryKey: ["customer-authorizations"],
@@ -94,6 +95,26 @@ function AuthorizationsPage() {
       toast.error(error instanceof Error ? error.message : "Não foi possível registrar o aceite.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function finalizeDelivery(serviceOrderId: string) {
+    setFinalizingId(serviceOrderId);
+    try {
+      const { error } = await (supabase as any).rpc("finalize_service_order_delivery", {
+        _order_id: serviceOrderId,
+      });
+      if (error) throw error;
+      toast.success("Entrega finalizada. A OS agora está marcada como entregue.");
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["customer-authorizations"] }),
+        qc.invalidateQueries({ queryKey: ["orders"] }),
+        qc.invalidateQueries({ queryKey: ["orders", serviceOrderId] }),
+      ]);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível finalizar a entrega.");
+    } finally {
+      setFinalizingId("");
     }
   }
 
@@ -156,6 +177,16 @@ function AuthorizationsPage() {
             <p className="text-sm">Autorizado por: {record.signer_name}</p>
             <p className="text-xs text-muted-foreground">{new Date(record.accepted_at).toLocaleString("pt-BR")}</p>
             <p className="text-xs text-muted-foreground">{record.consent_text}</p>
+            {record.authorization_type === "delivery_confirmation" && order?.status === "pronto" && (
+              <Button
+                type="button"
+                size="sm"
+                disabled={finalizingId === order.id}
+                onClick={() => void finalizeDelivery(order.id)}
+              >
+                {finalizingId === order.id ? "Finalizando…" : "Finalizar entrega da OS"}
+              </Button>
+            )}
           </article>;
         })}
         {records.length === 0 && <p className="rounded-md border p-5 text-sm text-muted-foreground">Nenhuma autorização registrada.</p>}
