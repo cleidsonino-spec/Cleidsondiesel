@@ -12,6 +12,17 @@ LANGUAGE plpgsql
 SET search_path = public
 AS $$
 BEGIN
+  IF NEW.status IN (
+    'em_analise'::public.order_status,
+    'aguardando_aprovacao'::public.order_status,
+    'aprovado_aguardando_encaminhamento'::public.order_status,
+    'em_servico'::public.order_status,
+    'pronto'::public.order_status,
+    'entregue'::public.order_status
+  ) THEN
+    RAISE EXCEPTION 'Uma nova OS deve ser aberta como recebida. Registre a ficha de recebimento antes de iniciar o diagnóstico';
+  END IF;
+
   NEW.intake_required := true;
   RETURN NEW;
 END;
