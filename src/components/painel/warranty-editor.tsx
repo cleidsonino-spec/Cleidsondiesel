@@ -64,11 +64,10 @@ export function WarrantyEditor({ orderId, orderStatus, canManage }: { orderId: s
         </div>
         <div className="flex gap-1">
           <Button asChild variant="outline" size="sm"><Link to="/painel/garantias/$id" params={{ id: w.id }}><Printer />Certificado</Link></Button>
-          {canManage && <Button type="button" variant="ghost" size="icon" title="Editar garantia" aria-label="Editar garantia" onClick={() => setDraft({ id: w.id, start: w.start_date, months: String(w.duration_months), coverage: w.coverage, terms: w.terms })}><Pencil /></Button>
+          {canManage && <Button type="button" variant="ghost" size="icon" title="Editar garantia" aria-label="Editar garantia" onClick={() => setDraft({ id: w.id, start: w.start_date, months: String(w.duration_months), coverage: w.coverage, terms: w.terms })}><Pencil /></Button>}
         </div>
       </div>
-      <WarrantyAudit warrantyId={w.id} />
-      <WarrantyReturnPanel warrantyId={w.id} />
+      {canManage && <><WarrantyAudit warrantyId={w.id} /><WarrantyReturnPanel warrantyId={w.id} canManage={canManage} /></>}
     </div>)}
     {draft && canManage && <form onSubmit={save} className="grid gap-4 rounded-lg border border-border p-4 sm:grid-cols-2">
       <div className="space-y-2"><Label htmlFor="warranty-start">Início da garantia</Label><Input id="warranty-start" required type="date" value={draft.start} disabled={Boolean(draft.id)} onChange={(e) => setDraft({ ...draft, start: e.target.value })} /></div>
