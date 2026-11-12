@@ -149,3 +149,24 @@ O arquivo `AGENTS.md` proíbe adicionar ou editar manualmente arquivos em `supab
 - Nenhuma migration criada ou executada.
 - Nenhum banco acessado.
 - Nenhum deploy realizado.
+
+## 12. Atualização da revisão — 2026-11-12
+
+### Interface
+- Commit `4ed9dad7d35eb1583e52bbd0f9b3cd4c9c2ad593` removeu da tela de detalhes da OS o botão, o diálogo e a função frontend que executavam `DELETE` em `service_orders`.
+- A tela agora informa que a exclusão física está desativada na interface enquanto o cancelamento seguro não estiver disponível.
+- O arquivo foi relido após o commit; não contém mais a chamada `.delete()` nem o diálogo de exclusão.
+
+### Risco residual confirmado no código versionado
+- A migration histórica `drizzle/migrations/0000_oficina_schema.sql` concede `DELETE` em `public.service_orders` para `authenticated` e cria a policy `Admins delete orders`, que permite a exclusão por administradores.
+- A migration `20261113310000_restrict_direct_service_order_status_updates.sql` restringe atualizações de status, mas não revoga o privilégio `DELETE` nem remove a policy de exclusão.
+- Portanto, remover o botão protege contra exclusão acidental pela interface, mas **não bloqueia uma chamada direta à API feita por um administrador**. A proteção definitiva depende de mudança de schema gerenciada: revogar `DELETE` para `authenticated` e remover a policy permissiva, preservando o acesso de serviço estritamente necessário.
+- A busca no repositório não encontrou implementação de `public.cancel_service_order` nem tabela específica de auditoria de cancelamento.
+
+### Estado e limites
+- Nenhuma migration histórica foi editada.
+- Nenhuma migration nova foi criada ou aplicada.
+- Nenhum banco foi acessado e nenhuma chamada direta à API foi testada.
+- O commit da interface não tem execução de workflow registrada no momento da consulta.
+- A PR #54 permanece aberta, em rascunho e não mesclada.
+- **Bloqueio para conclusão:** a camada de banco precisa ser corrigida pelo fluxo gerenciado permitido pelo projeto antes de ativar o botão de cancelamento. Depois disso, conectar a UI à RPC real e testar perfis, estados permitidos, concorrência, idempotência e preservação dos registros em ambiente descartável.
