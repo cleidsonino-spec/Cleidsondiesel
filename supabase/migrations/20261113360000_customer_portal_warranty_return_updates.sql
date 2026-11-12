@@ -51,7 +51,7 @@ BEGIN
   RETURN jsonb_build_object(
     'order', jsonb_build_object(
       'number', o.number, 'status', o.status, 'vehicle', o.vehicle,
-      'plate', o.plate, 'complaint', o.complaint, 'diagnosis', o.diagnosis,
+      'plate', o.plate, 'complaint', o.complaint,
       'entry_date', o.entry_date, 'due_date', o.due_date, 'updated_at', o.updated_at
     ),
     'quote', quote_data,
