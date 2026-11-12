@@ -19,8 +19,8 @@ BEGIN
   IF NEW.reminder_sent_at IS DISTINCT FROM OLD.reminder_sent_at
      OR NEW.reminder_sent_by IS DISTINCT FROM OLD.reminder_sent_by
      OR NEW.reminder_channel IS DISTINCT FROM OLD.reminder_channel THEN
-    IF NOT public.has_role(auth.uid(), 'admin') THEN
-      RAISE EXCEPTION 'Somente administrador pode registrar lembretes';
+    IF NOT (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'secretaria')) THEN
+      RAISE EXCEPTION 'Somente a equipe autorizada pode registrar lembretes';
     END IF;
     IF NEW.reminder_sent_at IS NOT NULL
        AND (NEW.reminder_sent_by IS DISTINCT FROM auth.uid()
