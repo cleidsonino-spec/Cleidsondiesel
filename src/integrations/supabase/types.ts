@@ -380,6 +380,7 @@ export type Database = {
       get_quote_approval: { Args: { _token: string }; Returns: Json }
       get_customer_portal: { Args: { _token: string }; Returns: Json }
       issue_customer_portal_access: { Args: { _order_id: string }; Returns: Json }
+      revoke_customer_portal_access: { Args: { _order_id: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
