@@ -163,8 +163,8 @@ function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; ca
       <div className="space-y-1"><Label htmlFor={`return-status-${warrantyId}`}>Situação</Label><Select value={draft.status} onValueChange={(status) => setDraft({ ...draft, status })}><SelectTrigger id={`return-status-${warrantyId}`}><SelectValue /></SelectTrigger><SelectContent>
         <SelectItem value="received" disabled={Boolean(draft.id && draft.status !== "received")}>Recebido</SelectItem>
         <SelectItem value="in_review">Em análise</SelectItem>
-        <SelectItem value="resolved">Resolvido</SelectItem>
-        <SelectItem value="not_covered">Fora da cobertura</SelectItem>
+        <SelectItem value="resolved" disabled={draft.status === "received"}>Resolvido</SelectItem>
+        <SelectItem value="not_covered" disabled={draft.status === "received"}>Fora da cobertura</SelectItem>
       </SelectContent></Select></div>
       {(draft.status === "resolved" || draft.status === "not_covered") && <div className="space-y-1"><Label htmlFor={`return-resolution-${warrantyId}`}>Solução / justificativa de encerramento</Label><Textarea id={`return-resolution-${warrantyId}`} required value={draft.resolution} onChange={(e) => setDraft({ ...draft, resolution: e.target.value })} /></div>}
       <div className="flex gap-2"><Button type="submit" disabled={saving}><Save />{saving ? "Salvando…" : "Salvar retorno"}</Button><Button type="button" variant="ghost" onClick={() => setDraft(null)}>Cancelar</Button></div>
