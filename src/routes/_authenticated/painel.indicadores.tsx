@@ -25,6 +25,7 @@ type Movement = { id: string; item_id: string; service_order_id: string | null; 
 function dateLocal(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
+function timestampDate(value: string) { return dateLocal(new Date(value)); }
 function shiftDate(value: string, days: number) {
   const date = new Date(`${value}T12:00:00`);
   date.setDate(date.getDate() + days);
@@ -69,12 +70,11 @@ function IndicatorsPage() {
     const data = report.data;
     if (!data) return null;
     const orders = data.orders.filter(o => o.entry_date >= from && o.entry_date <= to && o.status !== "cancelado");
-    const orderIds = new Set(orders.map(o => o.id));
-    const payments = data.payments.filter(p => p.paid_at.slice(0, 10) >= from && p.paid_at.slice(0, 10) <= to);
+    const payments = data.payments.filter(p => timestampDate(p.paid_at) >= from && timestampDate(p.paid_at) <= to);
     const expenses = data.expenses.filter(e => e.expense_date >= from && e.expense_date <= to);
-    const completions = data.completions.filter(c => c.completed_at.slice(0, 10) >= from && c.completed_at.slice(0, 10) <= to);
-    const movements = data.movements.filter(m => m.movement_type === "saida" && m.created_at.slice(0, 10) >= from && m.created_at.slice(0, 10) <= to);
-    const linked = movements.filter(m => m.service_order_id && orderIds.has(m.service_order_id));
+    const completions = data.completions.filter(c => timestampDate(c.completed_at) >= from && timestampDate(c.completed_at) <= to);
+    const movements = data.movements.filter(m => m.movement_type === "saida" && timestampDate(m.created_at) >= from && timestampDate(m.created_at) <= to);
+    const linked = movements.filter(m => Boolean(m.service_order_id));
     const knownCost = linked.reduce((sum, m) => sum + (m.unit_cost == null ? 0 : Number(m.quantity) * Number(m.unit_cost)), 0);
     const missingCost = linked.filter(m => m.unit_cost == null).length;
     const received = payments.reduce((sum, p) => sum + Number(p.amount), 0);
