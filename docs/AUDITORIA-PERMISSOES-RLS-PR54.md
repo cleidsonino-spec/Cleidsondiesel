@@ -227,3 +227,37 @@ A interface do painel geral também mostra o total da OS na lista e nas ordens a
 - Não foi acessado banco, executado SQL, aplicado migration ou feito deploy.
 - Recomenda-se validar em ambiente de teste: SELECT/INSERT/UPDATE/DELETE nas duas tabelas para cada perfil; confirmar que admin consegue inserir e consultar; confirmar que demais perfis recebem negação RLS.
 - Verificar também que nenhuma nova RPC/view SECURITY DEFINER seja adicionada futuramente com retorno de pagamentos ou despesas sem checagem explícita de papel.
+
+
+## Revisão específica — isolamento de OS para mecânicos (2026-11-12)
+
+### Controles confirmados
+- `service_order_assignments` tem RLS habilitado e SELECT concedido a authenticated; a policy limita o mecânico às linhas em que `mechanic_user_id = auth.uid()`. Admin e secretaria podem consultar as atribuições para gestão.
+- O painel `/equipe` filtra as atribuições do mecânico pelo próprio usuário e por `active = true`, e solicita somente campos operacionais selecionados da OS relacionada.
+- `technical_service_logs` tem SELECT limitado a admin/secretaria e ao mecânico com atribuição ativa à OS correspondente.
+- As RPCs de diagnóstico, andamento e conclusão verificam papel de mecânico e atribuição ativa antes de alterar a OS. A conclusão registra o mecânico e encerra a atribuição na mesma transação.
+- O layout administrativo `/painel` não libera o painel geral para o perfil mecânico; o mecânico usa a rota separada `/equipe`.
+
+### Achado prioritário — falta de leitura da OS atribuída na policy RLS
+A policy inicial de leitura de `service_orders` permite admin; a migração `20261113370000_secretary_operational_access.sql` acrescenta SELECT para secretaria. Nas migrações de mecânicos revisadas, não foi encontrada policy SELECT para mecânico na tabela `service_orders`.
+
+Entretanto, `src/routes/_authenticated/equipe.tsx` consulta `service_order_assignments` com relacionamento aninhado `service_orders(...)`. A policy que permite ao mecânico ler sua atribuição não concede, por si só, leitura da linha relacionada em `service_orders`. Com RLS ativo e sem policy de leitura correspondente, o relacionamento pode retornar nulo/indisponível; o painel não recebe os dados necessários para mostrar a OS e operar os botões de diagnóstico/conclusão.
+
+**Classificação:** provável bloqueio funcional do painel do mecânico no banco versionado, a confirmar com sessão real. Não é evidência de que o mecânico consiga ler OS de terceiros; o controle atual tende a negar a leitura da própria OS relacionada.
+
+### Correção recomendada — sem ampliar a exposição de colunas
+Não recomendo simplesmente criar uma policy SELECT ampla em `service_orders` para mecânicos: RLS controla linhas, não colunas. Uma policy de leitura permitiria consultar também todos os campos concedidos por privilégios de coluna, potencialmente incluindo telefone, dados comerciais, valores de peças/mão de obra e outros campos não necessários ao mecânico.
+
+Preferir uma RPC SECURITY DEFINER, com `search_path` fixo, EXECUTE somente para authenticated e validação explícita de:
+1. papel `mecanico`;
+2. `auth.uid()` como mecânico da atribuição;
+3. atribuição ativa para a OS solicitada;
+4. retorno somente da lista mínima de campos usados no painel: número, veículo, placa, reclamação, diagnóstico, prazo, status e verificações técnicas de manutenção.
+
+A consulta do painel deve usar essa RPC para obter os dados mínimos, sem depender de relacionamento direto que exija SELECT amplo em `service_orders`. Os logs técnicos devem continuar limitados às OS com atribuição ativa, conforme a regra operacional atual. A RPC também deve negar OS não atribuída, mesmo quando chamada diretamente pela API com UUID arbitrário.
+
+### Limites e testes pendentes
+- Revisão estática de policies, grants, RPCs e frontend; nenhuma chamada REST real foi executada com usuário mecânico.
+- Não foi acessado banco, aplicado SQL/migration, alterado schema ou feito deploy.
+- A correção depende do fluxo gerenciado de schema: `AGENTS.md` proíbe edição manual de `supabase/migrations/` e `drizzle/`.
+- Testes necessários: mecânico A consulta OS atribuída; mecânico A tenta consultar OS atribuída somente ao mecânico B; tenta consultar OS sem atribuição; tenta chamar RPC diretamente com UUID de terceiro; verificar ausência de telefone, CPF/CNPJ, valores financeiros e dados de caixa; confirmar que admin/secretaria mantêm seus fluxos.
