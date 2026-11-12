@@ -291,3 +291,34 @@ A consulta do painel deve usar essa RPC para obter os dados mínimos, sem depend
 - Nenhum banco foi acessado, migration criada/executada ou deploy realizado.
 - `AGENTS.md` proíbe editar migrations manualmente; correções dependem do fluxo gerenciado de schema.
 - Testes necessários: A é substituído por B; A tenta registrar andamento depois da troca; A tenta concluir diagnóstico/serviço depois da troca; convite revogado; duas trocas simultâneas; uma única atribuição ativa; preservação de logs e timeline; leitura histórica por A conforme decisão da oficina.
+
+
+## Revisão específica — notificações após troca de mecânico (2026-11-12)
+
+### Comportamento confirmado no código
+- O painel `/equipe` do mecânico assina Realtime em `service_order_assignments` sem filtro explícito de OS. A policy RLS de SELECT limita os registros de atribuição do mecânico ao próprio `mechanic_user_id = auth.uid()`; portanto, eventos visíveis ao mecânico são limitados pelas permissões da tabela.
+- Quando uma atribuição própria é inserida ou encerrada, o callback Realtime incrementa o contador e mostra uma notificação genérica de que a lista foi atualizada; em seguida recarrega as atribuições ativas. O novo responsável deve receber o evento de inserção da sua atribuição; o antigo pode receber o evento de encerramento da sua própria linha e recarregar a lista sem a OS.
+- O carregamento da lista filtra `mechanic_user_id = user.id` e `active = true`, então o mecânico anterior deixa de ver a OS após a atualização da lista, desde que a consulta relacionada à OS esteja autorizada pelo RLS.
+- A notificação push nativa de `src/lib/push-notifications.ts` registra token do aparelho no Worker, mas o envio de push implementado em `supabase/functions/_shared/push.ts` consulta exclusivamente usuários com papel `admin`. A função `notify-admin` também encaminha apenas eventos de agendamento, criação de OS, OS pronta e garantia.
+- O trigger push observado é disparado por INSERT de agendamento/OS/garantia e UPDATE de status da OS. Não há trigger de push para INSERT/UPDATE em `service_order_assignments`.
+- A migration que injeta `mechanic_name` no payload quando diagnóstico é concluído não torna o envio direcionado: o worker atual continua chamando `sendToAdmins`, e o nome do mecânico não é usado para selecionar destinatários.
+- Não foi encontrado fluxo de push específico para avisar o mecânico antigo da retirada da OS nem o novo responsável da atribuição.
+
+### Conclusão
+- **Notificação dentro do aplicativo:** há atualização genérica em tempo real para alterações de atribuições que o mecânico pode ler, seguida de recarga da lista ativa. O código não identifica explicitamente “OS atribuída” versus “OS retirada”; a atualização depende de Realtime e da policy.
+- **Push Android:** não há direcionamento para mecânicos na implementação revisada; o envio atual é somente para administradores.
+- **Sem vazamento comprovado no push:** o fluxo atual não encaminha payload de atribuição a todos os mecânicos; a lacuna é ausência de push específico, não evidência de exposição de OS de terceiros.
+- A subscription Realtime não contém filtro por usuário no cliente; o isolamento depende da RLS de `service_order_assignments`. Isso deve ser confirmado com duas sessões reais, pois não foram executados testes de Realtime autenticado.
+
+### Correção recomendada
+- Criar eventos de atribuição e retirada com destinatário explícito, derivados da transação de troca.
+- Enviar push ao token do novo mecânico com aviso de nova OS e ao anterior com aviso de retirada, sem incluir CPF, telefone, endereço, valores ou detalhes desnecessários.
+- No app, distinguir mensagens “Nova OS atribuída” e “OS transferida para outro mecânico”; atualizar a lista ativa após o evento.
+- Resolver tokens por usuário autenticado e verificar o papel/atribuição no servidor; nunca confiar em destinatário fornecido pelo cliente.
+- Tratar tokens inválidos e revogados, deduplicar notificações e evitar que falha de push reverta a troca de responsável.
+- Testar troca A→B com duas sessões: B recebe a atribuição; A recebe a retirada e deixa de ver a OS na lista ativa; notificações não revelam dados de OS não atribuídas.
+
+### Limites
+- Auditoria estática dos arquivos versionados. Não houve sessão Android real, chamada ao Worker, envio FCM, acesso ao banco ou teste Realtime autenticado.
+- Nenhuma migration criada/aplicada, nenhuma configuração de push alterada e nenhum deploy realizado.
+- `AGENTS.md` proíbe edição manual de migrations; eventual alteração de trigger/schema deve seguir o fluxo gerenciado.
