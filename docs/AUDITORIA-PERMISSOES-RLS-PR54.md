@@ -360,3 +360,46 @@ Qualquer outro evento retorna `{ ignored: true }`. Em particular, não há mensa
 - Auditoria estática do código versionado. Nenhum webhook, FCM, aparelho Android, sessão de secretaria ou banco real foi testado.
 - Nenhuma migration criada/aplicada, nenhum segredo/configuração alterado e nenhum deploy realizado.
 - `AGENTS.md` proíbe edição manual de migrations; mudanças de triggers/schema dependem do fluxo gerenciado.
+
+
+## Revisão específica — recuperação de falhas de notificações e sessão (2026-11-12)
+
+### Registro e recuperação do token no Android
+- `startStaffPushNotifications()` instala listener de `registration`, solicita permissão e chama `PushNotifications.register()` ao montar o layout do painel.
+- O token recebido é enviado ao Worker com o bearer token da sessão atual. Se a chamada falhar (por exemplo, rede indisponível), o código apenas escreve uma mensagem no console; não persiste o token pendente nem agenda retry.
+- Não foi encontrado listener de `registrationError`, nem rotina de sincronização do token em evento de retomada do app/reconexão. Uma nova montagem/inicialização pode disparar outro registro, mas não há garantia de recuperação imediata.
+- O listener de ação do push aceita somente rotas iniciadas por `/painel`; isso reduz navegação arbitrária, mas não comprova que o destino exista ou que o usuário ainda tenha permissão. A rota deve continuar protegida pelo guard autenticado/RLS.
+- O token corrente fica apenas na variável de módulo `currentFcmToken`. Após reiniciar o processo, essa variável é perdida.
+
+### Saída e troca de conta
+- O logout chama `unregisterAdminPushDevice()` antes de encerrar a sessão. Se o token não estiver na variável de memória (por exemplo, após reinício do app), a função não envia pedido de remoção.
+- Se o pedido de unregister falhar por rede, o erro é absorvido e o logout prossegue; o token pode permanecer associado à conta anterior até nova limpeza/registro.
+- O fluxo de registro usa o usuário da sessão corrente no momento da requisição. A associação correta entre token e usuário depende da implementação do Worker externo; seu código não está versionado neste repositório e não foi auditado aqui.
+- O módulo de push não mostra tratamento explícito para troca de sessão enquanto o layout permanece montado. O efeito depende dos papéis obtidos no carregamento da rota.
+
+### Entrega FCM e tokens inválidos
+- `sendToAdmins` busca tokens em `app_metadata.cleidson_diesel_fcm_tokens`, deduplica em memória e tenta enviar FCM.
+- A resposta FCM é reduzida a `response.ok`; não são registrados códigos de erro por token, nem removidos tokens inválidos/UNREGISTERED, nem existe retentativa ou fila durável.
+- O resultado `sent/attempted` informa apenas o resultado imediato das requisições FCM, não confirma que o aparelho exibiu a notificação.
+- Se a busca de usuários ou a autenticação Firebase falhar, o Worker retorna falha; não há mecanismo de reprocessamento persistente no código analisado.
+- A chamada `net.http_post` no trigger é assíncrona em relação à entrega final. Não foi encontrada tabela de outbox, tentativas ou dead-letter para recuperar eventos perdidos.
+
+### Sessão e armazenamento
+- O armazenamento nativo de autenticação usa Capacitor Preferences, com migração de localStorage legado. Isso favorece persistência de sessão após reinício do WebView.
+- Persistência de sessão não equivale a persistência de token FCM pendente: são mecanismos separados.
+- Não foi identificada rotina neste fluxo que, após login/restauração de sessão, reconcilie todos os tokens do aparelho com a conta atual ou remova tokens órfãos da conta anterior.
+
+### Prioridades recomendadas
+1. Persistir token FCM pendente localmente e sincronizá-lo após login, restauração de sessão, evento de registro/refresh e retomada/conectividade; apagar pendência somente após confirmação HTTP de sucesso.
+2. Instalar listener de erro de registro e exibir estado compreensível ao usuário, sem expor token/segredos.
+3. Tornar unregister resiliente: manter pedido pendente até confirmação, e reconciliar tokens no próximo login. A associação deve ser validada no Worker pelo usuário autenticado; não confiar em user ID enviado pelo cliente.
+4. No servidor, remover tokens que retornem erros permanentes FCM como token inválido/UNREGISTERED; manter retentativa limitada para falhas transitórias.
+5. Adicionar outbox/evento durável com ID idempotente, tentativas, timestamps e estado de entrega, para evitar perda silenciosa após webhook/timeout.
+6. Ao abrir uma notificação, revalidar sessão e autorização da rota; se a conta perdeu o papel ou acesso, redirecionar para tela autorizada.
+7. Testar: app offline durante registro; reconexão; token renovado; logout com rede e sem rede; login de outra conta no mesmo aparelho; token FCM inválido; FCM temporariamente indisponível; webhook repetido.
+
+### Limites
+- Auditoria estática do código versionado no repositório. O Worker Cloudflare de registro/unregister está hospedado externamente e seu código não está disponível neste repositório; não foi possível confirmar sua política de associação ou limpeza.
+- Não foram executados testes em aparelho Android, cenários offline, chamadas FCM, Worker, banco ou sessões reais.
+- Nenhum token, segredo, configuração, migration ou deploy foi alterado.
+- `AGENTS.md` proíbe editar migrations manualmente; alterações de schema/outbox dependem do fluxo gerenciado.
