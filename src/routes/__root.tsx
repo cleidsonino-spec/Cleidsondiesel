@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
 import { handleAuthStateChange } from "@/lib/auth-session";
+import { refreshAuthorization } from "@/lib/auth-refresh";
 import { initializeNativeOAuthCallback } from "@/lib/native-oauth";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -134,6 +135,22 @@ function RootComponent() {
       handleAuthStateChange(event, queryClient, router);
     });
     return () => data.subscription.unsubscribe();
+  }, [router, queryClient]);
+
+  // A role can be changed by an administrator while this tab or Android app
+  // is in the background. Re-run route guards before showing the workspace again.
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === "visible") {
+        refreshAuthorization(queryClient, router);
+      }
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
   }, [router, queryClient]);
 
   return (
