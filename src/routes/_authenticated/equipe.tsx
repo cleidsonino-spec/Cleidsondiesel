@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Bell, CalendarDays, ClipboardList, LogOut, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { unregisterAdminPushDevice } from "@/lib/push-notifications";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -104,6 +105,21 @@ function StaffDashboard() {
   }
 
   async function signOut() {
+    // Remove o registro push deste aparelho quando possível, mas nunca deixa
+    // uma falha de rede impedir o encerramento local da sessão.
+    try {
+      await unregisterAdminPushDevice();
+    } catch {
+      console.warn("[Push] Não foi possível remover o registro deste aparelho.");
+    }
+
+    setItems([]);
+    setHistory({});
+    setDrafts({});
+    setDiagnoses({});
+    setMaintenanceChecks({});
+    setUnread(0);
+
     const { error } = await supabase.auth.signOut({ scope: "local" });
     if (error) {
       toast.error("Não foi possível encerrar a sessão. Verifique sua conexão e tente novamente.");
