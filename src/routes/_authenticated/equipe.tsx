@@ -13,8 +13,16 @@ export const Route = createFileRoute("/_authenticated/equipe")({
   beforeLoad: async ({ context }) => {
     const { data, error } = await (supabase as any).from("user_roles").select("role,is_active").eq("user_id", context.user.id);
     if (error) throw error;
-    const roles = (data ?? []).filter((item: any) => item.is_active !== false).map((item: any) => item.role);
+    const rows = data ?? [];
+    const roles = rows.filter((item: any) => item.is_active !== false).map((item: any) => item.role);
     const staffRole = roles.includes("mecanico") ? "mecanico" : roles.includes("secretaria") ? "secretaria" : null;
+    const hasInactiveStaffRole = rows.some((item: any) =>
+      item.is_active === false && ["mecanico", "secretaria"].includes(item.role)
+    );
+    if (!staffRole && hasInactiveStaffRole) {
+      await supabase.auth.signOut({ scope: "local" });
+      throw redirect({ to: "/auth" });
+    }
     if (!staffRole) throw redirect({ to: "/painel" });
     return { staffRole: staffRole as Role };
   },
