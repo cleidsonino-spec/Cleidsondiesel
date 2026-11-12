@@ -171,17 +171,12 @@ function AppointmentRow({ a }: { a: Appointment }) {
     toast.success(messages[status] ?? "Agendamento atualizado.");
   }
 
-  const reminderTomorrow = waLink(a.phone, [
+  const reminderHref = waLink(a.phone, [
     `Olá, ${a.customer_name.split(" ")[0]}! Aqui é da Cleidson Diesel.`,
-    `Passando para lembrar do seu agendamento amanhã, ${formatDateBR(a.scheduled_date)}, às ${a.scheduled_time.slice(0, 5)}.`,
+    `Passando para lembrar do seu agendamento em ${formatDateBR(a.scheduled_date)}, às ${a.scheduled_time.slice(0, 5)}.`,
     `Veículo: ${a.vehicle} (${formatPlate(a.plate)}). Serviço: ${a.service_type}.`,
     "Se precisar alterar o horário, fale conosco por aqui.",
-  ].join("\n"));
-  const reminderToday = waLink(a.phone, [
-    `Olá, ${a.customer_name.split(" ")[0]}! Aqui é da Cleidson Diesel.`,
-    `Lembramos que seu atendimento está marcado para hoje, ${formatDateBR(a.scheduled_date)}, às ${a.scheduled_time.slice(0, 5)}.`,
-    `Veículo: ${a.vehicle} (${formatPlate(a.plate)}). Estamos aguardando você.`,
-  ].join("\n"));
+  ].join("\\n"));
 
   return (
     <div className="flex flex-col gap-3 p-4 md:flex-row md:items-center">
@@ -209,8 +204,7 @@ function AppointmentRow({ a }: { a: Appointment }) {
         )}
         {a.status === "confirmado" && (
           <>
-            {reminderTomorrow && <Button asChild size="sm" variant="outline"><a href={reminderTomorrow} target="_blank" rel="noopener noreferrer"><MessageCircle /> Lembrete amanhã</a></Button>}
-            {reminderToday && <Button asChild size="sm" variant="outline"><a href={reminderToday} target="_blank" rel="noopener noreferrer"><MessageCircle /> Lembrete hoje</a></Button>}
+            {reminderHref && <Button asChild size="sm" variant="outline"><a href={reminderHref} target="_blank" rel="noopener noreferrer"><MessageCircle /> Enviar lembrete</a></Button>}
             <Button size="sm" variant="secondary" onClick={() => setStatus("compareceu")}>Registrar chegada</Button>
             <Button size="sm" variant="ghost" onClick={() => setStatus("nao_compareceu")}>Não compareceu</Button>
           </>
