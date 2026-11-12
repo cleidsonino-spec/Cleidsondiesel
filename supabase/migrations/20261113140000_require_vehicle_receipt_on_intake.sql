@@ -6,8 +6,16 @@ LANGUAGE plpgsql
 SET search_path = public
 AS $$
 BEGIN
-  IF TG_OP = 'INSERT'
-     OR (NEW.status = 'recebido' AND OLD.status IS DISTINCT FROM NEW.status) THEN
+  IF TG_OP = 'INSERT' THEN
+    -- INSERT não possui registro OLD; validar sem referenciá-lo.
+    IF jsonb_typeof(coalesce(NEW.vehicle_receipt, '{}'::jsonb)) <> 'object'
+       OR nullif(trim(coalesce(NEW.vehicle_receipt->>'received_at','')), '') IS NULL
+       OR nullif(trim(coalesce(NEW.vehicle_receipt->>'received_by','')), '') IS NULL
+       OR nullif(trim(coalesce(NEW.vehicle_receipt->>'odometer','')), '') IS NULL
+       OR nullif(trim(coalesce(NEW.vehicle_receipt->>'fuel_level','')), '') IS NULL THEN
+      RAISE EXCEPTION 'Para receber o veículo, informe data e hora, responsável, hodômetro/horímetro e nível de combustível';
+    END IF;
+  ELSIF TG_OP = 'UPDATE' AND NEW.status = 'recebido' AND OLD.status IS DISTINCT FROM NEW.status THEN
     IF jsonb_typeof(coalesce(NEW.vehicle_receipt, '{}'::jsonb)) <> 'object'
        OR nullif(trim(coalesce(NEW.vehicle_receipt->>'received_at','')), '') IS NULL
        OR nullif(trim(coalesce(NEW.vehicle_receipt->>'received_by','')), '') IS NULL
