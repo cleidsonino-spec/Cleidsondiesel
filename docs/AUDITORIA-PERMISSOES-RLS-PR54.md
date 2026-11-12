@@ -125,3 +125,40 @@ Revisão adicional das definições efetivas das funções, considerando as migr
 A definição de `public.is_mechanic_assigned(uuid,uuid)` em `20261111180500_create_mechanic_core_tables.sql` continua concedendo EXECUTE a authenticated e aceita qualquer UUID de mecânico como segundo argumento. O retorno é somente booleano, mas permite testar associações de terceiros. É um achado de hardening de baixo impacto relativo, não uma leitura direta de dados nem evidência de acesso a OS sem atribuição.
 
 A recomendação permanece restringir a função exposta ao próprio `auth.uid()` ou remover EXECUTE para authenticated se a função só for necessária internamente. A mudança não foi feita porque exige migração SQL, fora do escopo permitido para esta etapa.
+
+
+## Revisão de cadastro de clientes, veículos e operações de OS
+
+Arquivos e definições revisados:
+- `AGENTS.md`
+- `drizzle/migrations/0006_customers_vehicles_and_warranty_module.sql`
+- `supabase/migrations/20261113370000_secretary_operational_access.sql`
+- `supabase/migrations/20261113310000_restrict_direct_service_order_status_updates.sql`
+- `src/components/painel/registry-page.tsx`
+- `src/lib/registry.ts`
+- `src/routes/_authenticated/painel.tsx`
+- `src/routes/_authenticated/painel.clientes.tsx`
+- `src/routes/_authenticated/painel.ordens.nova.tsx`
+- `src/routes/_authenticated/painel.ordens.$id.tsx`
+
+### Achado confirmado — leitura ampla do cadastro pela secretaria
+
+A regra do projeto em `AGENTS.md` declara os cadastros de clientes e veículos como admin-only. A migração `20261113370000_secretary_operational_access.sql` acrescenta policies SELECT para secretaria nas duas tabelas. A consulta compartilhada em `src/lib/registry.ts` usa `select("*")`, e a rota de clientes carrega clientes, veículos e garantias para a secretaria.
+
+Assim, o papel secretaria pode ler todos os campos retornados do cadastro, incluindo CPF/CNPJ, telefone, e-mail, endereço e observações, além dos dados dos veículos. A tela oculta ações de edição/exclusão para não-admin, mas isso não reduz o que a API devolve; a autorização precisa ser aplicada no banco.
+
+**Classificação:** divergência real entre a regra documentada e o acesso concedido. Não é evidência de acesso por mecânicos ou usuários comuns; o alcance identificado é o perfil secretaria.
+
+**Correção recomendada:** decidir explicitamente quais dados a secretaria precisa para abrir e atender OS. Preferir uma RPC/visão de leitura mínima com apenas nome, telefone e dados essenciais do veículo, preservando CPF/CNPJ, endereço, e-mail e observações restritos ao administrador. Se a regra for manter o cadastro integral admin-only, remover a policy de leitura da secretaria e fornecer um fluxo de busca mínimo separado para abertura de OS. Não foi alterada porque requer mudança de schema/policies, e o projeto proíbe editar migrações manualmente.
+
+### Controles de OS observados
+
+- A secretaria pode abrir OS somente com status inicial `recebido`, conforme policy de INSERT.
+- A secretaria tem policy UPDATE, mas o grant posterior restringe as colunas editáveis e remove `status`; portanto não pode alterar diretamente o status por UPDATE.
+- A rota de edição remove `status` do payload antes de atualizar; transições ficam nas RPCs autorizadas.
+- A exclusão de OS é apresentada somente ao admin na interface. O acesso efetivo à exclusão continua dependente de grants e policies do banco; não foi encontrado, nesta revisão focada, um caminho que autorize secretaria a excluir.
+- Cadastro de cliente/veículo só mostra ações de edição e exclusão para admin na interface. A proteção real contra chamadas diretas depende das policies admin originais e dos grants de tabela.
+
+### Limites desta verificação
+
+A revisão é estática. Não foram executadas chamadas diretas REST/PostgREST com contas reais, nem testados privilégios efetivos no banco. Não se afirma que a divergência foi explorada em ambiente ativo.
