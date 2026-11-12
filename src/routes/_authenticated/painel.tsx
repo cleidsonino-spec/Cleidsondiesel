@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { CalendarDays, Car, Users, ShieldCheck, ClipboardList, Download, ExternalLink, FileText, LogOut, Plus, ShieldAlert } from "lucide-react";
+import { CalendarDays, Car, Users, ShieldCheck, ClipboardList, Download, ExternalLink, FileText, LogOut, Plus, ShieldAlert, ClipboardCheck } from "lucide-react";
 
 import { Logo } from "@/components/site/logo";
 import { Button } from "@/components/ui/button";
@@ -75,6 +75,7 @@ function PainelLayout() {
             <PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" />
             {(isAdmin || isSecretary) && <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />}
             <PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" />
+            {(isAdmin || isSecretary) && <PanelLink to="/painel/recebimento" icon={<ClipboardCheck />} label="Recebimento" />}
             {isAdmin && <PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" />}
             {isAdmin && <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />}
             {isAdmin && <NotificationBell />}
@@ -96,7 +97,7 @@ function PainelLayout() {
 }
 
 function PanelLink({ to, icon, label, exact }: {
-  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias";
+  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias" | "/painel/recebimento";
   icon: React.ReactNode;
   label: string;
   exact?: boolean;
