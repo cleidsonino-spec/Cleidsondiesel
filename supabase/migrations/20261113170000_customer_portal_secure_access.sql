@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS public.customer_portal_access (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   service_order_id uuid NOT NULL REFERENCES public.service_orders(id) ON DELETE CASCADE,
-  token text NOT NULL UNIQUE DEFAULT replace(gen_random_uuid()::text,'-','') || replace(gen_random_uuid()::text,'-',''),
+  token_hash text NOT NULL UNIQUE,
   created_at timestamptz NOT NULL DEFAULT now(),
   expires_at timestamptz NOT NULL DEFAULT now() + interval '30 days',
   revoked_at timestamptz,
@@ -28,6 +28,7 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 DECLARE
   o public.service_orders;
   a public.customer_portal_access;
+  v_token text;
 BEGIN
   IF auth.uid() IS NULL OR NOT (
     public.has_role(auth.uid(), 'admin'::public.app_role)
@@ -42,9 +43,11 @@ BEGIN
   UPDATE public.customer_portal_access
     SET revoked_at = now()
     WHERE service_order_id = _order_id AND revoked_at IS NULL AND expires_at > now();
-  INSERT INTO public.customer_portal_access(service_order_id, created_by)
-    VALUES (_order_id, auth.uid()) RETURNING * INTO a;
-  RETURN jsonb_build_object('token', a.token, 'expires_at', a.expires_at);
+  v_token := replace(gen_random_uuid()::text,'-','') || replace(gen_random_uuid()::text,'-','');
+  INSERT INTO public.customer_portal_access(service_order_id, token_hash, created_by)
+    VALUES (_order_id, encode(extensions.digest(convert_to(v_token, 'UTF8'), 'sha256'), 'hex'), auth.uid())
+    RETURNING * INTO a;
+  RETURN jsonb_build_object('token', v_token, 'expires_at', a.expires_at);
 END;
 $$;
 REVOKE ALL ON FUNCTION public.issue_customer_portal_access(uuid) FROM PUBLIC, anon;
@@ -63,7 +66,8 @@ DECLARE
 BEGIN
   IF _token IS NULL OR _token !~ '^[a-f0-9]{64}$' THEN RETURN NULL; END IF;
   SELECT * INTO a FROM public.customer_portal_access
-    WHERE token = _token AND revoked_at IS NULL AND expires_at > now();
+    WHERE token_hash = encode(extensions.digest(convert_to(_token, 'UTF8'), 'sha256'), 'hex')
+      AND revoked_at IS NULL AND expires_at > now();
   IF NOT FOUND THEN RETURN NULL; END IF;
   SELECT * INTO o FROM public.service_orders WHERE id = a.service_order_id;
   IF NOT FOUND THEN RETURN NULL; END IF;
