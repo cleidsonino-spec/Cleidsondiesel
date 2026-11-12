@@ -5,6 +5,7 @@ import { Activity, ArrowDownRight, ArrowUpRight, ClipboardCheck, Coins, Package,
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/status";
+import { remainingOrderBalance } from "@/lib/financial";
 import { formatDateBR, todayISO } from "@/lib/schedule";
 
 export const Route = createFileRoute("/_authenticated/painel/indicadores")({
@@ -75,9 +76,7 @@ function IndicatorsPage() {
     const received = payments.reduce((sum, p) => sum + Number(p.amount), 0);
     const spent = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
     const orderValue = orders.reduce((sum, o) => sum + Number(o.parts_value ?? 0) + Number(o.labor_value ?? 0), 0);
-    const paidByOrder = new Map<string, number>();
-    for (const payment of data.payments) paidByOrder.set(payment.service_order_id, (paidByOrder.get(payment.service_order_id) ?? 0) + Number(payment.amount));
-    const receivable = data.orders.filter(o => o.status !== "cancelado").reduce((sum, o) => sum + Math.max(0, Number(o.parts_value ?? 0) + Number(o.labor_value ?? 0) - (paidByOrder.get(o.id) ?? 0)), 0);
+    const receivable = data.orders.reduce((sum, order) => sum + remainingOrderBalance(order.parts_value, order.labor_value, data.payments.filter(payment => payment.service_order_id === order.id).map(payment => payment.amount), order.status), 0);
     const byCategory = new Map<string, number>();
     for (const expense of expenses) byCategory.set(expense.category, (byCategory.get(expense.category) ?? 0) + Number(expense.amount));
     const byOrder = new Map<string, { cost: number; movements: number; missing: number }>();
