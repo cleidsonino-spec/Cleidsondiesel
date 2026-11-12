@@ -33,6 +33,8 @@ jobs:
           src/lib/auth-session.test.ts
           src/lib/auth-routing.ts
           src/lib/auth-routing.test.ts
+          src/lib/auth-refresh.ts
+          src/lib/auth-refresh.test.ts
           src/integrations/supabase/authStorage.ts
           src/integrations/supabase/authStorage.test.ts
           src/routes/auth.tsx
