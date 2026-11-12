@@ -50,6 +50,10 @@ alter table public.suppliers enable row level security;
 alter table public.inventory_items enable row level security;
 alter table public.inventory_movements enable row level security;
 
+revoke all on public.suppliers from anon, authenticated;
+revoke all on public.inventory_items from anon, authenticated;
+revoke all on public.inventory_movements from anon, authenticated;
+
 drop policy if exists "Admins manage suppliers" on public.suppliers;
 create policy "Admins manage suppliers" on public.suppliers
   for all to authenticated using (public.has_role(auth.uid(), 'admin'::public.app_role))
@@ -67,6 +71,25 @@ create policy "Admins read inventory movements" on public.inventory_movements
 drop policy if exists "Admins create inventory movements" on public.inventory_movements;
 create policy "Admins create inventory movements" on public.inventory_movements
   for insert to authenticated with check (public.has_role(auth.uid(), 'admin'::public.app_role));
+
+create or replace function public.guard_inventory_stock_quantity()
+returns trigger
+language plpgsql
+set search_path = public
+as $
+begin
+  if new.stock_quantity is distinct from old.stock_quantity
+     and coalesce(current_setting('app.inventory_movement', true), 'off') <> 'on' then
+    raise exception 'O saldo só pode ser alterado por uma movimentação registrada.';
+  end if;
+  return new;
+end;
+$;
+
+drop trigger if exists inventory_stock_quantity_guard on public.inventory_items;
+create trigger inventory_stock_quantity_guard
+before update of stock_quantity on public.inventory_items
+for each row execute function public.guard_inventory_stock_quantity();
 
 create or replace function public.apply_inventory_movement()
 returns trigger
@@ -90,6 +113,8 @@ begin
     raise exception 'Estoque insuficiente. Disponível: %', current_quantity;
   end if;
 
+  perform set_config('app.inventory_movement', 'on', true);
+
   update public.inventory_items
   set stock_quantity = case
       when new.movement_type = 'entrada' then stock_quantity + new.quantity
@@ -98,6 +123,7 @@ begin
     updated_at = now()
   where id = new.item_id;
 
+  perform set_config('app.inventory_movement', 'off', true);
   return new;
 end;
 $$;
@@ -107,7 +133,8 @@ create trigger inventory_movement_apply
 before insert on public.inventory_movements
 for each row execute function public.apply_inventory_movement();
 
-revoke update, delete on public.inventory_movements from authenticated;
-grant select, insert on public.inventory_movements to authenticated;
+revoke all on function public.apply_inventory_movement() from public, anon, authenticated;
+revoke all on function public.guard_inventory_stock_quantity() from public, anon, authenticated;
 grant select, insert, update on public.suppliers to authenticated;
 grant select, insert, update on public.inventory_items to authenticated;
+grant select, insert on public.inventory_movements to authenticated;
