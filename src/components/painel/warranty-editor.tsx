@@ -13,7 +13,7 @@ import { warrantiesQuery, warrantyEndDate, warrantyState, canIssueWarranty } fro
 import { formatDateBR, todayISO } from "@/lib/schedule";
 
 type WarrantyDraft = { id?: string; start: string; months: string; coverage: string; terms: string };
-type ReturnDraft = { id?: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; status: string };
+type ReturnDraft = { id?: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; customer_update: string; status: string };
 const returnLabels: Record<string, string> = {
   received: "Recebido",
   in_review: "Em análise",
@@ -106,9 +106,9 @@ function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; ca
   const { data = [], isLoading, error } = useQuery({
     queryKey: ["warranty-returns", warrantyId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("warranty_returns").select("id,warranty_id,service_order_id,status,complaint,diagnosis,resolution,parts_used,labor_description,received_at,updated_at,closed_at").eq("warranty_id", warrantyId).order("received_at", { ascending: false });
+      const { data, error } = await (supabase as any).from("warranty_returns").select("id,warranty_id,service_order_id,status,complaint,diagnosis,resolution,parts_used,labor_description,customer_update,received_at,updated_at,closed_at").eq("warranty_id", warrantyId).order("received_at", { ascending: false });
       if (error) throw error;
-      return data as { id: string; warranty_id: string; service_order_id: string; status: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; received_at: string; updated_at: string; closed_at: string | null }[];
+      return data as { id: string; warranty_id: string; service_order_id: string; status: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; customer_update: string; received_at: string; updated_at: string; closed_at: string | null }[];
     },
   });
 
@@ -130,7 +130,7 @@ function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; ca
         _diagnosis: draft.diagnosis.trim(),
         _resolution: draft.resolution.trim(),
         _parts_used: draft.parts_used.trim(),
-        _labor_description: draft.labor_description.trim(),
+        _labor_description: draft.labor_description.trim(),\n        _customer_update: draft.customer_update.trim(),
       });
       if (error) { toast.error(error.message || "Não foi possível salvar o retorno."); return; }
       await Promise.all([
@@ -145,21 +145,21 @@ function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; ca
   return <div className="space-y-3 border-t border-border pt-3">
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h3 className="flex items-center gap-2 font-semibold"><Wrench className="size-4" />Retornos em garantia</h3>
-      {canManage && <Button type="button" size="sm" variant="outline" onClick={() => setDraft({ complaint: "", diagnosis: "", resolution: "", parts_used: "", labor_description: "", status: "received" })}><Plus />Registrar retorno</Button>}
+      {canManage && <Button type="button" size="sm" variant="outline" onClick={() => setDraft({ complaint: "", diagnosis: "", resolution: "", parts_used: "", labor_description: "", customer_update: "", status: "received" })}><Plus />Registrar retorno</Button>}
     </div>
     {isLoading && <p className="text-sm text-muted-foreground">Carregando retornos…</p>}
     {error && <p className="text-sm text-destructive">Não foi possível carregar os retornos. Verifique a migration e as permissões do banco.</p>}
     {!isLoading && !error && data.length === 0 && <p className="text-sm text-muted-foreground">Nenhum retorno registrado para esta garantia.</p>}
     {data.map((item) => <ReturnHistory key={item.id} item={item} canManage={canManage} onEdit={() => setDraft({
       id: item.id, complaint: item.complaint, diagnosis: item.diagnosis, resolution: item.resolution,
-      parts_used: item.parts_used, labor_description: item.labor_description, status: item.status,
+      parts_used: item.parts_used, labor_description: item.labor_description, customer_update: item.customer_update, status: item.status,
     })} />)}
     {draft && <form onSubmit={save} className="grid gap-3 rounded-md bg-muted/40 p-3">
       <p className="text-sm font-semibold">{draft.id ? "Atualizar retorno" : "Novo retorno"} · vinculado à garantia e à OS original</p>
       <div className="space-y-1"><Label htmlFor={`return-complaint-${warrantyId}`}>Reclamação / motivo do retorno</Label><Textarea id={`return-complaint-${warrantyId}`} required value={draft.complaint} onChange={(e) => setDraft({ ...draft, complaint: e.target.value })} /></div>
       <div className="space-y-1"><Label htmlFor={`return-diagnosis-${warrantyId}`}>Avaliação / diagnóstico técnico</Label><Textarea id={`return-diagnosis-${warrantyId}`} value={draft.diagnosis} onChange={(e) => setDraft({ ...draft, diagnosis: e.target.value })} /></div>
       <div className="space-y-1"><Label htmlFor={`return-parts-${warrantyId}`}>Peças utilizadas</Label><Textarea id={`return-parts-${warrantyId}`} value={draft.parts_used} onChange={(e) => setDraft({ ...draft, parts_used: e.target.value })} /></div>
-      <div className="space-y-1"><Label htmlFor={`return-labor-${warrantyId}`}>Serviço executado</Label><Textarea id={`return-labor-${warrantyId}`} value={draft.labor_description} onChange={(e) => setDraft({ ...draft, labor_description: e.target.value })} /></div>
+      <div className="space-y-1"><Label htmlFor={`return-labor-${warrantyId}`}>Serviço executado (interno)</Label><Textarea id={`return-labor-${warrantyId}`} value={draft.labor_description} onChange={(e) => setDraft({ ...draft, labor_description: e.target.value })} /></div>\n      <div className="space-y-1 sm:col-span-2"><Label htmlFor={`return-customer-update-${warrantyId}`}>Atualização para o cliente (opcional)</Label><Textarea id={`return-customer-update-${warrantyId}`} value={draft.customer_update} onChange={(e) => setDraft({ ...draft, customer_update: e.target.value })} placeholder="Escreva somente o que pode ser compartilhado com o cliente" /></div>
       <div className="space-y-1"><Label htmlFor={`return-status-${warrantyId}`}>Situação</Label><Select value={draft.status} onValueChange={(status) => setDraft({ ...draft, status })}><SelectTrigger id={`return-status-${warrantyId}`}><SelectValue /></SelectTrigger><SelectContent>
         <SelectItem value="received" disabled={Boolean(draft.id && draft.status !== "received")}>Recebido</SelectItem>
         <SelectItem value="in_review">Em análise</SelectItem>
@@ -191,7 +191,7 @@ function ReturnHistory({ item, onEdit, canManage }: { canManage: boolean; item: 
     <p className="text-sm"><strong>Motivo:</strong> {item.complaint}</p>
     {item.diagnosis && <p className="text-sm"><strong>Diagnóstico:</strong> {item.diagnosis}</p>}
     {item.parts_used && <p className="text-sm"><strong>Peças:</strong> {item.parts_used}</p>}
-    {item.labor_description && <p className="text-sm"><strong>Serviço:</strong> {item.labor_description}</p>}
+    {item.labor_description && <p className="text-sm"><strong>Serviço (interno):</strong> {item.labor_description}</p>}\n    {item.customer_update && <p className="text-sm"><strong>Atualização ao cliente:</strong> {item.customer_update}</p>}
     {item.resolution && <p className="text-sm"><strong>Solução / justificativa:</strong> {item.resolution}</p>}
     <details className="text-xs">
       <summary className="flex cursor-pointer items-center gap-2 text-muted-foreground"><ClipboardList className="size-3" />Auditoria ({events.length} evento(s))</summary>
