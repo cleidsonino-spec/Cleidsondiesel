@@ -65,6 +65,26 @@ describe("handleAuthStateChange", () => {
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
+
+  it("ignores a stale sign-out redirect after a newer sign-in", () => {
+    const first = setup();
+    const second = setup();
+    const scheduled: Array<() => void> = [];
+
+    handleAuthStateChange("SIGNED_OUT", first.queryCache, first.router, (callback) => {
+      scheduled.push(callback);
+    });
+    handleAuthStateChange("SIGNED_IN", second.queryCache, second.router, (callback) => {
+      scheduled.push(callback);
+    });
+
+    scheduled[0]();
+    scheduled[1]();
+
+    expect(first.router.navigate).not.toHaveBeenCalled();
+    expect(second.router.invalidate).toHaveBeenCalledOnce();
+  });
+
   it("does nothing for unrelated auth events", () => {
     const { queryCache, router } = setup();
     const schedule = vi.fn();
