@@ -6,18 +6,37 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
 type AgendaRow = {
-  appointment_id: string; scheduled_date: string; scheduled_time: string;
-  customer_name: string; phone: string | null; plate: string; vehicle: string;
-  service_type: string; notes: string | null; appointment_status: string;
-  order_number: number | null; order_status: string | null; mechanic_name: string | null;
+  appointment_id: string;
+  scheduled_date: string;
+  scheduled_time: string;
+  customer_name: string;
+  mechanic_name: string | null;
+  phone?: string | null;
+  plate?: string;
+  vehicle?: string;
+  service_type?: string;
+  notes?: string | null;
+  appointment_status?: string;
+  order_number?: number | null;
+  order_status?: string | null;
 };
+
+type AgendaRole = "admin" | "secretaria" | "mecanico";
 
 export const Route = createFileRoute("/_authenticated/agenda-equipe")({
   beforeLoad: async ({ context }) => {
     const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", context.user.id);
     if (error) throw error;
     const roles = (data ?? []).map((item) => item.role);
-    if (!roles.some((role) => ["admin", "secretaria"].includes(role))) throw redirect({ to: "/equipe" });
+    const staffRole: AgendaRole | null = roles.includes("admin")
+      ? "admin"
+      : roles.includes("secretaria")
+        ? "secretaria"
+        : roles.includes("mecanico")
+          ? "mecanico"
+          : null;
+    if (!staffRole) throw redirect({ to: "/equipe" });
+    return { staffRole };
   },
   component: TeamAgendaPage,
 });
@@ -28,14 +47,22 @@ function formatDate(value: string) {
 }
 
 function TeamAgendaPage() {
+  const { staffRole } = Route.useRouteContext();
   const [rows, setRows] = useState<AgendaRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function loadAgenda() {
     setLoading(true);
-    const { data, error } = await (supabase as any).rpc("get_staff_appointment_agenda");
-    if (error) { toast.error("Não foi possível carregar a agenda da equipe."); setRows([]); }
-    else setRows((data ?? []) as AgendaRow[]);
+    const rpc = staffRole === "mecanico"
+      ? "get_mechanic_appointment_agenda"
+      : "get_staff_appointment_agenda";
+    const { data, error } = await (supabase as any).rpc(rpc);
+    if (error) {
+      toast.error("Não foi possível carregar a agenda da equipe.");
+      setRows([]);
+    } else {
+      setRows((data ?? []) as AgendaRow[]);
+    }
     setLoading(false);
   }
 
@@ -47,7 +74,7 @@ function TeamAgendaPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "service_order_assignments" }, () => void loadAgenda())
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, []);
+  }, [staffRole]);
 
   const today = new Date();
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -57,6 +84,19 @@ function TeamAgendaPage() {
   }), [rows, todayKey]);
 
   function renderAppointment(row: AgendaRow) {
+    if (staffRole === "mecanico") {
+      return <article key={row.appointment_id} className="grid gap-2 rounded-lg border bg-card p-4 sm:grid-cols-[180px_1fr] sm:items-center">
+        <div>
+          <p className="flex items-center gap-2 font-semibold text-primary"><Clock3 className="size-4"/>{String(row.scheduled_time).slice(0, 5)}</p>
+          <p className="text-xs capitalize text-muted-foreground">{formatDate(row.scheduled_date)}</p>
+        </div>
+        <div className="min-w-0 space-y-1">
+          <p className="font-semibold">Cliente: {row.customer_name}</p>
+          <p className="flex items-center gap-1 text-sm text-muted-foreground"><Wrench className="size-4"/>Mecânico: {row.mechanic_name || "Não identificado"}</p>
+        </div>
+      </article>;
+    }
+
     const completed = row.order_status === "pronto" || row.order_status === "entregue";
     return <article key={row.appointment_id} className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-[130px_1fr_auto] sm:items-center">
       <div><p className="flex items-center gap-2 font-semibold text-primary"><Clock3 className="size-4"/>{String(row.scheduled_time).slice(0, 5)}</p><p className="text-xs capitalize text-muted-foreground">{formatDate(row.scheduled_date)}</p></div>
@@ -71,9 +111,13 @@ function TeamAgendaPage() {
     </article>;
   }
 
+  const pageDescription = staffRole === "mecanico"
+    ? "Consulta limitada aos atendimentos vinculados às suas ordens atribuídas."
+    : "Consulta de horários e histórico de atendimentos. Somente visualização.";
+
   return <main className="mx-auto min-h-screen max-w-5xl space-y-6 px-4 py-6">
     <header className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
-      <div><p className="text-sm text-muted-foreground">Cleidson Diesel · Área da equipe</p><h1 className="text-2xl font-bold">Agenda da equipe</h1><p className="text-sm text-muted-foreground">Consulta de horários e histórico de atendimentos. Somente visualização.</p></div>
+      <div><p className="text-sm text-muted-foreground">Cleidson Diesel · Área da equipe</p><h1 className="text-2xl font-bold">{staffRole === "mecanico" ? "Minha agenda" : "Agenda da equipe"}</h1><p className="text-sm text-muted-foreground">{pageDescription}</p></div>
       <div className="flex gap-2"><Button variant="outline" onClick={() => void loadAgenda()} disabled={loading}><RefreshCw className="mr-2 size-4"/>Atualizar</Button><Button asChild variant="outline"><Link to="/equipe"><ArrowLeft className="mr-2 size-4"/>Voltar ao painel</Link></Button></div>
     </header>
     {loading ? <p className="rounded-lg border p-6 text-muted-foreground">Carregando agenda…</p> : <>
