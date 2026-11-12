@@ -125,7 +125,7 @@ function OrdemPage() {
 
       {/* WhatsApp */}
       <ApprovalActions order={order} />
-      {(isAdmin || isSecretary) && <OrderSignatures order={{ id: order.id, number: order.number, status: order.status }} />
+      {(isAdmin || isSecretary) && <OrderSignatures order={{ id: order.id, number: order.number, status: order.status }} /> }
       {(isAdmin || isSecretary) && ((order as any).fuel_filter_replacement !== null || (order as any).system_cleaning !== null) && <section className="rounded-md border border-primary/30 bg-primary/5 p-4">
         <h2 className="font-semibold">Recomendações do mecânico para o orçamento</h2>
         <p className="mb-3 text-xs text-muted-foreground">Respostas registradas durante o diagnóstico.</p>
