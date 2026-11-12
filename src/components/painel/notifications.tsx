@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Bell, CalendarClock, CheckCircle2, ClockAlert, ShieldAlert, Wrench } from "lucide-react";
+import { Bell, CalendarClock, CheckCircle2, ClockAlert, ShieldAlert, Wrench, XCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 import { appointmentsQuery, ordersQuery } from "@/lib/queries";
 import { warrantiesQuery } from "@/lib/warranty";
@@ -18,6 +19,20 @@ function useNotifications() {
   const { data: orders = [], isLoading: ordersLoading } = useQuery(ordersQuery());
   const { data: appointments = [], isLoading: appointmentsLoading } = useQuery(appointmentsQuery());
   const { data: warranties = [], isLoading: warrantiesLoading } = useQuery(warrantiesQuery());
+  const { data: quoteEvents = [], isLoading: quotesLoading } = useQuery({
+    queryKey: ["quote-approvals", "decided-recent"],
+    refetchInterval: 15000,
+    queryFn: async () => {
+      const since = new Date(Date.now() - 7 * 86400000).toISOString();
+      const { data, error } = await supabase.from("quote_approvals")
+        .select("id,state,approved_at,rejected_at,order_id,service_orders(number,customer_name,plate,vehicle)")
+        .in("state", ["approved", "rejected"])
+        .or(`approved_at.gte.${since},rejected_at.gte.${since}`)
+        .order("created_at", { ascending: false }).limit(50);
+      if (error) throw error;
+      return data;
+    },
+  });
   const today = todayISO();
 
   const notifications = useMemo(() => {
@@ -29,7 +44,7 @@ function useNotifications() {
       priority: "urgent" | "warning" | "info";
       href: "/painel/ordens/$id" | "/painel/garantias/$id" | "/painel/agendamentos";
       params?: { id: string };
-      icon: "order" | "ready" | "warranty" | "appointment";
+      icon: "order" | "ready" | "warranty" | "appointment" | "quote_approved" | "quote_rejected";
     }[] = [];
 
     for (const order of orders) {
@@ -76,11 +91,27 @@ function useNotifications() {
       }
     }
 
+    for (const q of quoteEvents) {
+      const o = q.service_orders;
+      const approved = q.state === "approved";
+      const at = (approved ? q.approved_at : q.rejected_at) ?? today;
+      items.push({
+        id: `quote-${q.id}-${q.state}`,
+        title: `${approved ? "Orçamento aprovado" : "Orçamento recusado"} pelo cliente · OS nº ${o?.number ?? "—"}`,
+        detail: `${o?.vehicle ?? "Veículo"} · ${formatPlate(o?.plate ?? "")} · ${o?.customer_name ?? "Cliente"}`,
+        date: at.slice(0, 10),
+        priority: approved ? "info" : "warning",
+        href: "/painel/ordens/$id",
+        params: { id: q.order_id },
+        icon: approved ? "quote_approved" : "quote_rejected",
+      });
+    }
+
     const rank = { urgent: 0, warning: 1, info: 2 };
     return items.sort((a, b) => rank[a.priority] - rank[b.priority] || a.date.localeCompare(b.date));
-  }, [orders, appointments, warranties, today]);
+  }, [orders, appointments, warranties, quoteEvents, today]);
 
-  return { notifications, isLoading: ordersLoading || appointmentsLoading || warrantiesLoading };
+  return { notifications, isLoading: ordersLoading || appointmentsLoading || warrantiesLoading || quotesLoading };
 }
 
 export function NotificationBell() {
@@ -125,11 +156,11 @@ export function NotificationCenter() {
       ) : (
         <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-card">
           {notifications.map((item) => {
-            const Icon = item.icon === "warranty" ? ShieldAlert : item.icon === "appointment" ? CalendarClock : item.icon === "ready" ? CheckCircle2 : item.priority === "urgent" ? ClockAlert : Wrench;
+            const Icon = item.icon === "quote_approved" ? CheckCircle2 : item.icon === "quote_rejected" ? XCircle : item.icon === "warranty" ? ShieldAlert : item.icon === "appointment" ? CalendarClock : item.icon === "ready" ? CheckCircle2 : item.priority === "urgent" ? ClockAlert : Wrench;
             const href = item.href === "/painel/ordens/$id" ? `/painel/ordens/${item.params?.id}` : item.href === "/painel/garantias/$id" ? `/painel/garantias/${item.params?.id}` : item.href;
             return (
               <a key={item.id} href={href} className="flex flex-wrap items-center gap-3 p-4 transition-colors hover:bg-secondary/60">
-                <span className={`flex size-10 shrink-0 items-center justify-center rounded-full ${item.priority === "urgent" ? "bg-destructive/10 text-destructive" : item.priority === "warning" ? "bg-warning/10 text-warning" : "bg-secondary text-muted-foreground"}`}><Icon className="size-5" /></span>
+                <span className={`flex size-10 shrink-0 items-center justify-center rounded-full ${item.icon === "quote_approved" ? "bg-success/10 text-success" : item.icon === "quote_rejected" ? "bg-destructive/10 text-destructive" : item.priority === "urgent" ? "bg-destructive/10 text-destructive" : item.priority === "warning" ? "bg-warning/10 text-warning" : "bg-secondary text-muted-foreground"}`}><Icon className="size-5" /></span>
                 <span className="min-w-0 flex-1"><span className="block font-medium">{item.title}</span><span className="block truncate text-sm text-muted-foreground">{item.detail}</span></span>
                 <span className="text-xs text-muted-foreground">{formatDateBR(item.date)}</span>
               </a>
@@ -137,7 +168,7 @@ export function NotificationCenter() {
           })}
         </div>
       )}
-      <p className="text-xs text-muted-foreground">Os alertas são calculados automaticamente a partir das OS, garantias e agendamentos existentes. Não há marcação manual de leitura nem alteração dos registros.</p>
+      <p className="text-xs text-muted-foreground">Os alertas são calculados automaticamente a partir das OS, orçamentos respondidos (últimos 7 dias), garantias e agendamentos existentes. Não há marcação manual de leitura nem alteração dos registros.</p>
     </section>
   );
 }

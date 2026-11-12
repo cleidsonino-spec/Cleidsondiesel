@@ -15,11 +15,11 @@ import { Route as AgendarRouteImport } from './routes/agendar'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ConsultaRouteImport } from './routes/consulta'
 import { Route as ServicosRouteImport } from './routes/servicos'
-import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
-import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
 import { Route as AuthenticatedAgendaEquipeRouteImport } from './routes/_authenticated/agenda-equipe'
-import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
+import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
+import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
+import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
 import { Route as AuthenticatedPainelIndexRouteImport } from './routes/_authenticated/painel.index'
 import { Route as AuthenticatedPainelAgendamentosRouteImport } from './routes/_authenticated/painel.agendamentos'
 import { Route as AuthenticatedPainelClientesRouteImport } from './routes/_authenticated/painel.clientes'
@@ -60,14 +60,15 @@ const ServicosRoute = ServicosRouteImport.update({
   path: '/servicos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAgendaEquipeRoute =
+  AuthenticatedAgendaEquipeRouteImport.update({
+    id: '/agenda-equipe',
+    path: '/agenda-equipe',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedEquipeRoute = AuthenticatedEquipeRouteImport.update({
   id: '/equipe',
   path: '/equipe',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedAgendaEquipeRoute = AuthenticatedAgendaEquipeRouteImport.update({
-  id: '/agenda-equipe',
-  path: '/agenda-equipe',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
@@ -75,14 +76,14 @@ const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
   path: '/painel',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const OrcamentoTokenRoute = OrcamentoTokenRouteImport.update({
-  id: '/orcamento/$token',
-  path: '/orcamento/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ConviteTokenRoute = ConviteTokenRouteImport.update({
   id: '/convite/$token',
   path: '/convite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrcamentoTokenRoute = OrcamentoTokenRouteImport.update({
+  id: '/orcamento/$token',
+  path: '/orcamento/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedPainelIndexRoute =
@@ -152,12 +153,11 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/consulta': typeof ConsultaRoute
   '/servicos': typeof ServicosRoute
-  '/equipe': typeof AuthenticatedEquipeRoute
   '/agenda-equipe': typeof AuthenticatedAgendaEquipeRoute
-  '/painel': typeof AuthenticatedPainelRouteWithChildren
-  '/orcamento/$token': typeof OrcamentoTokenRoute
-  '/convite/$token': typeof ConviteTokenRoute
   '/equipe': typeof AuthenticatedEquipeRoute
+  '/painel': typeof AuthenticatedPainelRouteWithChildren
+  '/convite/$token': typeof ConviteTokenRoute
+  '/orcamento/$token': typeof OrcamentoTokenRoute
   '/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/painel/clientes': typeof AuthenticatedPainelClientesRoute
   '/painel/garantias': typeof AuthenticatedPainelGarantiasRouteWithChildren
@@ -175,14 +175,15 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/consulta': typeof ConsultaRoute
   '/servicos': typeof ServicosRoute
-  '/orcamento/$token': typeof OrcamentoTokenRoute
+  '/agenda-equipe': typeof AuthenticatedAgendaEquipeRoute
+  '/equipe': typeof AuthenticatedEquipeRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/orcamento/$token': typeof OrcamentoTokenRoute
   '/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/painel/clientes': typeof AuthenticatedPainelClientesRoute
   '/painel/orcamentos': typeof AuthenticatedPainelOrcamentosRoute
   '/painel/veiculos': typeof AuthenticatedPainelVeiculosRoute
   '/painel': typeof AuthenticatedPainelIndexRoute
-  '/agenda-equipe': typeof AuthenticatedAgendaEquipeRoute
   '/painel/garantias/$id': typeof AuthenticatedPainelGarantiasIdRoute
   '/painel/ordens/$id': typeof AuthenticatedPainelOrdensIdRoute
   '/painel/ordens/nova': typeof AuthenticatedPainelOrdensNovaRoute
@@ -196,9 +197,11 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/consulta': typeof ConsultaRoute
   '/servicos': typeof ServicosRoute
+  '/_authenticated/agenda-equipe': typeof AuthenticatedAgendaEquipeRoute
+  '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRouteWithChildren
-  '/orcamento/$token': typeof OrcamentoTokenRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/orcamento/$token': typeof OrcamentoTokenRoute
   '/_authenticated/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/_authenticated/painel/clientes': typeof AuthenticatedPainelClientesRoute
   '/_authenticated/painel/garantias': typeof AuthenticatedPainelGarantiasRouteWithChildren
@@ -218,13 +221,11 @@ export interface FileRouteTypes {
     | '/auth'
     | '/consulta'
     | '/servicos'
+    | '/agenda-equipe'
+    | '/equipe'
     | '/painel'
-    | '/agenda-equipe'
-    | '/equipe'
-    | '/agenda-equipe'
-    | '/orcamento/$token'
     | '/convite/$token'
-    | '/equipe'
+    | '/orcamento/$token'
     | '/painel/agendamentos'
     | '/painel/clientes'
     | '/painel/garantias'
@@ -242,8 +243,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/consulta'
     | '/servicos'
-    | '/orcamento/$token'
+    | '/agenda-equipe'
+    | '/equipe'
     | '/convite/$token'
+    | '/orcamento/$token'
     | '/painel/agendamentos'
     | '/painel/clientes'
     | '/painel/orcamentos'
@@ -261,11 +264,11 @@ export interface FileRouteTypes {
     | '/auth'
     | '/consulta'
     | '/servicos'
-    | '/_authenticated/painel'
-    | '/_authenticated/equipe'
     | '/_authenticated/agenda-equipe'
-    | '/orcamento/$token'
+    | '/_authenticated/equipe'
+    | '/_authenticated/painel'
     | '/convite/$token'
+    | '/orcamento/$token'
     | '/_authenticated/painel/agendamentos'
     | '/_authenticated/painel/clientes'
     | '/_authenticated/painel/garantias'
@@ -285,8 +288,8 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ConsultaRoute: typeof ConsultaRoute
   ServicosRoute: typeof ServicosRoute
-  OrcamentoTokenRoute: typeof OrcamentoTokenRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
+  OrcamentoTokenRoute: typeof OrcamentoTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -354,18 +357,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPainelRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/orcamento/$token': {
-      id: '/orcamento/$token'
-      path: '/orcamento/$token'
-      fullPath: '/orcamento/$token'
-      preLoaderRoute: typeof OrcamentoTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/convite/$token': {
       id: '/convite/$token'
       path: '/convite/$token'
       fullPath: '/convite/$token'
       preLoaderRoute: typeof ConviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orcamento/$token': {
+      id: '/orcamento/$token'
+      path: '/orcamento/$token'
+      fullPath: '/orcamento/$token'
+      preLoaderRoute: typeof OrcamentoTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/painel/': {
@@ -485,14 +488,14 @@ const AuthenticatedPainelRouteWithChildren =
   AuthenticatedPainelRoute._addFileChildren(AuthenticatedPainelRouteChildren)
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
   AuthenticatedAgendaEquipeRoute: typeof AuthenticatedAgendaEquipeRoute
+  AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRouteWithChildren
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
   AuthenticatedAgendaEquipeRoute: AuthenticatedAgendaEquipeRoute,
+  AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRouteWithChildren,
 }
 
@@ -506,8 +509,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ConsultaRoute: ConsultaRoute,
   ServicosRoute: ServicosRoute,
-  OrcamentoTokenRoute: OrcamentoTokenRoute,
   ConviteTokenRoute: ConviteTokenRoute,
+  OrcamentoTokenRoute: OrcamentoTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -88,7 +88,14 @@ O código do Worker Cloudflare não está neste repositório. Até ele ser atual
 
 ```ts
 if (table === "notification_events" && type === "INSERT") {
-  return { title: record.title, body: record.body, route: String(record.route).startsWith("/painel") ? record.route : "/painel" };
+  return {
+    title: record.title, body: record.body,
+    route: String(record.route).startsWith("/painel") ? record.route : "/painel",
+    // Android (FCM message.android.notification): ícone e cor por evento
+    icon: record.icon ?? undefined,   // ic_stat_quote_approved (check) | ic_stat_quote_rejected (x-circle)
+    color: record.color ?? undefined, // #16A34A verde (aprovado) | #DC2626 vermelho (recusado)
+  };
 }
 ```
+No envio FCM use `android: { notification: { icon, color } }`. Os ícones `ic_stat_quote_approved` (check-circle) e `ic_stat_quote_rejected` (x-circle) devem existir como drawables brancos/transparentes em `android/app/src/main/res/drawable*` do APK; sem eles o Android usa o ícone padrão, mantendo a cor.
 Depois teste em aparelho Android real.
