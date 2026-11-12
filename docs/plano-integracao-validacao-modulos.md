@@ -137,3 +137,43 @@ As execuções de validação do GitHub Actions consultadas para os commits regi
 - Nenhuma migration foi aplicada, nenhum dado foi alterado, nenhum PR foi mesclado e nenhum deploy foi realizado.
 - A validação de RLS, triggers e RPCs com usuários reais continua pendente de ambiente de teste autorizado.
 - Não foi usado crédito da Lovable.
+
+
+### Correções preparadas após a revisão integrada
+
+Foram adicionadas alterações corretivas às branches dos módulos, sem mesclar PRs:
+
+- **#35 desempenho:** paginação em lotes de 500 para registros de conclusão.
+- **#39 recebimento:** trigger de banco exige os quatro campos mínimos para novas OS recebidas e para transição de status para `recebido`; OS antigas não são obrigadas a preencher dados retroativamente.
+- **#40 assinatura:** valida os campos mínimos do recebimento no servidor e inclui `vehicle_receipt` completo no snapshot imutável.
+- **#43 garantia:** máquina de estados no banco e na interface; exige avaliação antes de avançar e solução antes de concluir.
+- **#36 financeiro:** impede reduzir o total da OS abaixo do total já recebido e força autoria do usuário da sessão em pagamentos/despesas.
+- **#38 estoque:** valida administrador e força autoria da movimentação pela sessão autenticada.
+- **#45 indicadores:** passa a contar conclusões usando `service_order_completions.completed_at`, com evolução mensal pela data real de conclusão, em vez de inferir pela data de entrada ou pelo status atual.
+
+### CI das correções
+
+O workflow `Validate Cleidson Diesel web app` foi consultado após os commits corretivos e concluiu com sucesso nos SHAs atuais registrados:
+
+| PR | SHA validado | Resultado |
+|---|---|---|
+| #33 | `a672149d` | success |
+| #34 | `de948723` | success |
+| #35 | `9c572a5a` | success |
+| #36 | `2dd3396c` | success |
+| #38 | `faa79f84` | success |
+| #39 | `fa15d494` | success |
+| #40 | `265bfd48` | success |
+| #41 | `46ecc19b` | success |
+| #43 | `13249ffc` | success |
+| #44 | `324e4656` | success |
+| #45 | `ac95f53a` | success |
+| #46 | `0f6d6680` | success |
+
+O PR #42 não recebeu alteração nesta rodada; seu CI e seus testes de isolamento continuam conforme a revisão anterior. O workflow acima é validação automatizada do repositório e não substitui testes de integração com o banco.
+
+### Próxima preparação de integração
+
+A integração deve ocorrer em uma branch única de homologação, na sequência: #33/#34, #35, #36, #38, #39/#40, #41, #42/#43, #44 e #45. Resolver em conjunto os arquivos compartilhados `src/routes/_authenticated/painel.tsx` e `src/routes/_authenticated/painel.ordens.$id.tsx`. Aplicar migrations somente em banco de teste autorizado, na ordem cronológica e após revisão de dependências. Validar RLS, papéis, triggers, RPCs, portal anon, pagamentos concorrentes, saldo de estoque, assinatura e transições de garantia.
+
+Nenhum PR foi mesclado, nenhum deploy foi realizado e nenhuma migration foi aplicada ao banco real.
