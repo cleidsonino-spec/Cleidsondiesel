@@ -113,18 +113,18 @@ function StaffDashboard() {
       console.warn("[Push] Não foi possível remover o registro deste aparelho.");
     }
 
+    const { error } = await supabase.auth.signOut({ scope: "local" });
+    if (error) {
+      toast.error("Não foi possível encerrar a sessão. Verifique sua conexão e tente novamente.");
+      return;
+    }
+
     setItems([]);
     setHistory({});
     setDrafts({});
     setDiagnoses({});
     setMaintenanceChecks({});
     setUnread(0);
-
-    const { error } = await supabase.auth.signOut({ scope: "local" });
-    if (error) {
-      toast.error("Não foi possível encerrar a sessão. Verifique sua conexão e tente novamente.");
-      return;
-    }
     navigate({ to: "/auth", replace: true });
   }
 
