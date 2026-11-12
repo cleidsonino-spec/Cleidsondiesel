@@ -100,7 +100,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.record_customer_authorization(uuid, text, text, text, boolean) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.record_customer_authorization(uuid, text, text, boolean) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.record_customer_authorization(uuid, text, text, text, boolean) TO authenticated;
 
 COMMENT ON TABLE public.customer_authorizations IS
