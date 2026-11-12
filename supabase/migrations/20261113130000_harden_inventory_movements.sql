@@ -7,6 +7,12 @@ REVOKE ALL ON FUNCTION public.apply_inventory_movement() FROM PUBLIC, anon, auth
 
 REVOKE UPDATE ON TABLE public.inventory_items FROM authenticated;
 
+-- Preenche chaves ausentes de instalações que já tenham movimentos antes de
+-- exigir NOT NULL. Cada linha antiga recebe uma chave única.
+UPDATE public.inventory_movements
+   SET idempotency_key = gen_random_uuid()::text
+ WHERE idempotency_key IS NULL;
+
 -- Toda movimentação precisa de uma chave para impedir duplicidade em retries
 -- de rede após uma inserção que tenha sido confirmada pelo banco.
 ALTER TABLE public.inventory_movements
