@@ -31,6 +31,11 @@ jobs:
           bunx eslint
           src/lib/auth-session.ts
           src/lib/auth-session.test.ts
+          src/lib/auth-routing.ts
+          src/lib/auth-routing.test.ts
+          src/integrations/supabase/authStorage.ts
+          src/integrations/supabase/authStorage.test.ts
+          src/routes/auth.tsx
           src/routes/__root.tsx
           src/routes/_authenticated/equipe.tsx
           src/routes/_authenticated/painel.tsx
