@@ -13,6 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
+import { handleAuthStateChange } from "@/lib/auth-session";
 import { initializeNativeOAuthCallback } from "@/lib/native-oauth";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -130,25 +131,7 @@ function RootComponent() {
 
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
-      // Query keys in the app are not consistently user-scoped. Clear the cache
-      // on account boundaries so a newly authenticated user cannot see data
-      // fetched by the previous account.
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
-        // Never keep cached data from a previous identity across auth boundaries.
-        queryClient.clear();
-
-        if (event === "SIGNED_OUT") {
-          // Covers explicit logout and sessions invalidated/expired by Supabase.
-          // replace prevents the Back button from returning to an authenticated screen.
-          void router.navigate({ to: "/auth", replace: true });
-          return;
-        }
-
-        router.invalidate();
-        return;
-      }
-
-      if (event === "USER_UPDATED") router.invalidate();
+      handleAuthStateChange(event, queryClient, router);
     });
     return () => data.subscription.unsubscribe();
   }, [router, queryClient]);
