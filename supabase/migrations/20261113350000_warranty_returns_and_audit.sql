@@ -178,7 +178,7 @@ BEGIN
   v_diagnosis := trim(coalesce(_diagnosis, ''));
   v_resolution := trim(coalesce(_resolution, ''));
   v_parts := trim(coalesce(_parts_used, ''));
-  v_labor := trim(coalesce(_labor_description, ''));
+  v_labor := trim(coalesce(_labor_description, ''));\n  v_customer_update := trim(coalesce(_customer_update, ''));
 
   IF char_length(v_complaint) < 5 OR char_length(v_complaint) > 5000 THEN
     RAISE EXCEPTION 'Descreva o motivo do retorno (5 a 5000 caracteres)';
