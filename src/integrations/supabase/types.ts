@@ -151,6 +151,41 @@ export type Database = {
           },
         ]
       }
+      service_order_assignments: {
+        Row: {
+          active: boolean
+          assigned_at: string
+          assigned_by: string
+          id: string
+          mechanic_user_id: string
+          service_order_id: string
+        }
+        Insert: {
+          active?: boolean
+          assigned_at?: string
+          assigned_by?: string
+          id?: string
+          mechanic_user_id: string
+          service_order_id: string
+        }
+        Update: {
+          active?: boolean
+          assigned_at?: string
+          assigned_by?: string
+          id?: string
+          mechanic_user_id?: string
+          service_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_order_assignments_service_order_id_fkey"
+            columns: ["service_order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_orders: {
         Row: {
           appointment_id: string | null
@@ -162,6 +197,7 @@ export type Database = {
           diagnosis: string | null
           due_date: string | null
           entry_date: string
+          fuel_filter_replacement: boolean | null
           id: string
           inspection_checklist: Json
           labor_value: number
@@ -174,6 +210,7 @@ export type Database = {
           phone: string | null
           plate: string
           status: Database["public"]["Enums"]["order_status"]
+          system_cleaning: boolean | null
           updated_at: string
           vehicle: string
           vehicle_id: string | null
@@ -189,6 +226,7 @@ export type Database = {
           diagnosis?: string | null
           due_date?: string | null
           entry_date?: string
+          fuel_filter_replacement?: boolean | null
           id?: string
           inspection_checklist?: Json
           labor_value?: number
@@ -201,6 +239,7 @@ export type Database = {
           phone?: string | null
           plate: string
           status?: Database["public"]["Enums"]["order_status"]
+          system_cleaning?: boolean | null
           updated_at?: string
           vehicle: string
           vehicle_id?: string | null
@@ -216,6 +255,7 @@ export type Database = {
           diagnosis?: string | null
           due_date?: string | null
           entry_date?: string
+          fuel_filter_replacement?: boolean | null
           id?: string
           inspection_checklist?: Json
           labor_value?: number
@@ -228,6 +268,7 @@ export type Database = {
           phone?: string | null
           plate?: string
           status?: Database["public"]["Enums"]["order_status"]
+          system_cleaning?: boolean | null
           updated_at?: string
           vehicle?: string
           vehicle_id?: string | null
@@ -253,6 +294,110 @@ export type Database = {
             columns: ["vehicle_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_dashboard_counters: {
+        Row: {
+          id: boolean
+          reset_at: string
+          reset_by: string | null
+        }
+        Insert: {
+          id?: boolean
+          reset_at?: string
+          reset_by?: string | null
+        }
+        Update: {
+          id?: boolean
+          reset_at?: string
+          reset_by?: string | null
+        }
+        Relationships: []
+      }
+      staff_invitations: {
+        Row: {
+          accepted_user_id: string | null
+          created_at: string
+          created_by: string
+          email: string
+          expires_at: string
+          full_name: string
+          id: string
+          phone: string
+          revoked_at: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          token_hash: string
+          used_at: string | null
+        }
+        Insert: {
+          accepted_user_id?: string | null
+          created_at?: string
+          created_by: string
+          email: string
+          expires_at: string
+          full_name: string
+          id?: string
+          phone: string
+          revoked_at?: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          token_hash: string
+          used_at?: string | null
+        }
+        Update: {
+          accepted_user_id?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string
+          expires_at?: string
+          full_name?: string
+          id?: string
+          phone?: string
+          revoked_at?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          token_hash?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
+      technical_service_logs: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          mechanic_user_id: string
+          observations: string | null
+          procedure: string
+          result: string | null
+          service_order_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          mechanic_user_id?: string
+          observations?: string | null
+          procedure: string
+          result?: string | null
+          service_order_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          mechanic_user_id?: string
+          observations?: string | null
+          procedure?: string
+          result?: string | null
+          service_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technical_service_logs_service_order_id_fkey"
+            columns: ["service_order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -319,6 +464,57 @@ export type Database = {
           },
         ]
       }
+      verified_service_procedures: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          observations: string | null
+          procedure: string
+          result: string | null
+          reviewed_by: string
+          service_order_id: string
+          technical_log_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          observations?: string | null
+          procedure: string
+          result?: string | null
+          reviewed_by?: string
+          service_order_id: string
+          technical_log_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          observations?: string | null
+          procedure?: string
+          result?: string | null
+          reviewed_by?: string
+          service_order_id?: string
+          technical_log_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verified_service_procedures_service_order_id_fkey"
+            columns: ["service_order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verified_service_procedures_technical_log_id_fkey"
+            columns: ["technical_log_id"]
+            isOneToOne: true
+            referencedRelation: "technical_service_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       warranties: {
         Row: {
           coverage: string
@@ -371,18 +567,49 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_staff_invitation_for_existing_user: {
+        Args: { p_token: string }
+        Returns: undefined
+      }
       approve_quote: { Args: { _name: string; _token: string }; Returns: Json }
       approve_quote_identified: {
         Args: { _cpf: string; _name: string; _token: string }
         Returns: Json
       }
+      assign_order_to_mechanic: {
+        Args: { _mechanic_user_id: string; _order_id: string; _stage: string }
+        Returns: undefined
+      }
       booked_slots: { Args: { _date: string }; Returns: string[] }
       get_quote_approval: { Args: { _token: string }; Returns: Json }
+      get_staff_appointment_agenda: {
+        Args: never
+        Returns: {
+          appointment_id: string
+          appointment_status: string
+          customer_name: string
+          mechanic_name: string
+          notes: string
+          order_number: number
+          order_status: string
+          phone: string
+          plate: string
+          scheduled_date: string
+          scheduled_time: string
+          service_type: string
+          vehicle: string
+        }[]
+      }
+      get_staff_invitation_email: { Args: { p_token: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_mechanic_assigned: {
+        Args: { _order_id: string; _user_id?: string }
         Returns: boolean
       }
       issue_quote_approval: { Args: { _order_id: string }; Returns: Json }
@@ -405,6 +632,41 @@ export type Database = {
           vehicle_year: string
         }[]
       }
+      mechanic_add_technical_log: {
+        Args: {
+          _description: string
+          _observations?: string
+          _procedure: string
+          _result?: string
+          _service_order_id: string
+        }
+        Returns: string
+      }
+      mechanic_complete_diagnosis:
+        | {
+            Args: { _diagnosis: string; _order_id: string }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              _diagnosis: string
+              _fuel_filter_replacement: boolean
+              _order_id: string
+              _system_cleaning: boolean
+            }
+            Returns: undefined
+          }
+      mechanic_start_diagnosis: {
+        Args: { _order_id: string }
+        Returns: undefined
+      }
+      mechanic_update_order_status: {
+        Args: {
+          _order_id: string
+          _status: Database["public"]["Enums"]["order_status"]
+        }
+        Returns: undefined
+      }
       normalize_plate: { Args: { _p: string }; Returns: string }
       quote_snapshot: {
         Args: { o: Database["public"]["Tables"]["service_orders"]["Row"] }
@@ -414,20 +676,49 @@ export type Database = {
         Args: { _cpf: string; _name: string; _token: string }
         Returns: Json
       }
+      secretaria_complete_appointment: {
+        Args: { _appointment_id: string }
+        Returns: undefined
+      }
+      secretaria_confirm_appointment: {
+        Args: { _appointment_id: string }
+        Returns: undefined
+      }
+      staff_assign_service_order: {
+        Args: { _mechanic_user_id: string; _service_order_id: string }
+        Returns: string
+      }
+      staff_mechanic_service_counts: {
+        Args: never
+        Returns: {
+          active_orders: number
+          assigned_orders: number
+          completed_orders: number
+          mechanic_name: string
+          mechanic_user_id: string
+          technical_entries: number
+          verified_procedures: number
+        }[]
+      }
+      staff_reset_mechanic_service_counts: { Args: never; Returns: string }
+      staff_verify_technical_log: {
+        Args: { _technical_log_id: string }
+        Returns: string
+      }
       valid_cpf: { Args: { _cpf: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "secretaria" | "mecanico"
       appointment_status: "pendente" | "confirmado" | "concluido" | "cancelado"
       order_status:
         | "recebido"
         | "em_analise"
         | "aguardando_aprovacao"
-        | "aprovado_aguardando_encaminhamento"
         | "em_servico"
         | "pronto"
         | "entregue"
         | "cancelado"
+        | "aprovado_aguardando_encaminhamento"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -555,7 +846,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "secretaria", "mecanico"],
       appointment_status: ["pendente", "confirmado", "concluido", "cancelado"],
       order_status: [
         "recebido",
@@ -565,6 +856,7 @@ export const Constants = {
         "pronto",
         "entregue",
         "cancelado",
+        "aprovado_aguardando_encaminhamento",
       ],
     },
   },
