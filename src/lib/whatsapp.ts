@@ -126,5 +126,5 @@ export function appointmentReminderMessage(a: {
     `Veículo: ${a.vehicle} (${formatPlate(a.plate)}).`,
     `Se precisar alterar o horário, fale conosco por aqui.`,
     `Te esperamos!`,
-  ].join("\\n");
+  ].join("\n");
 }
