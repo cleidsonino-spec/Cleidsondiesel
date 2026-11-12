@@ -29,9 +29,17 @@ BEGIN
     a.scheduled_time,
     a.customer_name,
     COALESCE(
-      u.raw_user_meta_data->>'full_name',
-      u.raw_user_meta_data->>'name',
-      u.email
+      NULLIF(BTRIM(u.raw_user_meta_data->>'full_name'), ''),
+      NULLIF(BTRIM(u.raw_user_meta_data->>'name'), ''),
+      (
+        SELECT NULLIF(BTRIM(si.full_name), '')
+        FROM public.staff_invitations si
+        WHERE si.accepted_user_id = saa.mechanic_user_id
+          AND si.used_at IS NOT NULL
+        ORDER BY si.created_at DESC
+        LIMIT 1
+      ),
+      'Mecânico'
     )::text
   FROM public.appointments a
   JOIN public.service_orders so
