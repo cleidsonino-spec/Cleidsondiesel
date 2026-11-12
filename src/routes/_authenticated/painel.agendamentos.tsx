@@ -176,12 +176,12 @@ function AppointmentRow({ a }: { a: Appointment }) {
     `Passando para lembrar do seu agendamento amanhã, ${formatDateBR(a.scheduled_date)}, às ${a.scheduled_time.slice(0, 5)}.`,
     `Veículo: ${a.vehicle} (${formatPlate(a.plate)}). Serviço: ${a.service_type}.`,
     "Se precisar alterar o horário, fale conosco por aqui.",
-  ].join("\\n"));
+  ].join("\n"));
   const reminderToday = waLink(a.phone, [
     `Olá, ${a.customer_name.split(" ")[0]}! Aqui é da Cleidson Diesel.`,
     `Lembramos que seu atendimento está marcado para hoje, ${formatDateBR(a.scheduled_date)}, às ${a.scheduled_time.slice(0, 5)}.`,
     `Veículo: ${a.vehicle} (${formatPlate(a.plate)}). Estamos aguardando você.`,
-  ].join("\\n"));
+  ].join("\n"));
 
   return (
     <div className="flex flex-col gap-3 p-4 md:flex-row md:items-center">
@@ -215,7 +215,6 @@ function AppointmentRow({ a }: { a: Appointment }) {
             <Button size="sm" variant="ghost" onClick={() => setStatus("nao_compareceu")}>Não compareceu</Button>
           </>
         )}
-        {a.status === "compareceu" && <StatusBadge tone="primary" label="Presença registrada" />}
         {chatHref && (
           <Button asChild size="sm" variant="outline" aria-label="Conversar no WhatsApp">
             <a href={chatHref} target="_blank" rel="noopener noreferrer">
