@@ -99,7 +99,16 @@ function OrdemPage() {
 
   async function remove() {
     const { error } = await supabase.from("service_orders").delete().eq("id", id);
-    if (error) { toast.error("Não foi possível excluir."); return; }
+    if (error) {
+      if (error.code === "23503") {
+        toast.error("Esta OS possui histórico ou registros vinculados e não pode ser excluída. Preserve os registros e use o cancelamento quando necessário.");
+      } else if (error.code === "42501") {
+        toast.error("Sua conta não tem permissão para excluir esta OS.");
+      } else {
+        toast.error("Não foi possível excluir a OS. Verifique os registros vinculados ou tente novamente.");
+      }
+      return;
+    }
     await qc.invalidateQueries({ queryKey: ["orders"] });
     toast.success("OS excluída.");
     navigate({ to: "/painel" });
