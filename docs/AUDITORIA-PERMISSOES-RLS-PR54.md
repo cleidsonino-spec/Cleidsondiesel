@@ -162,3 +162,28 @@ Assim, o papel secretaria pode ler todos os campos retornados do cadastro, inclu
 ### Limites desta verificação
 
 A revisão é estática. Não foram executadas chamadas diretas REST/PostgREST com contas reais, nem testados privilégios efetivos no banco. Não se afirma que a divergência foi explorada em ambiente ativo.
+
+## Complemento — exposição de dados pessoais nas telas e consultas compartilhadas (2026-11-12)
+
+### Confirmação no frontend
+- src/lib/registry.ts mantém select(*) tanto para clientes quanto para veículos.
+- As rotas painel.clientes.tsx e painel.veiculos.tsx carregam essas consultas para a tela de cadastro; o componente recebe isAdmin para esconder ações de escrita, mas não limita os campos retornados pela consulta.
+- Em registry-page.tsx, a listagem de clientes exibe CPF/CNPJ e e-mail; o histórico também exibe documento, e-mail e endereço. As informações não são ocultadas condicionalmente por isAdmin.
+- A tela de veículos exibe placa, modelo, ano e nome do proprietário, sem exibir diretamente CPF/CNPJ.
+- O formulário de nova OS usa as mesmas consultas amplas, embora utilize principalmente nome e telefone do cliente e placa/modelo/ano/quilometragem do veículo. Logo, dados como CPF/CNPJ, e-mail, endereço e observações cadastrais também chegam ao navegador nesse fluxo.
+
+### Impacto
+A secretaria não apenas tem permissão de SELECT ampla no schema versionado: as telas e consultas compartilhadas efetivamente recebem e, em algumas telas, exibem campos pessoais que não são necessários para abrir uma OS. Ocultar elementos da interface reduziria exposição visual acidental, mas não protegeria os dados da resposta da API nem do estado/cache do navegador.
+
+### Recomendação de correção segura
+1. Manter cadastro completo e edição integral restritos ao admin.
+2. Criar, pelo fluxo gerenciado de schema, uma RPC/visão operacional de leitura mínima para secretaria: nome e telefone do cliente; placa, modelo, ano, quilometragem e vínculo do veículo; sem documento, e-mail, endereço ou observações cadastrais.
+3. Remover a policy SELECT ampla da secretaria em customers e vehicles, concedendo apenas execução/leitura do recurso mínimo com checagem explícita de papel.
+4. Separar consultas admin e operacionais no frontend; não usar select(*) em consultas compartilhadas.
+5. Renderizar CPF/CNPJ, e-mail e endereço somente na interface administrativa, mesmo depois de restringir a API.
+6. Testar com sessão de secretaria a resposta REST/RPC, cache React Query, HTML renderizado e tentativas diretas de SELECT; confirmar que mecânico, usuário comum e anon não recebem dados cadastrais.
+
+### Limites e decisão
+- Nenhuma mudança de UI foi feita nesta etapa: esconder campos apenas na tela seria cosmético enquanto a API continuar devolvendo os dados.
+- Não foram editadas migrations, consultado banco live, executadas chamadas API reais ou realizados testes com contas/perfis.
+- O projeto proíbe edição manual de migrations; a correção efetiva depende do fluxo gerenciado autorizado.
