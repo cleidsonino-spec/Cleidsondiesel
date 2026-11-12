@@ -19,7 +19,10 @@ function detailText(event: TimelineEvent) {
   const details = event.details ?? {};
   const parts: string[] = [];
   if (typeof details.description === "string" && details.description.trim()) parts.push(details.description);
-  if (typeof details.delivered_by_name === "string" && details.delivered_by_name.trim()) parts.push(`Entregue por: ${details.delivered_by_name}`);
+  if (typeof details.delivered_by_name === "string" && details.delivered_by_name.trim()) parts.push(`Pessoa que entregou: ${details.delivered_by_name}`);
+  if (typeof details.received_by_name === "string" && details.received_by_name.trim()) parts.push(`Nome informado de quem recebeu: ${details.received_by_name}`);
+  if (typeof details.signer_name === "string" && details.signer_name.trim()) parts.push(`Cliente/representante informado no aceite: ${details.signer_name}`);
+  if (typeof details.approved_by === "string" && details.approved_by.trim()) parts.push(`Nome informado na aprovação do orçamento: ${details.approved_by}`);
   if (typeof details.odometer === "string" && details.odometer.trim()) parts.push(`Hodômetro/horímetro: ${details.odometer}`);
   if (typeof details.fuel_level === "string" && details.fuel_level.trim()) parts.push(`Combustível: ${details.fuel_level.replace("_", " ")}`);
   if (typeof details.exterior_condition === "string" && details.exterior_condition.trim()) parts.push(`Condição: ${details.exterior_condition}`);
@@ -60,7 +63,7 @@ export function ServiceOrderStatusHistory({ orderId }: { orderId: string }) {
               <p className="text-sm font-semibold">{event.event_label || (event.event_type === "created" ? "OS criada" : event.event_type === "status_changed" ? "Status alterado" : "Evento da ordem")}</p>
               {isStatus && <p className="text-sm">{previous ? `${previous.label} → ${current.label}` : current.label}</p>}
               <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><Clock3 className="size-3" />{new Date(event.changed_at).toLocaleString("pt-BR")}</p>
-              <p className="text-xs text-muted-foreground">{event.actor_name ? `Registrado por: ${event.actor_name}` : event.changed_by ? `Usuário responsável: ${event.changed_by}` : "Responsável não identificado pela sessão"}</p>
+              <p className="text-xs text-muted-foreground">{event.changed_by ? `Conta da equipe responsável: ${event.changed_by}` : "Conta da equipe não identificada nesta ação"}</p>
               {details.length > 0 && <div className="mt-2 space-y-1 rounded bg-muted/50 p-2">{details.map((detail, index) => <p key={index} className="whitespace-pre-wrap text-xs text-muted-foreground">{detail}</p>)}</div>}
             </li>;
           })}
