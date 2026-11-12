@@ -21,10 +21,10 @@ export const Route = createFileRoute("/_authenticated/painel")({
     ],
   }),
   beforeLoad: async ({ context }) => {
-    const { data, error } = await supabase.from("user_roles")
-      .select("role").eq("user_id", context.user.id);
+    const { data, error } = await (supabase as any).from("user_roles")
+      .select("role,is_active").eq("user_id", context.user.id);
     if (error) throw error;
-    const roles = (data ?? []).map((item) => item.role);
+    const roles = (data ?? []).filter((item: any) => item.is_active !== false).map((item: any) => item.role);
     return { isAdmin: roles.includes("admin"), isSecretary: roles.includes("secretaria") };
   },
   component: PainelLayout,
