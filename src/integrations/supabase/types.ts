@@ -422,7 +422,7 @@ export type Database = {
         Returns: Json
       }
       register_warranty_return: {
-        Args: { _warranty_id: string; _complaint: string; _return_id?: string | null; _status?: string; _diagnosis?: string; _resolution?: string; _parts_used?: string; _labor_description?: string }
+        Args: { _warranty_id: string; _complaint: string; _return_id?: string | null; _status?: string; _diagnosis?: string; _resolution?: string; _parts_used?: string; _labor_description?: string; _customer_update?: string }
         Returns: string
       }
       valid_cpf: { Args: { _cpf: string }; Returns: boolean }
