@@ -26,7 +26,13 @@ BEGIN
     ORDER BY created_at DESC LIMIT 1;
   IF FOUND THEN
     quote_data := jsonb_build_object(
-      'state', q.state, 'token', q.token, 'snapshot', q.snapshot,
+      'state', q.state, 'token', q.token,
+      'snapshot', jsonb_build_object(
+        'parts_value', q.snapshot->'parts_value',
+        'labor_value', q.snapshot->'labor_value',
+        'part_items', q.snapshot->'part_items',
+        'parts', q.snapshot->'parts'
+      ),
       'expires_at', q.expires_at, 'approved_at', q.approved_at
     );
   END IF;
