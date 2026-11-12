@@ -1,6 +1,6 @@
 # Notificações push — Cleidson Diesel (Android)
 
-A implementação usa Capacitor Push Notifications + Firebase Cloud Messaging (FCM) no APK Android e Supabase Edge Functions no servidor. O token do aparelho é guardado em `app_metadata` do usuário autenticado; a função só permite registro para quem tem a role `admin`. O envio consulta `public.user_roles` e entrega somente aos usuários administradores. A secretária/role `user` não recebe tokens nem notificações.
+A implementação usa Capacitor Push Notifications + Firebase Cloud Messaging (FCM) no APK Android e Supabase Edge Functions no servidor. O token do aparelho é registrado no armazenamento KV do Worker por usuário autenticado com role `admin` ou `secretaria`. O envio alcança os aparelhos registrados por esses perfis. Contas com role `user` não podem registrar aparelhos nem recebem essas notificações.
 
 ## Secrets necessários
 
