@@ -82,9 +82,8 @@ function StaffDashboard() {
   async function saveLog(orderId: string) {
     const description = drafts[orderId]?.trim();
     if (!description) { toast.error("Digite o andamento do serviço."); return; }
-    const { error } = await (supabase as any).from("technical_service_logs").insert({
-      service_order_id: orderId, mechanic_user_id: user.id, procedure: "outro",
-      description, result: "Em andamento", observations: ""
+    const { error } = await (supabase as any).rpc("mechanic_record_service_progress", {
+      _order_id: orderId, _description: description,
     });
     if (error) { toast.error(error.message || "Não foi possível salvar o andamento."); return; }
     setDrafts((old) => ({ ...old, [orderId]: "" }));
