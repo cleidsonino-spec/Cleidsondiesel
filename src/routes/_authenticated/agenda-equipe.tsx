@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/agenda-equipe")({
     const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", context.user.id);
     if (error) throw error;
     const roles = (data ?? []).map((item) => item.role);
-    if (!roles.some((role) => ["admin", "secretaria", "mecanico"].includes(role))) throw redirect({ to: "/equipe" });
+    if (!roles.some((role) => ["admin", "secretaria"].includes(role))) throw redirect({ to: "/equipe" });
   },
   component: TeamAgendaPage,
 });
