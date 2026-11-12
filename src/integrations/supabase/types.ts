@@ -582,6 +582,16 @@ export type Database = {
       }
       booked_slots: { Args: { _date: string }; Returns: string[] }
       get_quote_approval: { Args: { _token: string }; Returns: Json }
+      get_mechanic_appointment_agenda: {
+        Args: never
+        Returns: {
+          appointment_id: string
+          customer_name: string
+          mechanic_name: string
+          scheduled_date: string
+          scheduled_time: string
+        }[]
+      }
       get_staff_appointment_agenda: {
         Args: never
         Returns: {
