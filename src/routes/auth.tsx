@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { lovable } from "@/integrations/lovable";
 import { startNativeOAuth } from "@/lib/native-oauth";
 import { supabase } from "@/integrations/supabase/client";
+import { getRoleHomePath } from "@/lib/auth-routing";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -37,9 +38,9 @@ function AuthPage() {
   useEffect(() => {
     let active = true;
     const goToRoleHome = async (userId: string) => {
-      const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle();
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
       if (!active) return;
-      navigate({ to: data?.role === "secretaria" || data?.role === "mecanico" ? "/equipe" : "/painel" });
+      navigate({ to: getRoleHomePath((data ?? []).map((item) => item.role)) });
     };
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) void goToRoleHome(data.session.user.id);
