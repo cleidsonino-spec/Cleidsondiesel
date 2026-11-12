@@ -176,7 +176,7 @@ function AppointmentRow({ a }: { a: Appointment }) {
     `Passando para lembrar do seu agendamento em ${formatDateBR(a.scheduled_date)}, às ${a.scheduled_time.slice(0, 5)}.`,
     `Veículo: ${a.vehicle} (${formatPlate(a.plate)}). Serviço: ${a.service_type}.`,
     "Se precisar alterar o horário, fale conosco por aqui.",
-  ].join("\\n"));
+  ].join("\n"));
 
   return (
     <div className="flex flex-col gap-3 p-4 md:flex-row md:items-center">
