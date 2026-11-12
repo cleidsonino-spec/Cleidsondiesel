@@ -27,6 +27,7 @@ import { availableSlots, getSlotsForDate } from "@/lib/schedule";
 import { orderTotal } from "@/lib/status";
 import { canIssueWarranty, warrantyEndDate, warrantyState } from "@/lib/warranty";
 import { quoteMessage, toWhatsAppNumber, SHOP_WHATSAPP, appointmentShopLink, approvalShopLink } from "@/lib/whatsapp";
+import { remainingOrderBalance } from "@/lib/financial";
 
 describe("placas", () => {
   it("aceita placa antiga e Mercosul, com ou sem traço", () => {
@@ -148,5 +149,24 @@ describe("garantia", () => {
     expect(warrantyState("2026-12-01", "2027-12-01", "2026-11-09")).toBe("A iniciar");
     expect(warrantyState("2026-01-01", "2026-12-01", "2026-11-09")).toBe("Vigente");
     expect(warrantyState("2025-01-01", "2025-12-31", "2026-11-09")).toBe("Vencida");
+  });
+});
+
+describe("contas a receber", () => {
+  it("calcula saldo após pagamento parcial", () => {
+    expect(remainingOrderBalance(100, 50, [25], "pronto")).toBe(125);
+  });
+  it("zera saldo após pagamento integral ou superior ao total", () => {
+    expect(remainingOrderBalance(100, 50, [150], "pronto")).toBe(0);
+    expect(remainingOrderBalance(100, 50, [80, 70], "pronto")).toBe(0);
+  });
+  it("não cria recebível para OS cancelada", () => {
+    expect(remainingOrderBalance(100, 50, [0], "cancelado")).toBe(0);
+  });
+  it("calcula centavos sem erro de ponto flutuante", () => {
+    expect(remainingOrderBalance(0.1, 0.2, [0.1], "em_servico")).toBe(0.2);
+  });
+  it("ignora pagamentos inválidos e não aceita total negativo", () => {
+    expect(remainingOrderBalance(-20, 10, [Number.NaN, -5], "em_servico")).toBe(0);
   });
 });
