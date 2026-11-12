@@ -69,11 +69,13 @@ export function OrderForm({
   onSubmit,
   submitLabel,
   extraActions,
+  allowStatusEdit = true,
 }: {
   initial: OrderFormValues;
   onSubmit: (v: OrderInput) => Promise<void>;
   submitLabel: string;
   extraActions?: ReactNode;
+  allowStatusEdit?: boolean;
 }) {
   const [v, setV] = useState<OrderFormValues>(initial);
   const [saving, setSaving] = useState(false);
@@ -162,9 +164,9 @@ export function OrderForm({
         <div className="flex flex-col justify-end rounded-sm border border-primary/40 bg-primary/10 px-4 py-2">
           <span className="text-xs uppercase tracking-wider text-muted-foreground">Total</span><span className="font-display text-2xl">{formatBRL(total)}</span>
         </div>
-        <F label="Status">
+        {allowStatusEdit ? <F label="Status">
           <Select value={v.status} onValueChange={(s) => set("status", s as OrderStatus)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ORDER_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent></Select>
-        </F>
+        </F> : <F label="Status atual"><div className="flex h-10 items-center rounded-md border border-input bg-muted px-3 text-sm">{ORDER_STATUSES.find((s) => s.value === v.status)?.label ?? v.status}</div></F>}
         <F label="Data de entrada"><Input type="date" value={v.entry_date} onChange={(e) => set("entry_date", e.target.value)} /></F>
         <F label="Previsão de entrega"><Input type="date" value={v.due_date} onChange={(e) => set("due_date", e.target.value)} /></F>
         <F label="Observações internas" wide><Textarea value={v.notes} onChange={(e) => set("notes", e.target.value)} rows={2} /></F>
