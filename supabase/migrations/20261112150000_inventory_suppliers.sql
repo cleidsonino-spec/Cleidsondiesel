@@ -76,7 +76,7 @@ create or replace function public.guard_inventory_stock_quantity()
 returns trigger
 language plpgsql
 set search_path = public
-as $
+as $$
 begin
   if new.stock_quantity is distinct from old.stock_quantity
      and coalesce(current_setting('app.inventory_movement', true), 'off') <> 'on' then
@@ -84,7 +84,7 @@ begin
   end if;
   return new;
 end;
-$;
+$$;
 
 drop trigger if exists inventory_stock_quantity_guard on public.inventory_items;
 create trigger inventory_stock_quantity_guard
