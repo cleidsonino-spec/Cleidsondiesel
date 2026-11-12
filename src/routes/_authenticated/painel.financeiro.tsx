@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, type FormEvent } from "react";
-import { ArrowDownRight, ArrowUpRight, CircleDollarSign, ReceiptText, Wallet } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, ReceiptText, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
