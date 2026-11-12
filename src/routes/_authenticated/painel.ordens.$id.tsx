@@ -188,6 +188,7 @@ function OrdemPage() {
               <Button type="button" variant="outline" size="lg" className="h-12" onClick={() => window.print()}>
                 <Printer /> Imprimir OS
               </Button>
+              {isAdmin && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button type="button" variant="ghost" size="lg" className="h-12 text-destructive sm:ml-auto">
@@ -205,6 +206,7 @@ function OrdemPage() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+              )}
             </>
           }
         />
