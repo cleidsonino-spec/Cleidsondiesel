@@ -245,5 +245,36 @@ $$;
 REVOKE ALL ON FUNCTION public.register_warranty_return(uuid, text, uuid, text, text, text, text, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.register_warranty_return(uuid, text, uuid, text, text, text, text, text) TO authenticated;
 
+
+CREATE OR REPLACE FUNCTION public.guard_warranty_identity()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $
+BEGIN
+  IF TG_OP = 'UPDATE' AND (
+    NEW.service_order_id IS DISTINCT FROM OLD.service_order_id
+    OR NEW.start_date IS DISTINCT FROM OLD.start_date
+    OR NEW.created_by IS DISTINCT FROM OLD.created_by
+    OR NEW.created_at IS DISTINCT FROM OLD.created_at
+  ) THEN
+    RAISE EXCEPTION 'A garantia não pode ser transferida para outra OS nem ter sua data de início ou autoria alteradas';
+  END IF;
+  IF NEW.duration_months < 1 OR NEW.duration_months > 120 OR NEW.end_date < NEW.start_date THEN
+    RAISE EXCEPTION 'Prazo ou vencimento da garantia inválido';
+  END IF;
+  RETURN NEW;
+END;
+$;
+
+DROP TRIGGER IF EXISTS warranties_guard_identity ON public.warranties;
+CREATE TRIGGER warranties_guard_identity
+  BEFORE INSERT OR UPDATE ON public.warranties
+  FOR EACH ROW EXECUTE FUNCTION public.guard_warranty_identity();
+
+REVOKE ALL ON FUNCTION public.capture_warranty_change_event() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.capture_warranty_return_event() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.guard_warranty_identity() FROM PUBLIC, anon, authenticated;
+
 COMMENT ON TABLE public.warranty_returns IS
   'Retornos em garantia vinculados à garantia e à OS original. Alterações auditadas; encerramentos são imutáveis.';
