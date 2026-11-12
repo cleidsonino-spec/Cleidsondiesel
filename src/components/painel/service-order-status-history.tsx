@@ -15,19 +15,68 @@ type TimelineEvent = {
   details: Record<string, unknown> | null;
 };
 
+const eventLabels: Record<string, string> = {
+  created: "Ordem de serviço criada",
+  status_changed: "Status alterado",
+  vehicle_received: "Veículo recebido na oficina",
+  diagnosis_logged: "Diagnóstico técnico registrado",
+  technical_progress: "Andamento técnico registrado",
+  quote_issued: "Orçamento enviado para aprovação",
+  quote_approved: "Orçamento aprovado",
+  quote_revoked: "Link de aprovação revogado",
+  mechanic_assigned: "Mecânico atribuído à ordem",
+  mechanic_unassigned: "Atribuição do mecânico encerrada ou substituída",
+  service_completed: "Serviço concluído tecnicamente",
+  customer_authorization: "Autorização de execução registrada",
+  delivery_confirmation: "Confirmação de entrega registrada",
+};
+
+function eventTitle(event: TimelineEvent) {
+  if (event.event_label?.trim()) return event.event_label;
+  if (event.event_type === "status_changed" && event.new_status === "entregue") {
+    return "Veículo entregue ao cliente";
+  }
+  if (event.event_type === "status_changed" && event.new_status === "pronto") {
+    return "Serviço concluído — pronto para retirada";
+  }
+  return eventLabels[event.event_type] ?? "Evento da ordem de serviço";
+}
+
 function detailText(event: TimelineEvent) {
   const details = event.details ?? {};
   const parts: string[] = [];
-  if (typeof details.description === "string" && details.description.trim()) parts.push(details.description);
-  if (typeof details.delivered_by_name === "string" && details.delivered_by_name.trim()) parts.push(`Pessoa que entregou: ${details.delivered_by_name}`);
-  if (typeof details.received_by_name === "string" && details.received_by_name.trim()) parts.push(`Nome informado de quem recebeu: ${details.received_by_name}`);
-  if (typeof details.signer_name === "string" && details.signer_name.trim()) parts.push(`Cliente/representante informado no aceite: ${details.signer_name}`);
-  if (typeof details.approved_by === "string" && details.approved_by.trim()) parts.push(`Nome informado na aprovação do orçamento: ${details.approved_by}`);
-  if (typeof details.odometer === "string" && details.odometer.trim()) parts.push(`Hodômetro/horímetro: ${details.odometer}`);
-  if (typeof details.fuel_level === "string" && details.fuel_level.trim()) parts.push(`Combustível: ${details.fuel_level.replace("_", " ")}`);
-  if (typeof details.exterior_condition === "string" && details.exterior_condition.trim()) parts.push(`Condição: ${details.exterior_condition}`);
-  if (typeof details.consent_text === "string" && details.consent_text.trim()) parts.push(details.consent_text);
-  if (typeof details.mechanic_user_id === "string") parts.push(`Mecânico da atribuição (ID): ${details.mechanic_user_id}`);
+  const add = (key: string, label: string) => {
+    const value = details[key];
+    if (typeof value === "string" && value.trim()) parts.push(`${label}: ${value}`);
+  };
+
+  add("description", "Descrição");
+  add("procedure", "Procedimento");
+  add("result", "Resultado");
+  add("observations", "Observações");
+  add("delivered_by_name", "Pessoa que entregou o veículo");
+  add("received_by_name", "Nome informado de quem recebeu o veículo");
+  add("signer_name", "Cliente/representante informado no aceite");
+  add("approved_by", "Nome informado na aprovação do orçamento");
+  add("odometer", "Hodômetro/horímetro");
+  add("fuel_level", "Combustível");
+  add("exterior_condition", "Condição externa");
+  add("consent_text", "Texto do aceite");
+  add("mechanic_user_id", "Mecânico da atribuição (ID)");
+  add("assignment_id", "Identificação da atribuição");
+  add("assigned_at", "Atribuição iniciada em");
+  add("ended_at", "Atribuição encerrada em");
+  add("completed_at", "Conclusão técnica em");
+  add("state", "Situação do orçamento");
+
+  if (typeof details.active === "boolean") {
+    parts.push(details.active ? "Atribuição ativa" : "Atribuição encerrada");
+  }
+  if (typeof details.authorization_type === "string") {
+    parts.push(details.authorization_type === "delivery_confirmation"
+      ? "Tipo: confirmação de entrega"
+      : "Tipo: autorização de execução");
+  }
   return parts;
 }
 
@@ -39,7 +88,8 @@ export function ServiceOrderStatusHistory({ orderId }: { orderId: string }) {
         .from("service_order_status_events")
         .select("id,previous_status,new_status,event_type,event_label,changed_at,changed_by,actor_name,details")
         .eq("service_order_id", orderId)
-        .order("changed_at", { ascending: false });
+        .order("changed_at", { ascending: false })
+        .order("id", { ascending: false });
       if (error) throw error;
       return (data ?? []) as TimelineEvent[];
     },
@@ -48,7 +98,7 @@ export function ServiceOrderStatusHistory({ orderId }: { orderId: string }) {
   return (
     <section className="space-y-3 rounded-md border bg-card p-4">
       <h2 className="flex items-center gap-2 font-semibold"><History className="size-4" /> Histórico completo da OS</h2>
-      <p className="text-xs text-muted-foreground">Linha do tempo de status, recebimento, diagnóstico, orçamento, atribuições, execução, autorizações e conclusão. Eventos anteriores à ativação dos registros integrados não são reconstruídos.</p>
+      <p className="text-xs text-muted-foreground">Linha do tempo de recebimento, diagnóstico, orçamento, atribuições, execução, autorizações, conclusão técnica e entrega física. Eventos anteriores à ativação dos registros integrados não são reconstruídos.</p>
       {query.isLoading ? <p className="text-sm text-muted-foreground">Carregando histórico…</p>
         : query.isError ? <p className="text-sm text-destructive">Não foi possível carregar o histórico da ordem.</p>
         : query.data.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum evento registrado ainda. A linha do tempo começa após a instalação das atualizações no banco.</p>
@@ -58,12 +108,14 @@ export function ServiceOrderStatusHistory({ orderId }: { orderId: string }) {
             const current = orderStatusInfo(event.new_status as never);
             const previous = event.previous_status ? orderStatusInfo(event.previous_status as never) : null;
             const details = detailText(event);
+            const changedAt = new Date(event.changed_at);
             return <li key={event.id} className="relative border-l-2 border-border pl-4">
               <span className="absolute -left-[5px] top-1 size-2 rounded-full bg-primary" />
-              <p className="text-sm font-semibold">{event.event_label || (event.event_type === "created" ? "OS criada" : event.event_type === "status_changed" ? "Status alterado" : "Evento da ordem")}</p>
+              <p className="text-sm font-semibold">{eventTitle(event)}</p>
               {isStatus && <p className="text-sm">{previous ? `${previous.label} → ${current.label}` : current.label}</p>}
-              <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><Clock3 className="size-3" />{new Date(event.changed_at).toLocaleString("pt-BR")}</p>
-              <p className="text-xs text-muted-foreground">{event.changed_by ? `Usuário da equipe que registrou a ação (ID): ${event.changed_by}` : "Usuário da equipe não identificado nesta ação"}</p>
+              <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><Clock3 className="size-3" />{Number.isNaN(changedAt.getTime()) ? "Horário não disponível" : changedAt.toLocaleString("pt-BR")}</p>
+              {event.actor_name && <p className="text-xs text-muted-foreground">Nome informado no registro: {event.actor_name}</p>}
+              <p className="text-xs text-muted-foreground">{event.changed_by ? `Usuário autenticado da equipe (ID): ${event.changed_by}` : "Usuário autenticado da equipe não identificado neste evento"}</p>
               {details.length > 0 && <div className="mt-2 space-y-1 rounded bg-muted/50 p-2">{details.map((detail, index) => <p key={index} className="whitespace-pre-wrap text-xs text-muted-foreground">{detail}</p>)}</div>}
             </li>;
           })}
