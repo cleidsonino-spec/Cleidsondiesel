@@ -6,6 +6,10 @@ import { toast } from "sonner";
 import { OrderForm, type OrderFormValues } from "@/components/painel/order-form";
 import { QuotePdfActions } from "@/components/painel/quote-pdf-actions";
 import { ApprovalActions } from "@/components/painel/approval-actions";
+import { OrderSignatures } from "@/components/painel/order-signatures";
+import { VehicleHistory } from "@/components/painel/vehicle-history";
+import { ClientPortalActions } from "@/components/painel/client-portal-actions";
+import { WarrantyClaims } from "@/components/painel/warranty-claims";
 import { WarrantyEditor } from "@/components/painel/warranty-editor";
 import { MechanicAssignment } from "@/components/painel/mechanic-assignment";
 import { warrantiesQuery } from "@/lib/warranty";
@@ -120,6 +124,7 @@ function OrdemPage() {
 
       {/* WhatsApp */}
       <ApprovalActions order={order} />
+      {(isAdmin || isSecretary) && <OrderSignatures order={{ id: order.id, number: order.number, status: order.status }} />
       {(isAdmin || isSecretary) && ((order as any).fuel_filter_replacement !== null || (order as any).system_cleaning !== null) && <section className="rounded-md border border-primary/30 bg-primary/5 p-4">
         <h2 className="font-semibold">Recomendações do mecânico para o orçamento</h2>
         <p className="mb-3 text-xs text-muted-foreground">Respostas registradas durante o diagnóstico.</p>
@@ -194,7 +199,14 @@ function OrdemPage() {
         />
       </div>
 
+      {(isAdmin || isSecretary) && <ClientPortalActions orderId={id} />}
       <WarrantyEditor orderId={id} orderStatus={order.status} />
+      {(isAdmin || isSecretary) && <WarrantyClaims orderId={id} />}
+      <VehicleHistory
+        order={{ id: order.id, vehicle_id: order.vehicle_id, plate: order.plate }}
+        canViewRestrictedRecords={isAdmin}
+        canViewSignatures={isAdmin || isSecretary}
+      />
       <PrintSheet order={order} />
     </div>
   );
