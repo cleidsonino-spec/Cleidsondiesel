@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { CalendarDays, Car, Users, ShieldCheck, ClipboardList, Download, ExternalLink, FileText, LogOut, Plus, ShieldAlert } from "lucide-react";
+import { CalendarDays, Car, Users, ShieldCheck, ClipboardList, Download, ExternalLink, FileText, LogOut, Plus, ShieldAlert, ClipboardCheck, Wallet, Boxes, ClipboardSignature, BarChart3 } from "lucide-react";
 
 import { Logo } from "@/components/site/logo";
 import { Button } from "@/components/ui/button";
@@ -75,8 +75,13 @@ function PainelLayout() {
             <PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" />
             {(isAdmin || isSecretary) && <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />}
             <PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" />
+            {(isAdmin || isSecretary) && <PanelLink to="/painel/recebimento" icon={<ClipboardCheck />} label="Recebimento" />}
+            {(isAdmin || isSecretary) && <PanelLink to="/painel/assinaturas" icon={<ClipboardSignature />} label="Autorizações" />}
             {isAdmin && <PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" />}
-            {isAdmin && <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />}
+            {(isAdmin || isSecretary) && <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />}
+            {isAdmin && <PanelLink to="/painel/financeiro" icon={<Wallet />} label="Financeiro" />}
+            {isAdmin && <PanelLink to="/painel/estoque" icon={<Boxes />} label="Estoque" />}
+            {isAdmin && <PanelLink to="/painel/indicadores" icon={<BarChart3 />} label="Indicadores" />}
             {isAdmin && <NotificationBell />}
             <Button asChild size="sm" className="ml-auto shrink-0"><Link to="/painel/ordens/nova" search={{}}><Plus /> Nova OS</Link></Button>
           </nav>
@@ -96,7 +101,7 @@ function PainelLayout() {
 }
 
 function PanelLink({ to, icon, label, exact }: {
-  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias";
+  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias" | "/painel/recebimento" | "/painel/financeiro" | "/painel/estoque" | "/painel/assinaturas" | "/painel/indicadores";
   icon: React.ReactNode;
   label: string;
   exact?: boolean;

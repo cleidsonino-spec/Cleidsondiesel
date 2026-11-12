@@ -17,7 +17,9 @@ export const ORDER_STATUSES: { value: OrderStatus; label: string; tone: Tone }[]
 export const APPOINTMENT_STATUSES: { value: AppointmentStatus; label: string; tone: Tone }[] = [
   { value: "pendente", label: "Pendente", tone: "warning" },
   { value: "confirmado", label: "Confirmado", tone: "success" },
-  { value: "concluido", label: "Concluído", tone: "muted" },
+  { value: "compareceu", label: "Compareceu", tone: "primary" },
+  { value: "nao_compareceu", label: "Não compareceu", tone: "destructive" },
+  { value: "concluido", label: "Convertido em OS", tone: "muted" },
   { value: "cancelado", label: "Cancelado", tone: "destructive" },
 ];
 

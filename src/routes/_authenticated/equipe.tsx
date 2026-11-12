@@ -44,10 +44,15 @@ function StaffDashboard() {
       setItems(data ?? []);
       const orderIds = (data ?? []).map((row: any) => row.service_order_id);
       if (orderIds.length) {
-        const { data: logs } = await (supabase as any).from("technical_service_logs").select("id, service_order_id, procedure, description, result, observations, created_at").in("service_order_id", orderIds).order("created_at", { ascending: false });
-        const grouped: Record<string, any[]> = {};
-        for (const log of logs ?? []) (grouped[log.service_order_id] ??= []).push(log);
-        setHistory(grouped);
+        const { data: logs, error: logsError } = await (supabase as any).from("technical_service_logs").select("id, service_order_id, procedure, description, result, observations, created_at").in("service_order_id", orderIds).order("created_at", { ascending: false });
+        if (logsError) {
+          toast.error("As ordens foram carregadas, mas não foi possível consultar o histórico técnico. Atualize a tela ou confira as permissões.");
+          setHistory({});
+        } else {
+          const grouped: Record<string, any[]> = {};
+          for (const log of logs ?? []) (grouped[log.service_order_id] ??= []).push(log);
+          setHistory(grouped);
+        }
       } else setHistory({});
     } else {
       const { data, error } = await supabase.from("appointments").select("*")
@@ -82,11 +87,10 @@ function StaffDashboard() {
   async function saveLog(orderId: string) {
     const description = drafts[orderId]?.trim();
     if (!description) { toast.error("Digite o andamento do serviço."); return; }
-    const { error } = await (supabase as any).from("technical_service_logs").insert({
-      service_order_id: orderId, mechanic_user_id: user.id, procedure: "Andamento do serviço",
-      description, result: "Em andamento", observations: ""
+    const { error } = await (supabase as any).rpc("mechanic_record_service_progress", {
+      _order_id: orderId, _description: description,
     });
-    if (error) { toast.error("Não foi possível salvar o andamento."); return; }
+    if (error) { toast.error(error.message || "Não foi possível salvar o andamento."); return; }
     setDrafts((old) => ({ ...old, [orderId]: "" }));
     toast.success("Andamento registrado.");
     await load();

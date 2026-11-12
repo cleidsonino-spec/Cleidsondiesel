@@ -1,26 +1,18 @@
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, BellRing, MessageCircle, Printer, Trash2 } from "lucide-react";
+import { ArrowLeft, BellRing, MessageCircle, Printer } from "lucide-react";
 import { toast } from "sonner";
 
 import { OrderForm, type OrderFormValues } from "@/components/painel/order-form";
 import { QuotePdfActions } from "@/components/painel/quote-pdf-actions";
 import { ApprovalActions } from "@/components/painel/approval-actions";
+import { CustomerAuthorizationActions } from "@/components/painel/customer-authorization-actions";
+import { CustomerPortalActions } from "@/components/painel/customer-portal-actions";
 import { WarrantyEditor } from "@/components/painel/warranty-editor";
 import { MechanicAssignment } from "@/components/painel/mechanic-assignment";
+import { ServiceOrderStatusHistory } from "@/components/painel/service-order-status-history";
 import { warrantiesQuery } from "@/lib/warranty";
 import { StatusBadge } from "@/components/site/status-badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -91,17 +83,10 @@ function OrdemPage() {
   }
 
   const info = orderStatusInfo(order.status);
-  const siteUrl = typeof window !== "undefined" ? window.location.origin : undefined;
   const quoteText = quoteMessage(order);
-  const statusHref = waLink(order.phone, statusMessage(order, siteUrl));
+  const statusHref = waLink(order.phone, statusMessage(order));
 
-  async function remove() {
-    const { error } = await supabase.from("service_orders").delete().eq("id", id);
-    if (error) { toast.error("Não foi possível excluir."); return; }
-    await qc.invalidateQueries({ queryKey: ["orders"] });
-    toast.success("OS excluída.");
-    navigate({ to: "/painel" });
-  }
+
 
   return (
     <div className="space-y-6">
@@ -120,6 +105,8 @@ function OrdemPage() {
 
       {/* WhatsApp */}
       <ApprovalActions order={order} />
+      {(isAdmin || isSecretary) && <CustomerAuthorizationActions orderId={order.id} orderStatus={order.status} />}
+      {(isAdmin || isSecretary) && <CustomerPortalActions orderId={order.id} orderNumber={order.number} phone={order.phone} orderStatus={order.status} />}
       {(isAdmin || isSecretary) && ((order as any).fuel_filter_replacement !== null || (order as any).system_cleaning !== null) && <section className="rounded-md border border-primary/30 bg-primary/5 p-4">
         <h2 className="font-semibold">Recomendações do mecânico para o orçamento</h2>
         <p className="mb-3 text-xs text-muted-foreground">Respostas registradas durante o diagnóstico.</p>
@@ -157,8 +144,13 @@ function OrdemPage() {
           key={order.updated_at}
           initial={toForm(order)}
           submitLabel="Salvar alterações"
+          allowStatusEdit={false}
           onSubmit={async (input) => {
-            const { error } = await supabase.from("service_orders").update(input).eq("id", id);
+            // O status só pode mudar pelas RPCs e validações do fluxo da OS.
+            // A edição administrativa atualiza apenas os demais campos.
+            const editableFields = { ...input };
+            delete editableFields.status;
+            const { error } = await supabase.from("service_orders").update(editableFields).eq("id", id);
             if (error) {
               console.error("Erro ao atualizar OS:", error);
               toast.error(`Falha ao salvar: ${error.message}`);
@@ -172,29 +164,18 @@ function OrdemPage() {
               <Button type="button" variant="outline" size="lg" className="h-12" onClick={() => window.print()}>
                 <Printer /> Imprimir OS
               </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button type="button" variant="ghost" size="lg" className="h-12 text-destructive sm:ml-auto">
-                    <Trash2 /> Excluir
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Excluir OS nº {order.number}?</AlertDialogTitle>
-                    <AlertDialogDescription>Essa ação não pode ser desfeita.</AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={remove}>Excluir</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              {isAdmin && (
+                <p className="text-sm text-muted-foreground sm:ml-auto" role="status">
+                  Exclusão física desativada para preservar o histórico da OS. O cancelamento seguro será disponibilizado após a operação autorizada no banco.
+                </p>
+              )}
             </>
           }
         />
       </div>
 
-      <WarrantyEditor orderId={id} orderStatus={order.status} />
+      {(isAdmin || isSecretary) && <ServiceOrderStatusHistory orderId={id} />}
+      <WarrantyEditor orderId={id} orderStatus={order.status} canManage={isAdmin || isSecretary} />
       <PrintSheet order={order} />
     </div>
   );

@@ -29,6 +29,25 @@ BEGIN
  RETURN NEW;
 END $$;
 CREATE TRIGGER order_registry_validation BEFORE INSERT OR UPDATE OF customer_id, vehicle_id, plate ON public.service_orders FOR EACH ROW EXECUTE FUNCTION public.validate_order_registry();
+-- A tabela de garantias precisa existir antes de receber cobertura, auditoria e retornos.
+-- IF NOT EXISTS preserva a tabela e os registros quando ela já existe no banco.
+CREATE TABLE IF NOT EXISTS public.warranties (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+ service_order_id uuid NOT NULL UNIQUE REFERENCES public.service_orders(id) ON DELETE RESTRICT,
+ start_date date NOT NULL,
+ duration_months integer NOT NULL CHECK (duration_months BETWEEN 1 AND 120),
+ end_date date NOT NULL CHECK (end_date >= start_date),
+ created_by uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE RESTRICT,
+ created_at timestamptz NOT NULL DEFAULT now(),
+ updated_at timestamptz NOT NULL DEFAULT now()
+);
+GRANT SELECT, INSERT, UPDATE ON public.warranties TO authenticated;
+GRANT ALL ON public.warranties TO service_role;
+CREATE INDEX IF NOT EXISTS warranties_service_order_idx ON public.warranties(service_order_id);
+DROP TRIGGER IF EXISTS warranties_updated_at ON public.warranties;
+CREATE TRIGGER warranties_updated_at BEFORE UPDATE ON public.warranties
+ FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
 ALTER TABLE public.warranties ADD COLUMN coverage text NOT NULL DEFAULT '', ADD COLUMN terms text NOT NULL DEFAULT '';
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.warranties TO authenticated;
 GRANT ALL ON public.warranties TO service_role;

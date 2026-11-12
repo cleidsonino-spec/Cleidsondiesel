@@ -69,19 +69,30 @@ export function OrderForm({
   onSubmit,
   submitLabel,
   extraActions,
+  allowStatusEdit = true,
 }: {
   initial: OrderFormValues;
   onSubmit: (v: OrderInput) => Promise<void>;
   submitLabel: string;
   extraActions?: ReactNode;
+  allowStatusEdit?: boolean;
 }) {
   const [v, setV] = useState<OrderFormValues>(initial);
   const [saving, setSaving] = useState(false);
   const { data: customers = [] } = useQuery(customersQuery());
   const { data: vehicles = [] } = useQuery(vehiclesQuery());
   const chooseCustomer = (id: string) => {
-    const c = customers.find((item) => item.id === id);
-    setV((p) => ({ ...p, customer_id: c?.id ?? "", vehicle_id: "", ...(c ? { customer_name: c.name, phone: c.phone ?? "" } : {}) }));
+    const customer = customers.find((item) => item.id === id);
+    setV((p) => {
+      const changedCustomer = (p.customer_id || "") !== (customer?.id ?? "");
+      return {
+        ...p,
+        customer_id: customer?.id ?? "",
+        vehicle_id: "",
+        ...(changedCustomer ? { plate: "", vehicle: "", vehicle_year: "", mileage: "" } : {}),
+        ...(customer ? { customer_name: customer.name, phone: customer.phone ?? "" } : {}),
+      };
+    });
   };
   const chooseVehicle = (id: string) => {
     const vehicle = vehicles.find((item) => item.id === id);
@@ -92,6 +103,13 @@ export function OrderForm({
 
   async function handle(e: FormEvent) {
     e.preventDefault();
+    if (v.vehicle_id) {
+      const linkedVehicle = vehicles.find((vehicle) => vehicle.id === v.vehicle_id);
+      if (!linkedVehicle || linkedVehicle.customer_id !== v.customer_id) {
+        toast.error("O veículo selecionado não pertence ao cliente informado. Selecione novamente o cliente e o veículo.");
+        return;
+      }
+    }
     if (!isValidPlate(v.plate)) { toast.error("Placa inválida. Ex: ABC1234 ou ABC1D23."); return; }
     if (!v.customer_name.trim()) { toast.error("Informe o nome do cliente."); return; }
     if (!v.vehicle.trim()) { toast.error("Informe o veículo."); return; }
@@ -162,9 +180,9 @@ export function OrderForm({
         <div className="flex flex-col justify-end rounded-sm border border-primary/40 bg-primary/10 px-4 py-2">
           <span className="text-xs uppercase tracking-wider text-muted-foreground">Total</span><span className="font-display text-2xl">{formatBRL(total)}</span>
         </div>
-        <F label="Status">
+        {allowStatusEdit ? <F label="Status">
           <Select value={v.status} onValueChange={(s) => set("status", s as OrderStatus)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ORDER_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent></Select>
-        </F>
+        </F> : <F label="Status atual"><div className="flex h-10 items-center rounded-md border border-input bg-muted px-3 text-sm">{ORDER_STATUSES.find((s) => s.value === v.status)?.label ?? v.status}</div></F>}
         <F label="Data de entrada"><Input type="date" value={v.entry_date} onChange={(e) => set("entry_date", e.target.value)} /></F>
         <F label="Previsão de entrega"><Input type="date" value={v.due_date} onChange={(e) => set("due_date", e.target.value)} /></F>
         <F label="Observações internas" wide><Textarea value={v.notes} onChange={(e) => set("notes", e.target.value)} rows={2} /></F>

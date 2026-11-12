@@ -366,6 +366,29 @@ export type Database = {
           },
         ]
       }
+      warranty_change_events: {
+        Row: { id: string; warranty_id: string; event_type: string; actor_id: string | null; occurred_at: string; before_data: Json | null; after_data: Json }
+        Insert: { id?: string; warranty_id: string; event_type: string; actor_id?: string | null; occurred_at?: string; before_data?: Json | null; after_data: Json }
+        Update: { id?: string; warranty_id?: string; event_type?: string; actor_id?: string | null; occurred_at?: string; before_data?: Json | null; after_data?: Json }
+        Relationships: []
+      }
+      warranty_returns: {
+        Row: { id: string; warranty_id: string; service_order_id: string; status: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; customer_update: string; created_by: string; updated_by: string; received_at: string; updated_at: string; closed_at: string | null }
+        Insert: { id?: string; warranty_id: string; service_order_id: string; status?: string; complaint: string; diagnosis?: string; resolution?: string; parts_used?: string; labor_description?: string; customer_update?: string; created_by: string; updated_by: string; received_at?: string; updated_at?: string; closed_at?: string | null }
+        Update: { id?: string; warranty_id?: string; service_order_id?: string; status?: string; complaint?: string; diagnosis?: string; resolution?: string; parts_used?: string; labor_description?: string; customer_update?: string; created_by?: string; updated_by?: string; received_at?: string; updated_at?: string; closed_at?: string | null }
+        Relationships: [
+          { foreignKeyName: "warranty_returns_warranty_id_fkey"; columns: ["warranty_id"]; isOneToOne: false; referencedRelation: "warranties"; referencedColumns: ["id"] },
+          { foreignKeyName: "warranty_returns_service_order_id_fkey"; columns: ["service_order_id"]; isOneToOne: false; referencedRelation: "service_orders"; referencedColumns: ["id"] }
+        ]
+      }
+      warranty_return_events: {
+        Row: { id: string; warranty_return_id: string; event_type: string; actor_id: string | null; occurred_at: string; before_data: Json | null; after_data: Json }
+        Insert: { id?: string; warranty_return_id: string; event_type: string; actor_id?: string | null; occurred_at?: string; before_data?: Json | null; after_data: Json }
+        Update: { id?: string; warranty_return_id?: string; event_type?: string; actor_id?: string | null; occurred_at?: string; before_data?: Json | null; after_data?: Json }
+        Relationships: [
+          { foreignKeyName: "warranty_return_events_warranty_return_id_fkey"; columns: ["warranty_return_id"]; isOneToOne: false; referencedRelation: "warranty_returns"; referencedColumns: ["id"] }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -378,6 +401,9 @@ export type Database = {
       }
       booked_slots: { Args: { _date: string }; Returns: string[] }
       get_quote_approval: { Args: { _token: string }; Returns: Json }
+      get_customer_portal: { Args: { _token: string }; Returns: Json }
+      issue_customer_portal_access: { Args: { _order_id: string }; Returns: Json }
+      revoke_customer_portal_access: { Args: { _order_id: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -386,25 +412,6 @@ export type Database = {
         Returns: boolean
       }
       issue_quote_approval: { Args: { _order_id: string }; Returns: Json }
-      lookup_plate: {
-        Args: { _plate: string }
-        Returns: {
-          complaint: string
-          due_date: string
-          entry_date: string
-          number: number
-          status: Database["public"]["Enums"]["order_status"]
-          updated_at: string
-          vehicle: string
-        }[]
-      }
-      lookup_vehicle: {
-        Args: { _plate: string }
-        Returns: {
-          vehicle: string
-          vehicle_year: string
-        }[]
-      }
       normalize_plate: { Args: { _p: string }; Returns: string }
       quote_snapshot: {
         Args: { o: Database["public"]["Tables"]["service_orders"]["Row"] }
@@ -414,11 +421,15 @@ export type Database = {
         Args: { _cpf: string; _name: string; _token: string }
         Returns: Json
       }
+      register_warranty_return: {
+        Args: { _warranty_id: string; _complaint: string; _return_id?: string | null; _status?: string; _diagnosis?: string; _resolution?: string; _parts_used?: string; _labor_description?: string; _customer_update?: string }
+        Returns: string
+      }
       valid_cpf: { Args: { _cpf: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
-      appointment_status: "pendente" | "confirmado" | "concluido" | "cancelado"
+      appointment_status: "pendente" | "confirmado" | "compareceu" | "nao_compareceu" | "concluido" | "cancelado"
       order_status:
         | "recebido"
         | "em_analise"
@@ -556,7 +567,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
-      appointment_status: ["pendente", "confirmado", "concluido", "cancelado"],
+      appointment_status: ["pendente", "confirmado", "compareceu", "nao_compareceu", "concluido", "cancelado"],
       order_status: [
         "recebido",
         "em_analise",

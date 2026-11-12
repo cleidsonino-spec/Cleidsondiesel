@@ -162,8 +162,21 @@ function AppointmentRow({ a }: { a: Appointment }) {
     const { error } = await supabase.from("appointments").update({ status }).eq("id", a.id);
     if (error) { toast.error("Não foi possível atualizar."); return; }
     await qc.invalidateQueries({ queryKey: ["appointments"] });
-    toast.success(status === "confirmado" ? "Agendamento confirmado." : "Agendamento atualizado.");
+    const messages: Partial<Record<AppointmentStatus, string>> = {
+      confirmado: "Agendamento confirmado.",
+      compareceu: "Presença registrada.",
+      nao_compareceu: "Falta registrada.",
+      cancelado: "Agendamento cancelado.",
+    };
+    toast.success(messages[status] ?? "Agendamento atualizado.");
   }
+
+  const reminderHref = waLink(a.phone, [
+    `Olá, ${a.customer_name.split(" ")[0]}! Aqui é da Cleidson Diesel.`,
+    `Passando para lembrar do seu agendamento em ${formatDateBR(a.scheduled_date)}, às ${a.scheduled_time.slice(0, 5)}.`,
+    `Veículo: ${a.vehicle} (${formatPlate(a.plate)}). Serviço: ${a.service_type}.`,
+    "Se precisar alterar o horário, fale conosco por aqui.",
+  ].join("\n"));
 
   return (
     <div className="flex flex-col gap-3 p-4 md:flex-row md:items-center">
@@ -183,15 +196,18 @@ function AppointmentRow({ a }: { a: Appointment }) {
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge tone={info.tone} label={info.label} />
         {a.status === "pendente" && (
-          <Button
-            size="sm"
-            onClick={async () => {
-              await setStatus("confirmado");
-              if (confirmHref) window.open(confirmHref, "_blank", "noopener");
-            }}
-          >
-            <Check /> Confirmar
-          </Button>
+          <>
+            <Button size="sm" onClick={() => setStatus("confirmado")}><Check /> Confirmar
+            </Button>
+            {confirmHref && <Button asChild size="sm" variant="outline"><a href={confirmHref} target="_blank" rel="noopener noreferrer"><MessageCircle /> Avisar cliente</a></Button>}
+          </>
+        )}
+        {a.status === "confirmado" && (
+          <>
+            {reminderHref && <Button asChild size="sm" variant="outline"><a href={reminderHref} target="_blank" rel="noopener noreferrer"><MessageCircle /> Enviar lembrete</a></Button>}
+            <Button size="sm" variant="secondary" onClick={() => setStatus("compareceu")}>Registrar chegada</Button>
+            <Button size="sm" variant="ghost" onClick={() => setStatus("nao_compareceu")}>Não compareceu</Button>
+          </>
         )}
         {chatHref && (
           <Button asChild size="sm" variant="outline" aria-label="Conversar no WhatsApp">
@@ -200,7 +216,7 @@ function AppointmentRow({ a }: { a: Appointment }) {
             </a>
           </Button>
         )}
-        {(a.status === "pendente" || a.status === "confirmado") && (
+        {(a.status === "pendente" || a.status === "confirmado" || a.status === "compareceu") && (
           <>
             <Button asChild size="sm" variant="secondary">
               <Link to="/painel/ordens/nova" search={{ agendamento: a.id }}>
