@@ -196,7 +196,11 @@ function OrdemPage() {
       </div>
 
       <WarrantyEditor orderId={id} orderStatus={order.status} />
-      <VehicleHistory order={{ id: order.id, vehicle_id: order.vehicle_id, plate: order.plate }} />
+      <VehicleHistory
+        order={{ id: order.id, vehicle_id: order.vehicle_id, plate: order.plate }}
+        canViewRestrictedRecords={isAdmin}
+        canViewSignatures={isAdmin || isSecretary}
+      />
       <PrintSheet order={order} />
     </div>
   );
