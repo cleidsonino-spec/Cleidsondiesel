@@ -75,6 +75,9 @@ function IndicatorsPage() {
     const received = payments.reduce((sum, p) => sum + Number(p.amount), 0);
     const spent = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
     const orderValue = orders.reduce((sum, o) => sum + Number(o.parts_value ?? 0) + Number(o.labor_value ?? 0), 0);
+    const paidByOrder = new Map<string, number>();
+    for (const payment of data.payments) paidByOrder.set(payment.service_order_id, (paidByOrder.get(payment.service_order_id) ?? 0) + Number(payment.amount));
+    const receivable = data.orders.filter(o => o.status !== "cancelado").reduce((sum, o) => sum + Math.max(0, Number(o.parts_value ?? 0) + Number(o.labor_value ?? 0) - (paidByOrder.get(o.id) ?? 0)), 0);
     const byCategory = new Map<string, number>();
     for (const expense of expenses) byCategory.set(expense.category, (byCategory.get(expense.category) ?? 0) + Number(expense.amount));
     const byOrder = new Map<string, { cost: number; movements: number; missing: number }>();
@@ -87,9 +90,8 @@ function IndicatorsPage() {
       byOrder.set(movement.service_order_id, row);
     }
     return {
-      orders, orderValue, received, spent, cashBalance: received - spent,
+      orders, orderValue, received, spent, receivable, cashBalance: received - spent,
       completed: completions.length, knownCost, missingCost,
-      preliminary: received - spent - knownCost,
       byCategory: [...byCategory.entries()].sort((a, b) => b[1] - a[1]),
       orderCosts: orders.map(order => ({ order, costs: byOrder.get(order.id) ?? null })).sort((a, b) => b.order.number - a.order.number),
       unlinkedExits: movements.filter(m => !m.service_order_id).length,
@@ -115,7 +117,7 @@ function IndicatorsPage() {
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <Metric icon={<Wallet className="size-4"/>} label="Saldo de caixa do período" value={formatBRL(summary.cashBalance)} detail="Recebimentos menos despesas registradas"/>
         <Metric icon={<Package className="size-4"/>} label="Custo conhecido de peças nas OS" value={formatBRL(summary.knownCost)} detail="Somente saídas de estoque vinculadas a OS"/>
-        <Metric icon={<Coins className="size-4"/>} label="Resultado preliminar" value={formatBRL(summary.preliminary)} detail="Caixa menos despesas e custo conhecido de peças; não é lucro líquido"/>
+        <Metric icon={<Coins className="size-4"/>} label="Contas a receber" value={formatBRL(summary.receivable)} detail="Saldo de OS não canceladas, após pagamentos registrados"/>
       </section>
       <section className="grid gap-5 xl:grid-cols-2">
         <div className="space-y-3 rounded-md border bg-card p-4"><div><h2 className="font-semibold">Despesas por categoria</h2><p className="text-xs text-muted-foreground">Valores registrados no período selecionado.</p></div>
@@ -130,7 +132,7 @@ function IndicatorsPage() {
       <section className="space-y-3"><div><h2 className="text-xl font-semibold">Custos de peças por ordem de serviço</h2><p className="text-sm text-muted-foreground">O custo aparece quando a saída de estoque é vinculada à OS. Isso não inclui peças compradas fora do estoque nem custo de mão de obra.</p></div>
         <div className="overflow-hidden rounded-md border bg-card divide-y">{summary.orderCosts.length ? summary.orderCosts.map(({order,costs}) => <article key={order.id} className="grid gap-2 p-4 sm:grid-cols-[1fr_auto_auto] sm:items-center"><div className="min-w-0"><p className="font-medium">OS {order.number} · {order.customer_name}</p><p className="text-xs text-muted-foreground">{order.vehicle} · {order.plate} · {order.status}</p></div><div className="text-sm"><p className="text-muted-foreground">Valor OS</p><strong>{formatBRL(Number(order.parts_value ?? 0) + Number(order.labor_value ?? 0))}</strong></div><div className="text-sm sm:text-right"><p className="text-muted-foreground">Custo de estoque vinculado</p><strong>{costs ? formatBRL(costs.cost) : "Sem baixa vinculada"}</strong>{costs?.missing ? <p className="text-xs text-warning">{costs.missing} saída(s) sem custo</p> : null}</div></article>) : <p className="p-6 text-sm text-muted-foreground">Nenhuma OS registrada neste período.</p>}</div>
       </section>
-      <section className="rounded-md border border-warning/40 p-4"><h2 className="font-semibold">Como interpretar o resultado</h2><p className="mt-1 text-sm text-muted-foreground">O resultado preliminar é um indicador gerencial, não lucro líquido nem margem contábil: ainda não desconta salários, encargos, impostos não lançados, custos de peças sem vínculo e outros custos não registrados. O valor total das OS também não representa dinheiro recebido. Para uma margem confiável, registre toda saída de peça vinculada à OS e todos os custos operacionais.</p></section>
+      <section className="rounded-md border border-warning/40 p-4"><h2 className="font-semibold">Como interpretar o resultado</h2><p className="mt-1 text-sm text-muted-foreground">O saldo de caixa é apenas recebimentos menos despesas registradas. O custo de peças é mostrado separadamente para evitar descontar novamente compras de estoque que já tenham sido lançadas como despesa. Ainda não é lucro líquido nem margem contábil: faltam salários, encargos, impostos e outros custos não registrados. O valor total das OS não representa dinheiro recebido.</p></section>
     </>}
   </main>;
 }
