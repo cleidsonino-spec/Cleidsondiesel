@@ -155,7 +155,7 @@ function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; ca
       parts_used: item.parts_used, labor_description: item.labor_description, status: item.status,
     })} />)}
     {draft && <form onSubmit={save} className="grid gap-3 rounded-md bg-muted/40 p-3">
-      <p className="text-sm font-semibold">{draft.id ? "Atualizar retorno" : "Novo retorno"} · OS original preservada</p>
+      <p className="text-sm font-semibold">{draft.id ? "Atualizar retorno" : "Novo retorno"} · vinculado à garantia e à OS original</p>
       <div className="space-y-1"><Label htmlFor={`return-complaint-${warrantyId}`}>Reclamação / motivo do retorno</Label><Textarea id={`return-complaint-${warrantyId}`} required value={draft.complaint} onChange={(e) => setDraft({ ...draft, complaint: e.target.value })} /></div>
       <div className="space-y-1"><Label htmlFor={`return-diagnosis-${warrantyId}`}>Avaliação / diagnóstico técnico</Label><Textarea id={`return-diagnosis-${warrantyId}`} value={draft.diagnosis} onChange={(e) => setDraft({ ...draft, diagnosis: e.target.value })} /></div>
       <div className="space-y-1"><Label htmlFor={`return-parts-${warrantyId}`}>Peças utilizadas</Label><Textarea id={`return-parts-${warrantyId}`} value={draft.parts_used} onChange={(e) => setDraft({ ...draft, parts_used: e.target.value })} /></div>
