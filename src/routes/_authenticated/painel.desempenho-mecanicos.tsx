@@ -49,15 +49,21 @@ function MechanicPerformancePage() {
     queryFn: async () => {
       const start = new Date(`${from}T00:00:00`).toISOString();
       const end = new Date(`${shiftDate(to, 1)}T00:00:00`).toISOString();
-      const { data: completions, error } = await (supabase as any)
-        .from("service_order_completions")
-        .select("service_order_id, mechanic_user_id, completed_at")
-        .gte("completed_at", start)
-        .lt("completed_at", end)
-        .order("completed_at", { ascending: false });
-      if (error) throw error;
-
-      const rows = (completions ?? []) as Completion[];
+      const rows: Completion[] = [];
+      const pageSize = 500;
+      for (let offset = 0; ; offset += pageSize) {
+        const { data, error } = await (supabase as any)
+          .from("service_order_completions")
+          .select("service_order_id, mechanic_user_id, completed_at")
+          .gte("completed_at", start)
+          .lt("completed_at", end)
+          .order("completed_at", { ascending: false })
+          .range(offset, offset + pageSize - 1);
+        if (error) throw error;
+        const page = (data ?? []) as Completion[];
+        rows.push(...page);
+        if (page.length < pageSize) break;
+      }
       const ids = [...new Set(rows.map((row) => row.mechanic_user_id))];
       let names: StaffName[] = [];
       if (ids.length) {
