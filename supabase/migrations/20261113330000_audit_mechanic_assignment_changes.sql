@@ -52,9 +52,10 @@ BEGIN
       'assigned_at', NEW.assigned_at,
       'active', NEW.active
     );
-  ELSIF TG_OP = 'UPDATE'
-    AND OLD.active IS DISTINCT FROM NEW.active
-    AND NEW.active = false THEN
+  ELSIF TG_OP = 'UPDATE' THEN
+    IF OLD.active IS NOT DISTINCT FROM NEW.active OR NEW.active IS DISTINCT FROM false THEN
+      RETURN NEW;
+    END IF;
     v_event_type := 'mechanic_unassigned';
     v_event_label := 'Atribuição do mecânico encerrada ou substituída';
     v_actor := auth.uid();
