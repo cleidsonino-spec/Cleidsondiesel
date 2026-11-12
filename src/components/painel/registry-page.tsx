@@ -34,6 +34,27 @@ export function RegistryPage({ mode }: { mode: "customers" | "vehicles" }) {
   const [historyStartDate, setHistoryStartDate] = useState("");
   const [historyEndDate, setHistoryEndDate] = useState("");
   const { data: historyOrders = [], isLoading: historyOrdersLoading, isError: historyOrdersError } = useQuery(customerOrdersQuery(historyCustomer?.id ?? ""));
+  const historyOrderIds = historyOrders.map((order) => order.id);
+  const { data: relatedHistory = { intakes: [], authorizations: [], payments: [], movements: [] }, isLoading: relatedHistoryLoading, isError: relatedHistoryError } = useQuery({
+    queryKey: ["vehicle-related-history", historyOrderIds.join(",")],
+    enabled: Boolean(historyCustomer && historyOrderIds.length > 0),
+    queryFn: async () => {
+      const [intakes, authorizations, payments, movements] = await Promise.all([
+        (supabase as any).from("vehicle_intake_records").select("id,service_order_id,received_at,received_by_name,delivered_by_name,odometer,fuel_level,exterior_condition,existing_damage,notes").in("service_order_id", historyOrderIds).order("received_at", { ascending: false }),
+        (supabase as any).from("customer_authorizations").select("id,service_order_id,authorization_type,signer_name,consent_text,accepted_at").in("service_order_id", historyOrderIds).order("accepted_at", { ascending: false }),
+        (supabase as any).from("service_order_payments").select("id,service_order_id,amount,payment_method,paid_at,notes").in("service_order_id", historyOrderIds).order("paid_at", { ascending: false }),
+        (supabase as any).from("inventory_movements").select("id,service_order_id,item_id,movement_type,quantity,unit_cost,created_at,reference,notes").in("service_order_id", historyOrderIds).order("created_at", { ascending: false }),
+      ]);
+      const required = [intakes, authorizations];
+      for (const result of required) if (result.error) throw result.error;
+      return {
+        intakes: intakes.data ?? [],
+        authorizations: authorizations.data ?? [],
+        payments: payments.error ? [] : payments.data ?? [],
+        movements: movements.error ? [] : movements.data ?? [],
+      };
+    },
+  });
   const [saving, setSaving] = useState(false);
   const qc = useQueryClient();
   const isCustomer = mode === "customers";
@@ -66,8 +87,8 @@ export function RegistryPage({ mode }: { mode: "customers" | "vehicles" }) {
     <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm text-muted-foreground">Cadastros da oficina</p><h1 className="text-3xl">{isCustomer ? "Clientes" : "Veículos"}</h1></div><Button onClick={() => setDraft({ ...blank })}><Plus />{isCustomer ? "Novo cliente" : "Novo veículo"}</Button></div>
     <div className="relative max-w-md"><Search className="absolute left-3 top-3 size-4 text-muted-foreground" /><Input aria-label="Buscar cadastro" className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={isCustomer ? "Nome, telefone ou CPF/CNPJ" : "Placa, modelo ou cliente"} /></div>
     <div className="divide-y divide-border border-y border-border">
-      {isCustomer ? customers.filter((c) => matches(`${c.name} ${c.phone ?? ""} ${c.document ?? ""}`)).map((c) => <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 py-4"><div className="min-w-0"><p className="flex items-center gap-2 font-semibold"><Users className="size-4 shrink-0 text-primary" />{c.name}</p><p className="text-sm text-muted-foreground">{c.phone || "Sem telefone"} · {vehicles.filter((v) => v.customer_id === c.id).length} veículo(s)</p>{c.document && <p className="text-sm text-muted-foreground">{c.customer_type === "pj" ? "CNPJ" : "CPF"}: {c.customer_type === "pj" ? formatCnpj(c.document) : formatCpf(c.document)}</p>}{c.email && <p className="break-all text-sm text-muted-foreground">{c.email}</p>}</div><div className="flex items-center gap-1"><Button variant="outline" size="sm" onClick={() => setHistoryCustomer(c)}><History className="mr-1 size-4" />Histórico</Button><Button asChild variant="outline" size="sm"><Link to="/painel/ordens/nova" search={{ cliente: c.id }}>Nova OS</Link></Button><Button variant="ghost" size="icon" aria-label={"Editar " + c.name} title="Editar cliente" onClick={() => setDraft({ ...blank, ...c, phone: c.phone ?? "", email: c.email ?? "", address: c.address ?? "", notes: c.notes ?? "", customer_type: c.customer_type ?? "", document: c.document ?? "" })}><Pencil /></Button><Button variant="ghost" size="icon" aria-label={"Excluir " + c.name} title="Excluir cliente" onClick={() => remove(c.id)}><Trash2 /></Button></div></div>)
-      : vehicles.filter((v) => matches(`${v.plate} ${formatPlate(v.plate)} ${v.model} ${customers.find((c) => c.id === v.customer_id)?.name ?? ""}`)).map((v) => <div key={v.id} className="flex flex-wrap items-center justify-between gap-3 py-4"><div><p className="flex items-center gap-2 font-semibold"><Car className="size-4 text-primary" /><span className="plate">{formatPlate(v.plate)}</span></p><p>{v.model} {v.year && `· ${v.year}`}</p><p className="text-sm text-muted-foreground">{customers.find((c) => c.id === v.customer_id)?.name}</p></div><div className="flex items-center gap-1"><Button asChild variant="outline" size="sm"><Link to="/painel/ordens/nova" search={{ cliente: v.customer_id, veiculo: v.id }}>Nova OS</Link></Button><Button variant="ghost" size="icon" aria-label={"Editar " + v.plate} title="Editar veículo" onClick={() => setDraft({ ...blank, ...v, year: v.year ?? "", mileage: v.mileage ?? "", notes: v.notes ?? "" })}><Pencil /></Button><Button variant="ghost" size="icon" aria-label={"Excluir " + v.plate} title="Excluir veículo" onClick={() => remove(v.id)}><Trash2 /></Button></div></div>)}
+      {isCustomer ? customers.filter((c) => matches(`${c.name} ${c.phone ?? ""} ${c.document ?? ""}`)).map((c) => <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 py-4"><div className="min-w-0"><p className="flex items-center gap-2 font-semibold"><Users className="size-4 shrink-0 text-primary" />{c.name}</p><p className="text-sm text-muted-foreground">{c.phone || "Sem telefone"} · {vehicles.filter((v) => v.customer_id === c.id).length} veículo(s)</p>{c.document && <p className="text-sm text-muted-foreground">{c.customer_type === "pj" ? "CNPJ" : "CPF"}: {c.customer_type === "pj" ? formatCnpj(c.document) : formatCpf(c.document)}</p>}{c.email && <p className="break-all text-sm text-muted-foreground">{c.email}</p>}</div><div className="flex items-center gap-1"><Button variant="outline" size="sm" onClick={() => { setHistoryPlate(""); setHistoryCustomer(c); }}><History className="mr-1 size-4" />Histórico</Button><Button asChild variant="outline" size="sm"><Link to="/painel/ordens/nova" search={{ cliente: c.id }}>Nova OS</Link></Button><Button variant="ghost" size="icon" aria-label={"Editar " + c.name} title="Editar cliente" onClick={() => setDraft({ ...blank, ...c, phone: c.phone ?? "", email: c.email ?? "", address: c.address ?? "", notes: c.notes ?? "", customer_type: c.customer_type ?? "", document: c.document ?? "" })}><Pencil /></Button><Button variant="ghost" size="icon" aria-label={"Excluir " + c.name} title="Excluir cliente" onClick={() => remove(c.id)}><Trash2 /></Button></div></div>)
+      : vehicles.filter((v) => matches(`${v.plate} ${formatPlate(v.plate)} ${v.model} ${customers.find((c) => c.id === v.customer_id)?.name ?? ""}`)).map((v) => <div key={v.id} className="flex flex-wrap items-center justify-between gap-3 py-4"><div><p className="flex items-center gap-2 font-semibold"><Car className="size-4 text-primary" /><span className="plate">{formatPlate(v.plate)}</span></p><p>{v.model} {v.year && `· ${v.year}`}</p><p className="text-sm text-muted-foreground">{customers.find((c) => c.id === v.customer_id)?.name}</p></div><div className="flex items-center gap-1"><Button variant="outline" size="sm" onClick={() => { setHistoryStatus("all"); setHistoryStartDate(""); setHistoryEndDate(""); setHistoryPlate(v.plate); setHistoryCustomer(customers.find((c) => c.id === v.customer_id) ?? null); }}><History className="mr-1 size-4" />Histórico</Button><Button asChild variant="outline" size="sm"><Link to="/painel/ordens/nova" search={{ cliente: v.customer_id, veiculo: v.id }}>Nova OS</Link></Button><Button variant="ghost" size="icon" aria-label={"Editar " + v.plate} title="Editar veículo" onClick={() => setDraft({ ...blank, ...v, year: v.year ?? "", mileage: v.mileage ?? "", notes: v.notes ?? "" })}><Pencil /></Button><Button variant="ghost" size="icon" aria-label={"Excluir " + v.plate} title="Excluir veículo" onClick={() => remove(v.id)}><Trash2 /></Button></div></div>)}
     </div>
     {(isCustomer ? customers : vehicles).length === 0 && <p className="py-8 text-center text-muted-foreground">Nenhum {isCustomer ? "cliente" : "veículo"} cadastrado.</p>}
     <Dialog open={draft !== null} onOpenChange={(open) => { if (!open) setDraft(null); }}><DialogContent className="max-h-[90dvh] overflow-y-auto"><DialogHeader><DialogTitle>{draft?.id ? "Editar" : "Novo"} {isCustomer ? "cliente" : "veículo"}</DialogTitle></DialogHeader>{draft && <form onSubmit={save} className="space-y-4">
@@ -77,7 +98,7 @@ export function RegistryPage({ mode }: { mode: "customers" | "vehicles" }) {
     </form>}</DialogContent></Dialog>
     <Dialog open={historyCustomer !== null} onOpenChange={(open) => { if (!open) setHistoryCustomer(null); }}>
       <DialogContent className="max-h-[90dvh] max-w-3xl overflow-y-auto">
-        <DialogHeader><DialogTitle>Histórico do cliente</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{historyPlate ? "Histórico do veículo" : "Histórico do cliente"}</DialogTitle></DialogHeader>
         {historyCustomer && (() => {
           const normalizedPlateFilter = normalizePlate(historyPlate);
           const customerOrders = historyOrders.filter((order) => {
@@ -91,7 +112,7 @@ export function RegistryPage({ mode }: { mode: "customers" | "vehicles" }) {
           const customerWarranties = warranties.filter((warranty) => customerOrderIds.has(warranty.service_order_id));
           return <div className="space-y-6">
             <section className="rounded-md border border-border p-4">
-              <h3 className="font-semibold">{historyCustomer.name}</h3>
+              <h3 className="font-semibold">{historyPlate ? formatPlate(historyPlate) : historyCustomer.name}</h3>
               <p className="text-sm text-muted-foreground">{historyCustomer.customer_type === "pj" ? "Pessoa Jurídica" : historyCustomer.customer_type === "pf" ? "Pessoa Física" : "Tipo não informado"} · {historyCustomer.document || "Documento não informado"}</p>
               <p className="text-sm text-muted-foreground">{historyCustomer.phone || "Sem telefone"}{historyCustomer.email ? " · " + historyCustomer.email : ""}</p>
               {historyCustomer.address && <p className="text-sm text-muted-foreground">{historyCustomer.address}</p>}
@@ -129,7 +150,33 @@ export function RegistryPage({ mode }: { mode: "customers" | "vehicles" }) {
                   })}
                 </div>}
             </section>
-            <p className="text-xs text-muted-foreground">O histórico considera as OS vinculadas ao cadastro do cliente. Registros antigos sem vínculo de cliente não aparecem nesta lista.</p>
+
+            {historyPlate && <section className="space-y-3">
+              <h3 className="font-semibold">Registros vinculados ao veículo</h3>
+              {relatedHistoryLoading ? <p className="text-sm text-muted-foreground">Carregando recebimentos, autorizações e movimentações…</p> : relatedHistoryError ? <p className="text-sm text-destructive">Não foi possível carregar os registros complementares.</p> : <>
+                <div className="rounded-md border p-3">
+                  <p className="font-medium">Recebimentos</p>
+                  {relatedHistory.intakes.filter((item: any) => customerOrderIds.has(item.service_order_id)).map((item: any) => <div key={item.id} className="border-t py-2 text-sm"><p>OS {historyOrders.find((order) => order.id === item.service_order_id)?.number ?? "—"} · {formatDateBR(item.received_at.slice(0,10))}</p><p className="text-muted-foreground">Entregue por {item.delivered_by_name || "não informado"} · Recebido por {item.received_by_name || "não informado"} · Hodômetro/horímetro {item.odometer}</p><p>{item.exterior_condition}</p>{item.existing_damage && <p>Avarias: {item.existing_damage}</p>}</div>)}
+                  {relatedHistory.intakes.length === 0 && <p className="pt-2 text-sm text-muted-foreground">Sem ficha de recebimento.</p>}
+                </div>
+                <div className="rounded-md border p-3">
+                  <p className="font-medium">Autorizações do cliente</p>
+                  {relatedHistory.authorizations.map((item: any) => <div key={item.id} className="border-t py-2 text-sm"><p>OS {historyOrders.find((order) => order.id === item.service_order_id)?.number ?? "—"} · {item.authorization_type === "execution_authorization" ? "Autorização de execução" : "Confirmação de entrega"}</p><p className="text-muted-foreground">{item.signer_name} · {new Date(item.accepted_at).toLocaleString("pt-BR")}</p><p>{item.consent_text}</p></div>)}
+                  {relatedHistory.authorizations.length === 0 && <p className="pt-2 text-sm text-muted-foreground">Sem autorizações registradas.</p>}
+                </div>
+                {isAdmin && <div className="rounded-md border p-3">
+                  <p className="font-medium">Pagamentos registrados</p>
+                  {relatedHistory.payments.map((item: any) => <div key={item.id} className="border-t py-2 text-sm"><p>OS {historyOrders.find((order) => order.id === item.service_order_id)?.number ?? "—"} · {formatBRL(item.amount)} · {item.payment_method}</p><p className="text-muted-foreground">{new Date(item.paid_at).toLocaleString("pt-BR")}</p></div>)}
+                  {relatedHistory.payments.length === 0 && <p className="pt-2 text-sm text-muted-foreground">Sem pagamentos lançados ou acesso financeiro indisponível.</p>}
+                </div>}
+                {isAdmin && <div className="rounded-md border p-3">
+                  <p className="font-medium">Peças movimentadas para as OS</p>
+                  {relatedHistory.movements.map((item: any) => <div key={item.id} className="border-t py-2 text-sm"><p>OS {historyOrders.find((order) => order.id === item.service_order_id)?.number ?? "—"} · {item.movement_type} · {item.quantity} unidade(s)</p><p className="text-muted-foreground">{item.reference || item.notes || "Sem observação"}{item.unit_cost != null ? " · Custo unitário " + formatBRL(item.unit_cost) : ""}</p></div>)}
+                  {relatedHistory.movements.length === 0 && <p className="pt-2 text-sm text-muted-foreground">Sem movimentações de estoque vinculadas.</p>}
+                </div>}
+              </>}
+            </section>}
+            <p className="text-xs text-muted-foreground">O histórico considera OS vinculadas ao cadastro do cliente e filtradas pela placa. Registros antigos sem vínculo correspondente não aparecem. Pagamentos e movimentações de estoque são visíveis apenas à administração.</p>
           </div>;
         })()}
       </DialogContent>
