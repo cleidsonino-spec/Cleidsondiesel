@@ -12,7 +12,7 @@ import { formatPlate } from "@/lib/plate";
 function daysUntil(date: string, today: string) {
   const [y, m, d] = date.split("-").map(Number);
   const [ty, tm, td] = today.split("-").map(Number);
-  return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(ty, tm - 1, td)) / 86400000);
+  return Math.round((Date.UTC(y ?? 0, (m ?? 1) - 1, d ?? 1) - Date.UTC(ty ?? 0, (tm ?? 1) - 1, td ?? 1)) / 86400000);
 }
 
 function useNotifications() {
@@ -117,7 +117,7 @@ function useNotifications() {
 export function NotificationBell() {
   const { notifications } = useNotifications();
   return (
-    <Link to="/painel/" hash="notificacoes" aria-label={`Notificações: ${notifications.length} alerta(s)`} className="relative flex shrink-0 items-center gap-2 rounded-sm px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
+    <Link to="/painel" hash="notificacoes" aria-label={`Notificações: ${notifications.length} alerta(s)`} className="relative flex shrink-0 items-center gap-2 rounded-sm px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
       <Bell className="size-4" />
       <span className="hidden sm:inline">Notificações</span>
       {notifications.length > 0 && <span className="min-w-5 rounded-full bg-destructive px-1.5 py-0.5 text-center text-[11px] font-semibold leading-4 text-destructive-foreground">{notifications.length > 99 ? "99+" : notifications.length}</span>}

@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_authenticated/painel/garantias")({ compo
 function daysUntil(date: string, today: string) {
   const [y, m, d] = date.split("-").map(Number);
   const [ty, tm, td] = today.split("-").map(Number);
-  return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(ty, tm - 1, td)) / 86400000);
+  return Math.round((Date.UTC(y ?? 0, (m ?? 1) - 1, d ?? 1) - Date.UTC(ty ?? 0, (tm ?? 1) - 1, td ?? 1)) / 86400000);
 }
 
 export function WarrantyList() {

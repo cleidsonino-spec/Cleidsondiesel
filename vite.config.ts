@@ -14,11 +14,12 @@ export default defineConfig({
   },
   // Cloudflare's dashboard runs npx wrangler preview after the Nitro build.
   // Wrangler requires a previews block for that command.
+  // `wrangler` is accepted by Nitro at runtime but missing from this config's types.
   nitro: {
     cloudflare: {
       wrangler: {
         previews: {},
       },
     },
-  },
+  } as unknown as { cloudflare?: { nodeCompat?: boolean } },
 });

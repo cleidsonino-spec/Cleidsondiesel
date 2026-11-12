@@ -24,7 +24,7 @@ export const Route = createFileRoute("/_authenticated/painel/garantias/$id")({
   component: Certificate,
 });
 
-type Warranty = Awaited<ReturnType<ReturnType<typeof warrantiesQuery>["queryFn"]>>[number];
+type Warranty = Awaited<ReturnType<NonNullable<ReturnType<typeof warrantiesQuery>["queryFn"]>>>[number];
 
 async function downloadWarrantyPdf(w: Warranty) {
   const order = w.service_orders;
@@ -154,7 +154,7 @@ function Certificate() {
 
   async function handlePdfDownload() {
     try {
-      await downloadWarrantyPdf(w);
+      if (w) await downloadWarrantyPdf(w);
     } catch (error) {
       console.error("Falha ao gerar certificado de garantia:", error);
       toast.error("Não foi possível gerar o PDF. Tente novamente.");

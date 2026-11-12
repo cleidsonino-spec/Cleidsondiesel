@@ -48,7 +48,7 @@ type Filter = "abertas" | "todas" | OrderStatus;
 function daysUntil(date: string, today: string) {
   const [y, m, d] = date.split("-").map(Number);
   const [ty, tm, td] = today.split("-").map(Number);
-  return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(ty, tm - 1, td)) / 86400000);
+  return Math.round((Date.UTC(y ?? 0, (m ?? 1) - 1, d ?? 1) - Date.UTC(ty ?? 0, (tm ?? 1) - 1, td ?? 1)) / 86400000);
 }
 
 function PainelIndex() {
@@ -109,9 +109,9 @@ function PainelIndex() {
       {isAdmin && <StaffInvitations />}
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Indicadores da oficina">
-        <Stat icon={<Wrench />} label="Em andamento" value={stats.open} href="/painel/" />
-        <Stat icon={<ClipboardList />} label="Aguardando aprovação" value={stats.waiting} href="/painel/" />
-        <Stat icon={<CheckCircle2 />} label="Prontos para retirada" value={stats.ready} href="/painel/" accent />
+        <Stat icon={<Wrench />} label="Em andamento" value={stats.open} href="/painel" />
+        <Stat icon={<ClipboardList />} label="Aguardando aprovação" value={stats.waiting} href="/painel" />
+        <Stat icon={<CheckCircle2 />} label="Prontos para retirada" value={stats.ready} href="/painel" accent />
         <Stat icon={<CalendarClock />} label="Agendamentos de hoje" value={stats.today} href="/painel/agendamentos" />
       </section>
 
@@ -219,7 +219,7 @@ function PainelIndex() {
   );
 }
 
-function Stat({ icon, label, value, href, accent }: { icon: React.ReactNode; label: string; value: number; href: "/painel/" | "/painel/agendamentos"; accent?: boolean }) {
+function Stat({ icon, label, value, href, accent }: { icon: React.ReactNode; label: string; value: number; href: "/painel" | "/painel/agendamentos"; accent?: boolean }) {
   return <Link to={href} className={cn("rounded-md border p-4 transition-colors hover:bg-secondary/70 [&_svg]:size-5", accent ? "border-primary/50 bg-primary/10 [&_svg]:text-primary" : "border-border bg-card [&_svg]:text-muted-foreground")}>
     {icon}<p className="mt-3 font-display text-3xl tabular-nums">{value}</p><p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
   </Link>;
