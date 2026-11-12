@@ -18,8 +18,15 @@ export const Route = createFileRoute("/_authenticated/equipe")({
     if (!staffRole) throw redirect({ to: "/painel" });
     return { staffRole: staffRole as Role };
   },
-  component: StaffDashboard,
+  component: StaffDashboardRoute,
 });
+
+// A changed identity or role must get a fresh component instance. This prevents
+// local OS, agenda, diagnosis and notification state from surviving account switches.
+function StaffDashboardRoute() {
+  const { user, staffRole } = Route.useRouteContext();
+  return <StaffDashboard key={`${user.id}:${staffRole}`} />;
+}
 
 function YesNoQuestion({ title, value, onChange }: { title: string; value: boolean | null; onChange: (value: boolean) => void }) { return <fieldset className="space-y-2"><legend className="text-sm font-medium">{title}</legend><div className="flex gap-2"><Button type="button" size="sm" variant={value === true ? "default" : "outline"} aria-pressed={value === true} onClick={() => onChange(true)}>Sim</Button><Button type="button" size="sm" variant={value === false ? "default" : "outline"} aria-pressed={value === false} onClick={() => onChange(false)}>Não</Button></div></fieldset>; }
 
