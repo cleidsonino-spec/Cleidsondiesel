@@ -1,6 +1,6 @@
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, BellRing, MessageCircle, Printer, Trash2 } from "lucide-react";
+import { ArrowLeft, BellRing, MessageCircle, Printer } from "lucide-react";
 import { toast } from "sonner";
 
 import { OrderForm, type OrderFormValues } from "@/components/painel/order-form";
@@ -13,17 +13,6 @@ import { MechanicAssignment } from "@/components/painel/mechanic-assignment";
 import { ServiceOrderStatusHistory } from "@/components/painel/service-order-status-history";
 import { warrantiesQuery } from "@/lib/warranty";
 import { StatusBadge } from "@/components/site/status-badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -97,22 +86,7 @@ function OrdemPage() {
   const quoteText = quoteMessage(order);
   const statusHref = waLink(order.phone, statusMessage(order));
 
-  async function remove() {
-    const { error } = await supabase.from("service_orders").delete().eq("id", id);
-    if (error) {
-      if (error.code === "23503") {
-        toast.error("Esta OS possui histórico ou registros vinculados e não pode ser excluída. Preserve os registros e use o cancelamento quando necessário.");
-      } else if (error.code === "42501") {
-        toast.error("Sua conta não tem permissão para excluir esta OS.");
-      } else {
-        toast.error("Não foi possível excluir a OS. Verifique os registros vinculados ou tente novamente.");
-      }
-      return;
-    }
-    await qc.invalidateQueries({ queryKey: ["orders"] });
-    toast.success("OS excluída.");
-    navigate({ to: "/painel" });
-  }
+
 
   return (
     <div className="space-y-6">
@@ -191,23 +165,9 @@ function OrdemPage() {
                 <Printer /> Imprimir OS
               </Button>
               {isAdmin && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button type="button" variant="ghost" size="lg" className="h-12 text-destructive sm:ml-auto">
-                    <Trash2 /> Excluir
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Excluir OS nº {order.number}?</AlertDialogTitle>
-                    <AlertDialogDescription>Essa ação não pode ser desfeita.</AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={remove}>Excluir</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                <p className="text-sm text-muted-foreground sm:ml-auto" role="status">
+                  Exclusão física desativada para preservar o histórico da OS. O cancelamento seguro será disponibilizado após a operação autorizada no banco.
+                </p>
               )}
             </>
           }
