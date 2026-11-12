@@ -78,6 +78,7 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
     due_date: "",
     notes: "",
     inspection: { failedItems: "", observations: "" },
+    vehicleReceipt: { receivedAt: "", receivedBy: "", odometer: "", fuelLevel: "", damages: "", observations: "" },
     ...prefill,
     ...(selectedCustomer ? { customer_id: selectedCustomer.id, customer_name: selectedCustomer.name, phone: selectedCustomer.phone ?? "" } : {}),
     ...(selectedVehicle ? { vehicle_id: selectedVehicle.id, plate: selectedVehicle.plate, vehicle: selectedVehicle.model, vehicle_year: selectedVehicle.year ?? "", mileage: selectedVehicle.mileage ?? "" } : {}),
@@ -89,6 +90,7 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
       <OrderForm
         initial={initial}
         submitLabel="Abrir OS"
+        receiptRequired
         onSubmit={async (input) => {
           const { data: auth } = await supabase.auth.getUser();
           const { data, error } = await supabase
