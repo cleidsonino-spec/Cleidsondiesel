@@ -73,8 +73,8 @@ function PainelLayout() {
           <nav className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 pb-2">
             <PanelLink to="/painel" icon={<ClipboardList />} label="Visão geral" exact />
             <PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" />
-            {(isAdmin || isSecretary) && <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />
-            <PanelLink to="/painel/assinaturas" icon={<ClipboardSignature />} label="Autorizações" />}
+            <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />
+            <PanelLink to="/painel/assinaturas" icon={<ClipboardSignature />} label="Autorizações" />
             <PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" />
             {isAdmin && <PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" />}
             {isAdmin && <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />}
