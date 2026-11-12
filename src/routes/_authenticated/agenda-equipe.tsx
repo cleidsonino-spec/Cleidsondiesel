@@ -14,10 +14,17 @@ type AgendaRow = {
 
 export const Route = createFileRoute("/_authenticated/agenda-equipe")({
   beforeLoad: async ({ context }) => {
-    const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", context.user.id);
+    const { data, error } = await (supabase as any).from("user_roles").select("role,is_active").eq("user_id", context.user.id);
     if (error) throw error;
-    const roles = (data ?? []).map((item) => item.role);
-    if (!roles.some((role) => ["admin", "secretaria", "mecanico"].includes(role))) throw redirect({ to: "/equipe" });
+    const rows = data ?? [];
+    const roles = rows.filter((item: any) => item.is_active !== false).map((item: any) => item.role);
+    const hasInactiveStaffRole = rows.some((item: any) => item.is_active === false && ["mecanico", "secretaria"].includes(item.role));
+    const hasActiveStaffRole = rows.some((item: any) => item.is_active !== false && ["admin", "secretaria", "mecanico"].includes(item.role));
+    if (hasInactiveStaffRole && !hasActiveStaffRole) {
+      await supabase.auth.signOut({ scope: "local" });
+      throw redirect({ to: "/auth" });
+    }
+    if (!roles.some((role: string) => ["admin", "secretaria", "mecanico"].includes(role))) throw redirect({ to: "/equipe" });
   },
   component: TeamAgendaPage,
 });
