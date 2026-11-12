@@ -93,9 +93,8 @@ function OrdemPage() {
   }
 
   const info = orderStatusInfo(order.status);
-  const siteUrl = typeof window !== "undefined" ? window.location.origin : undefined;
   const quoteText = quoteMessage(order);
-  const statusHref = waLink(order.phone, statusMessage(order, siteUrl));
+  const statusHref = waLink(order.phone, statusMessage(order));
 
   async function remove() {
     const { error } = await supabase.from("service_orders").delete().eq("id", id);
