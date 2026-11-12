@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity, ArrowDownRight, ArrowUpRight, ClipboardCheck, Coins, Package, ReceiptText, Wallet } from "lucide-react";
+import { Activity, ArrowDownRight, ArrowUpRight, ClipboardCheck, Coins, Package, Wallet } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/status";
@@ -26,11 +26,6 @@ function dateLocal(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 function timestampDate(value: string) { return dateLocal(new Date(value)); }
-function shiftDate(value: string, days: number) {
-  const date = new Date(`${value}T12:00:00`);
-  date.setDate(date.getDate() + days);
-  return dateLocal(date);
-}
 async function allRows<T>(table: string, columns: string, orderColumn: string): Promise<T[]> {
   const rows: T[] = [];
   for (let offset = 0; ; offset += 500) {
