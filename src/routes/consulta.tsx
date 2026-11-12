@@ -52,7 +52,7 @@ function ConsultaPage() {
 
   return <PublicLayout>
     <PageHeading eyebrow="Acompanhamento individual" title="Acompanhe seu serviço">
-      Consulte as etapas do serviço, diagnóstico, orçamento e garantia pelo link seguro enviado pela oficina.
+      Consulte as etapas do serviço, orçamento, garantia e atualizações liberadas pela oficina pelo link individual.
     </PageHeading>
     <section className="mx-auto max-w-3xl space-y-6 px-4 py-10">
       {!token && <div className="rounded-md border border-border bg-card p-6 text-center">
