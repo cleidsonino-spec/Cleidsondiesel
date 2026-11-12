@@ -104,8 +104,12 @@ function StaffDashboard() {
   }
 
   async function signOut() {
-    await supabase.auth.signOut();
-    navigate({ to: "/auth" });
+    const { error } = await supabase.auth.signOut({ scope: "local" });
+    if (error) {
+      toast.error("Não foi possível encerrar a sessão. Verifique sua conexão e tente novamente.");
+      return;
+    }
+    navigate({ to: "/auth", replace: true });
   }
 
   return <main className="mx-auto min-h-screen max-w-5xl space-y-6 px-4 py-6">
