@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  ArrowUpRight, CalendarClock, CheckCircle2, ClipboardList,
+  ArrowUpRight, CalendarClock, CheckCircle2, ClipboardList, ChartNoAxesCombined,
   Plus, Search, ShieldCheck, Wrench,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -99,9 +99,12 @@ function PainelIndex() {
           <h1 className="text-3xl">Painel geral</h1>
           <p className="mt-1 text-sm text-muted-foreground">Resumo de hoje · {formatDateBR(today)}</p>
         </div>
-        <Button asChild>
-          <Link to="/painel/ordens/nova" search={{}}><Plus /> Nova ordem de serviço</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {isAdmin && <Button asChild variant="outline"><Link to="/painel/desempenho-mecanicos"><ChartNoAxesCombined /> Desempenho dos mecânicos</Link></Button>}
+          <Button asChild>
+            <Link to="/painel/ordens/nova" search={{}}><Plus /> Nova ordem de serviço</Link>
+          </Button>
+        </div>
       </div>
 
       <NotificationCenter />
