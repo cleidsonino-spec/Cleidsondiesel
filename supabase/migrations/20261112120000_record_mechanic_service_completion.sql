@@ -59,8 +59,15 @@ BEGIN
     completed_at
   )
   VALUES (_order_id, auth.uid(), now());
+
+  -- Encerra a atribuição ativa sem apagar o histórico da equipe.
+  UPDATE public.service_order_assignments
+     SET active = false
+   WHERE service_order_id = _order_id
+     AND mechanic_user_id = auth.uid()
+     AND active = true;
 END;
-$$;
+$;
 
 REVOKE ALL ON FUNCTION public.mechanic_update_order_status(uuid, public.order_status)
   FROM PUBLIC, anon;
