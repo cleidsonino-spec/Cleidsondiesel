@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Check, Clock3, FileText, ShieldCheck, Wrench } from "lucide-react";
+import { Check, Clock3, FileText, ShieldCheck } from "lucide-react";
 import { PageHeading, PublicLayout } from "@/components/site/public-layout";
 import { StatusBadge } from "@/components/site/status-badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { readPartItems } from "@/lib/parts";
 import { cn } from "@/lib/utils";
 
 type PortalResult = {
-  order: { number: number; status: string; vehicle: string; plate: string; complaint: string; diagnosis: string | null; entry_date: string; due_date: string | null; updated_at: string };
+  order: { number: number; status: string; vehicle: string; plate: string; complaint: string; entry_date: string; due_date: string | null; updated_at: string };
   quote: { state: string; token: string; expires_at: string; approved_at: string | null; snapshot: { parts_value: number; labor_value: number; part_items: unknown; parts: string | null } } | null;
   warranty: { coverage: string; start_date: string; end_date: string; terms: string } | null;
   expires_at: string;
