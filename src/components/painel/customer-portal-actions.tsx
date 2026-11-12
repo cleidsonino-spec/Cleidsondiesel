@@ -12,7 +12,7 @@ export function CustomerPortalActions({ orderId, orderNumber, phone, orderStatus
   const url = access && typeof window !== "undefined"
     ? `${window.location.origin}/consulta?token=${encodeURIComponent(access.token)}`
     : null;
-  const phoneDigits = (phone ?? "").replace(/\\D/g, "");
+  const phoneDigits = (phone ?? "").replace(/\D/g, "");
   const whatsappUrl = url && phoneDigits.length >= 10
     ? `https://wa.me/55${phoneDigits.startsWith("55") ? phoneDigits.slice(2) : phoneDigits}?text=${encodeURIComponent(`Olá! Acompanhe sua ordem de serviço nº ${orderNumber} na Cleidson Diesel por este link individual: ${url}`)}`
     : null;
