@@ -18,7 +18,7 @@ O workflow `Deploy Cleidson Diesel push functions` é manual e publica Edge Func
 | Arquivo | Dependência relevante |
 |---|---|
 | `drizzle/migrations/0000_oficina_schema.sql` | Cria `app_role`, `has_role`, `service_orders` e `appointments`. |
-| `drizzle/migrations/0006_customers_vehicles_and_warranty_module.sql` | A auditoria anterior já identificou que altera `public.warranties` sem haver criação dessa tabela na cadeia Drizzle versionada. Bloqueio para instalação limpa até reconciliar o schema. |
+| `drizzle/migrations/0006_customers_vehicles_and_warranty_module.sql` | Cria `public.customers`, `public.vehicles` e `public.warranties`, adiciona cobertura/termos e vincula garantias às OS. A tabela de garantias existe na cadeia versionada. |
 | `supabase/migrations/20261110170000_cloudflare_push_triggers.sql` | Cria o schema `push` e `push.notify_worker_on_change()`; depende de `net`, Vault e do segredo privado `push_webhook_secret`. |
 | `drizzle/migrations/0007_push_extra_events.sql` | Usa `push.notify_worker_on_change()`, `push.notification_events`, `public.quote_approvals`, `public.service_orders`, `public.appointments`, `public.valid_cpf`, `public.quote_snapshot` e `pg_cron`. Portanto, não pode ser tratado como independente da migração Supabase de push. |
 | `supabase/migrations/20261111180000_add_staff_roles.sql` | Altera `public.app_role`, que é criada na migração Drizzle 0000. |
@@ -33,8 +33,8 @@ O journal do Drizzle inclui as migrações 0000 a 0008. Isso registra a sequênc
 
 ## Bloqueios que permanecem
 
-1. Resolver a tabela `public.warranties` ausente na cadeia Drizzle versionada antes de considerar uma instalação limpa.
-2. Reconciliar as colunas `customers.customer_type` e `customers.document` já apontadas pela auditoria anterior.
+1. A criação de `public.warranties` está presente em `drizzle/migrations/0006_customers_vehicles_and_warranty_module.sql`; a afirmação anterior de ausência foi um erro de leitura e fica formalmente corrigida.
+2. Confirmar se `customers.customer_type` e `customers.document` são exigidas pelo código atual; essas colunas não aparecem na definição da tabela `customers` em `0006`.
 3. Confirmar a disponibilidade das extensões `pg_net` e `pg_cron`, dos schemas `vault` e `net`, e do segredo privado do Worker antes de ativar push.
 4. Validar os pré-requisitos e o schema de destino para todas as RPCs, triggers, enums e políticas RLS.
 5. Definir um procedimento de execução que intercale as duas cadeias conforme as dependências reais, com preflight e interrupção imediata em erro.
