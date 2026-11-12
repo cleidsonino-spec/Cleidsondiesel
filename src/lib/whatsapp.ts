@@ -111,3 +111,20 @@ export function appointmentMessage(a: {
     `Te esperamos!`,
   ].join("\n");
 }
+
+export function appointmentReminderMessage(a: {
+  customer_name: string;
+  scheduled_date: string;
+  scheduled_time: string;
+  vehicle: string;
+  plate: string;
+}): string {
+  return [
+    `Olá, ${firstName(a.customer_name)}! Aqui é da ${SHOP}.`,
+    `Passando para lembrar do seu agendamento:`,
+    `Data: ${formatDateBR(a.scheduled_date)} às ${a.scheduled_time.slice(0, 5)}.`,
+    `Veículo: ${a.vehicle} (${formatPlate(a.plate)}).`,
+    `Se precisar alterar o horário, fale conosco por aqui.`,
+    `Te esperamos!`,
+  ].join("\\n");
+}
