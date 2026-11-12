@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Link2, Loader2, MessageCircle, RefreshCw } from "lucide-react";
+import { Copy, Link2, Loader2, MessageCircle, RefreshCw, ShieldOff } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +17,7 @@ export function CustomerPortalActions({ orderId, orderNumber, phone, orderStatus
     ? `https://wa.me/55${phoneDigits.startsWith("55") ? phoneDigits.slice(2) : phoneDigits}?text=${encodeURIComponent(`Olá! Acompanhe sua ordem de serviço nº ${orderNumber} na Cleidson Diesel por este link individual: ${url}`)}`
     : null;
 
-  async function issue() {
+  async function revoke() {\n    if (!window.confirm("Revogar imediatamente todos os links ativos de acompanhamento desta OS? O cliente perderá o acesso.")) return;\n    setBusy(true);\n    try {\n      const { data, error } = await supabase.rpc("revoke_customer_portal_access", { _order_id: orderId });\n      if (error) throw error;\n      setAccess(null);\n      toast.success(Number(data) > 0 ? "Link de acompanhamento revogado." : "Não havia link ativo para revogar.");\n    } catch {\n      toast.error("Não foi possível revogar o link de acompanhamento.");\n    } finally {\n      setBusy(false);\n    }\n  }\n\n  async function issue() {
     setBusy(true);
     try {
       const { data, error } = await supabase.rpc("issue_customer_portal_access", { _order_id: orderId });
