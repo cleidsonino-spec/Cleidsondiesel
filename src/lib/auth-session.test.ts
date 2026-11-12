@@ -105,6 +105,25 @@ describe("handleAuthStateChange", () => {
     expect(queryCache.clear).toHaveBeenCalledTimes(2);
   });
 
+
+  it("does not let a profile update cancel a pending sign-out redirect", () => {
+    const { queryCache, router } = setup();
+    const scheduled: Array<() => void> = [];
+
+    handleAuthStateChange("SIGNED_OUT", queryCache, router, (callback) => {
+      scheduled.push(callback);
+    });
+    handleAuthStateChange("USER_UPDATED", queryCache, router, (callback) => {
+      scheduled.push(callback);
+    });
+
+    scheduled[0]();
+    scheduled[1]();
+
+    expect(router.navigate).toHaveBeenCalledWith({ to: "/auth", replace: true });
+    expect(router.invalidate).toHaveBeenCalledOnce();
+  });
+
   it("does nothing for unrelated auth events", () => {
     const { queryCache, router } = setup();
     const schedule = vi.fn();
