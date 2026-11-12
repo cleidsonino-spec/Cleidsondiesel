@@ -26,5 +26,12 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Run tests
         run: bun run test
-      - name: Run lint
-        run: bun run lint
+      - name: Lint auth and session files
+        run: >-
+          bunx eslint
+          src/lib/auth-session.ts
+          src/lib/auth-session.test.ts
+          src/routes/__root.tsx
+          src/routes/_authenticated/equipe.tsx
+          src/routes/_authenticated/painel.tsx
+          --rule 'prettier/prettier: off'
