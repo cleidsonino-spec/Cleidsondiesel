@@ -13,7 +13,7 @@ import { appointmentsQuery } from "@/lib/queries";
 import { formatDateBR, getSlotsForDate, todayISO } from "@/lib/schedule";
 import { appointmentStatusInfo, type AppointmentStatus } from "@/lib/status";
 import { cn } from "@/lib/utils";
-import { appointmentMessage, waLink } from "@/lib/whatsapp";
+import { appointmentMessage, appointmentReminderMessage, waLink } from "@/lib/whatsapp";
 
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 
@@ -156,9 +156,9 @@ function AppointmentRow({ a }: { a: Appointment }) {
   const qc = useQueryClient();
   const info = appointmentStatusInfo(a.status);
   const confirmHref = waLink(a.phone, appointmentMessage(a));
-  const chatHref = waLink(a.phone, `Olá, ${a.customer_name.split(" ")[0]}! Aqui é da Cleidson Diesel.`);
+  const chatHref = waLink(a.phone, `Olá, ${a.customer_name.split(" ")[0]}! Aqui é da Cleidson Diesel.`);\n  const reminderHref = waLink(a.phone, appointmentReminderMessage(a));\n  const reminder = a as Appointment & { reminder_sent_at?: string | null; reminder_sent_by?: string | null; reminder_channel?: string | null };
 
-  async function setStatus(status: AppointmentStatus) {
+  async function recordReminder() {\n    const { data: auth } = await supabase.auth.getUser();\n    if (!auth.user) { toast.error("Sessão expirada. Entre novamente."); return; }\n    const { error } = await (supabase as any).from("appointments").update({ reminder_sent_at: new Date().toISOString(), reminder_sent_by: auth.user.id, reminder_channel: "whatsapp" }).eq("id", a.id);\n    if (error) { toast.error("Não foi possível registrar o lembrete."); return; }\n    await qc.invalidateQueries({ queryKey: ["appointments"] });\n    toast.success("Lembrete registrado como enviado.");\n  }\n\n  async function setStatus(status: AppointmentStatus) {
     const { error } = await supabase.from("appointments").update({ status }).eq("id", a.id);
     if (error) { toast.error("Não foi possível atualizar."); return; }
     await qc.invalidateQueries({ queryKey: ["appointments"] });
@@ -193,7 +193,7 @@ function AppointmentRow({ a }: { a: Appointment }) {
             <Check /> Confirmar
           </Button>
         )}
-        {chatHref && (
+        {reminderHref && a.status === "confirmado" && (\n          <Button asChild size="sm" variant="outline">\n            <a href={reminderHref} target="_blank" rel="noopener noreferrer"><MessageCircle /> Enviar lembrete</a>\n          </Button>\n        )}\n        {reminder.reminder_sent_at && (\n          <span className="text-xs text-muted-foreground">Lembrete registrado em {new Date(reminder.reminder_sent_at).toLocaleString("pt-BR")}</span>\n        )}\n        {reminderHref && a.status === "confirmado" && (\n          <Button size="sm" variant="ghost" onClick={() => void recordReminder()}>Registrar envio</Button>\n        )}\n        {chatHref && (
           <Button asChild size="sm" variant="outline" aria-label="Conversar no WhatsApp">
             <a href={chatHref} target="_blank" rel="noopener noreferrer">
               <MessageCircle />
