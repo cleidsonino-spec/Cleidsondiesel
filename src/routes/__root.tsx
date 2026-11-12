@@ -130,10 +130,16 @@ function RootComponent() {
 
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
-      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
-      router.invalidate();
-      if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
-      else queryClient.clear();
+      // Query keys in the app are not consistently user-scoped. Clear the cache
+      // on account boundaries so a newly authenticated user cannot see data
+      // fetched by the previous account.
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+        queryClient.clear();
+        router.invalidate();
+        return;
+      }
+
+      if (event === "USER_UPDATED") router.invalidate();
     });
     return () => data.subscription.unsubscribe();
   }, [router, queryClient]);
