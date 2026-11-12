@@ -38,7 +38,7 @@ BEGIN
      SET revoked_at = now()
    WHERE service_order_id = _order_id AND revoked_at IS NULL;
 
-  raw_token := replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', '');
+  raw_token := encode(gen_random_bytes(32), 'hex');
   INSERT INTO public.client_portal_access(service_order_id, token_hash, expires_at, created_by)
   VALUES (_order_id, encode(digest(raw_token, 'sha256'), 'hex'), now() + interval '30 days', auth.uid())
   RETURNING * INTO access_row;
