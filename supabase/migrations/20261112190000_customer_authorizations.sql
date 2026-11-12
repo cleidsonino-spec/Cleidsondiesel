@@ -3,7 +3,6 @@ CREATE TABLE IF NOT EXISTS public.customer_authorizations (
   service_order_id uuid NOT NULL REFERENCES public.service_orders(id) ON DELETE RESTRICT,
   authorization_type text NOT NULL CHECK (authorization_type IN ('execution_authorization','delivery_confirmation')),
   signer_name text NOT NULL CHECK (char_length(trim(signer_name)) BETWEEN 3 AND 120),
-  signer_document text,
   signature_method text NOT NULL DEFAULT 'typed_name_checkbox' CHECK (signature_method = 'typed_name_checkbox'),
   consent_text text NOT NULL CHECK (char_length(trim(consent_text)) BETWEEN 10 AND 1000),
   accepted_at timestamptz NOT NULL DEFAULT now(),
@@ -31,7 +30,6 @@ CREATE OR REPLACE FUNCTION public.record_customer_authorization(
   _order_id uuid,
   _authorization_type text,
   _signer_name text,
-  _signer_document text,
   _accepted boolean
 )
 RETURNS uuid
@@ -62,9 +60,6 @@ BEGIN
   IF _authorization_type NOT IN ('execution_authorization', 'delivery_confirmation') THEN
     RAISE EXCEPTION 'Tipo de autorização inválido';
   END IF;
-  IF _signer_document IS NOT NULL AND length(trim(_signer_document)) > 30 THEN
-    RAISE EXCEPTION 'Documento inválido';
-  END IF;
 
   SELECT * INTO o FROM public.service_orders WHERE id = _order_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Ordem de serviço não encontrada'; END IF;
@@ -88,11 +83,10 @@ BEGIN
   END IF;
 
   INSERT INTO public.customer_authorizations (
-    service_order_id, authorization_type, signer_name, signer_document,
+    service_order_id, authorization_type, signer_name,
     signature_method, consent_text, recorded_by
   ) VALUES (
     _order_id, _authorization_type, v_name,
-    nullif(regexp_replace(coalesce(_signer_document, ''), '[^0-9A-Za-z.-]', '', 'g'), ''),
     'typed_name_checkbox', v_consent, auth.uid()
   ) RETURNING id INTO v_id;
 
@@ -101,7 +95,7 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION public.record_customer_authorization(uuid, text, text, boolean) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.record_customer_authorization(uuid, text, text, text, boolean) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.record_customer_authorization(uuid, text, text, boolean) TO authenticated;
 
 COMMENT ON TABLE public.customer_authorizations IS
   'Registros imutáveis de aceite eletrônico presencial por OS. Nome digitado e confirmação explícita; não equivale a assinatura manuscrita nem certificação ICP-Brasil.';
