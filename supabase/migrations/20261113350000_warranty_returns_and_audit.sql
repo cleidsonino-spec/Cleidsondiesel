@@ -255,7 +255,7 @@ CREATE OR REPLACE FUNCTION public.guard_warranty_identity()
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path = public
-AS $
+AS $$
 BEGIN
   IF TG_OP = 'UPDATE' AND (
     NEW.service_order_id IS DISTINCT FROM OLD.service_order_id
