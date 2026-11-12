@@ -27,7 +27,6 @@ type Authorization = {
   service_order_id: string;
   authorization_type: "execution_authorization" | "delivery_confirmation";
   signer_name: string;
-  signer_document: string | null;
   consent_text: string;
   accepted_at: string;
 };
@@ -41,7 +40,6 @@ function AuthorizationsPage() {
   const [orderId, setOrderId] = useState("");
   const [kind, setKind] = useState<Authorization["authorization_type"]>("execution_authorization");
   const [signer, setSigner] = useState("");
-  const [document, setDocument] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -78,7 +76,6 @@ function AuthorizationsPage() {
         _order_id: selected.id,
         _authorization_type: kind,
         _signer_name: signer.trim(),
-        _signer_document: document.trim() || null,
         _accepted: accepted,
       });
       if (error) throw error;
@@ -127,10 +124,6 @@ function AuthorizationsPage() {
         <div className="space-y-2">
           <Label htmlFor="authorization-signer">Nome completo de quem autoriza</Label>
           <Input id="authorization-signer" required minLength={3} maxLength={120} value={signer} onChange={(event) => setSigner(event.target.value)} autoComplete="name" />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="authorization-document">CPF ou documento (opcional)</Label>
-          <Input id="authorization-document" maxLength={30} value={document} onChange={(event) => setDocument(event.target.value)} autoComplete="off" />
         </div>
         {selected && <div className="rounded-md border p-4">
           <p className="text-sm font-medium">Texto que o cliente está aceitando</p>
