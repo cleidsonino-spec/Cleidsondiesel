@@ -125,3 +125,39 @@ A definição inicial de `service_orders.appointment_id` usa `ON DELETE SET NULL
 - Auditoria estática das migrations e telas versionadas; não houve chamada real à API nem teste de RLS.
 - Nenhuma migration foi criada, alterada ou executada; nenhuma mudança de produção foi feita.
 - A branch/PR continua sendo proposta não mesclada. A proteção efetiva depende da execução das mudanças de schema pelo fluxo gerenciado autorizado.
+
+## 5. Proteção de agendamentos — especificação para o schema gerenciado (2026-11-12)
+
+### Comportamento atual confirmado na aplicação
+- `src/routes/_authenticated/painel.agendamentos.tsx` não apresenta ação de exclusão física.
+- A ação disponível para atendimentos ativos chama UPDATE de `status` para `cancelado`; portanto, a interface já utiliza cancelamento lógico.
+- `src/routes/_authenticated/painel.ordens.nova.tsx` cria a OS com `appointment_id` apontando para o agendamento de origem e, após a criação, atualiza o agendamento para `concluido`.
+- A OS e o agendamento permanecem vinculados após a conversão; não há exclusão de agendamento nesse fluxo.
+- O status `concluido` não exibe o botão de cancelamento na linha da agenda. O status `compareceu` ainda permite cancelar antes da conversão em OS.
+
+### Risco no banco
+A migration inicial `drizzle/migrations/0000_oficina_schema.sql` concede `SELECT, INSERT, UPDATE, DELETE` em `public.appointments` para `authenticated` e cria a policy `Admins delete appointments`. A migration de acesso da secretaria adiciona leitura/atualização, sem remover a policy de DELETE. Logo, um administrador ainda pode excluir diretamente pela API, mesmo sem botão na tela.
+
+A FK `service_orders.appointment_id` usa `ON DELETE SET NULL`: a exclusão do agendamento não apaga a OS, mas elimina a referência histórica entre os registros.
+
+### Mudança solicitada ao fluxo de schema gerenciado
+1. Revogar o privilégio `DELETE` de `authenticated` em `public.appointments`.
+2. Remover a policy `Admins delete appointments`.
+3. Não conceder DELETE a secretaria nem a usuário comum.
+4. Manter INSERT público limitado ao status inicial pendente; manter SELECT/UPDATE conforme os papéis operacionais existentes.
+5. Preservar o cancelamento como UPDATE de status para `cancelado`, com registro de quem/quando em trilha de eventos se o schema gerenciado suportar essa auditoria.
+6. Alterar a FK `service_orders.appointment_id` de `ON DELETE SET NULL` para `ON DELETE RESTRICT` como segunda barreira, após confirmar o estado real do schema e a compatibilidade com dados existentes. A restrição não substitui revogar DELETE, pois agendamentos ainda sem OS poderiam ser apagados.
+7. Não criar exclusão em cascata, não apagar agendamento ao cancelar OS e não permitir que cancelar um agendamento reverta ou altere a OS já aberta.
+
+### Critérios de aceite antes de ativar a proteção
+- Admin: DELETE direto na API deve ser negado.
+- Secretaria: DELETE direto na API deve ser negado.
+- Usuário comum: DELETE direto na API deve ser negado.
+- Admin e secretaria mantêm as atualizações de status permitidas pelas políticas operacionais.
+- Cancelar um agendamento mantém o registro e o horário deixa de ocupar a agenda conforme o índice parcial atual.
+- Converter agendamento em OS mantém o vínculo e muda o agendamento para concluído.
+- Agendamento vinculado a OS não pode ser apagado nem desvinculado por exclusão.
+- Nenhuma OS, pagamento, recebimento ou movimento de estoque é alterado por cancelamento de agendamento.
+
+### Limite de execução
+O arquivo `AGENTS.md` determina que migrations `supabase/` e `drizzle/` são gerenciadas pelo fluxo do projeto e não devem ser editadas manualmente. Por isso, esta etapa registra a especificação e os critérios de aceite; não modifica migrations, não acessa Supabase e não executa alterações de banco. A proteção de API só poderá ser declarada depois que a mudança de schema for aplicada pelo fluxo gerenciado e testada.
