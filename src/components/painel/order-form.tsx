@@ -38,6 +38,7 @@ export type OrderFormValues = {
   due_date: string;
   notes: string;
   inspection: InspectionData;
+  vehicleReceipt: { receivedAt: string; receivedBy: string; odometer: string; fuelLevel: string; damages: string; observations: string };
 };
 
 export function toOrderInput(v: OrderFormValues): OrderInput {
@@ -61,7 +62,8 @@ export function toOrderInput(v: OrderFormValues): OrderInput {
     due_date: v.due_date || null,
     notes: v.notes.trim() || null,
     inspection_checklist: writeInspectionData(v.inspection),
-  };
+    vehicle_receipt: { received_at: v.vehicleReceipt.receivedAt || null, received_by: v.vehicleReceipt.receivedBy.trim() || null, odometer: v.vehicleReceipt.odometer.trim() || null, fuel_level: v.vehicleReceipt.fuelLevel || null, damages: v.vehicleReceipt.damages.trim() || null, observations: v.vehicleReceipt.observations.trim() || null },
+  } as unknown as OrderInput;
 }
 
 export function OrderForm({
@@ -69,11 +71,13 @@ export function OrderForm({
   onSubmit,
   submitLabel,
   extraActions,
+  receiptRequired = false,
 }: {
   initial: OrderFormValues;
   onSubmit: (v: OrderInput) => Promise<void>;
   submitLabel: string;
   extraActions?: ReactNode;
+  receiptRequired?: boolean;
 }) {
   const [v, setV] = useState<OrderFormValues>(initial);
   const [saving, setSaving] = useState(false);
@@ -96,6 +100,7 @@ export function OrderForm({
     if (!v.customer_name.trim()) { toast.error("Informe o nome do cliente."); return; }
     if (!v.vehicle.trim()) { toast.error("Informe o veículo."); return; }
     if (!v.complaint.trim()) { toast.error("Descreva o serviço / reclamação."); return; }
+    if (receiptRequired && (!v.vehicleReceipt.receivedAt || !v.vehicleReceipt.receivedBy.trim() || !v.vehicleReceipt.odometer.trim() || !v.vehicleReceipt.fuelLevel)) { toast.error("Preencha data e hora, responsável, hodômetro e nível de combustível do recebimento."); return; }
     if (draftPartItems(v.part_items).some((item) => !item.description || item.quantity <= 0)) { toast.error("Informe a descrição e uma quantidade válida para cada peça."); return; }
     setSaving(true);
     try { await onSubmit(toOrderInput(v)); }
@@ -118,6 +123,21 @@ export function OrderForm({
         <F label="Veículo"><Input value={v.vehicle} onChange={(e) => set("vehicle", e.target.value)} placeholder="Ex: Hilux 3.0" /></F>
         <F label="Ano"><Input value={v.vehicle_year} onChange={(e) => set("vehicle_year", e.target.value)} /></F>
         <F label="Km"><Input value={v.mileage} onChange={(e) => set("mileage", e.target.value)} inputMode="numeric" /></F>
+      </Section>
+
+      <Section title="Recebimento do veículo">
+        <F label="Data e hora do recebimento"><Input type="datetime-local" value={v.vehicleReceipt.receivedAt} onChange={(e) => set("vehicleReceipt", { ...v.vehicleReceipt, receivedAt: e.target.value })} /></F>
+        <F label="Responsável pelo recebimento"><Input value={v.vehicleReceipt.receivedBy} onChange={(e) => set("vehicleReceipt", { ...v.vehicleReceipt, receivedBy: e.target.value })} placeholder="Nome de quem recebeu" /></F>
+        <F label="Hodômetro / horímetro"><Input value={v.vehicleReceipt.odometer} onChange={(e) => set("vehicleReceipt", { ...v.vehicleReceipt, odometer: e.target.value })} placeholder="Ex.: 125.430 km" /></F>
+        <F label="Nível de combustível">
+          <Select value={v.vehicleReceipt.fuelLevel} onValueChange={(value) => set("vehicleReceipt", { ...v.vehicleReceipt, fuelLevel: value })}>
+            <SelectTrigger><SelectValue placeholder="Selecione o nível" /></SelectTrigger>
+            <SelectContent><SelectItem value="vazio">Vazio / reserva</SelectItem><SelectItem value="1/4">1/4</SelectItem><SelectItem value="1/2">1/2</SelectItem><SelectItem value="3/4">3/4</SelectItem><SelectItem value="cheio">Cheio</SelectItem></SelectContent>
+          </Select>
+        </F>
+        <F label="Avarias e condições visíveis" wide><Textarea value={v.vehicleReceipt.damages} onChange={(e) => set("vehicleReceipt", { ...v.vehicleReceipt, damages: e.target.value })} rows={3} placeholder="Registre riscos, amassados, peças ausentes e outras condições observadas." /></F>
+        <F label="Observações do recebimento" wide><Textarea value={v.vehicleReceipt.observations} onChange={(e) => set("vehicleReceipt", { ...v.vehicleReceipt, observations: e.target.value })} rows={2} placeholder="Chaves, acessórios entregues, pertences e outras informações." /></F>
+        {receiptRequired && <p className="text-xs text-muted-foreground sm:col-span-2 lg:col-span-3">Obrigatório no primeiro recebimento: data e hora, responsável, hodômetro/horímetro e nível de combustível. Fotografias poderão ser anexadas em uma evolução posterior, sem impedir o registro.</p>}
       </Section>
 
       <Section title="Serviço">
