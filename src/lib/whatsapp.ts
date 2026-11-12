@@ -56,7 +56,7 @@ function firstName(name: string) {
   return name.trim().split(/\s+/)[0] ?? name;
 }
 
-export function statusMessage(o: OrderLike, siteUrl?: string): string {
+export function statusMessage(o: OrderLike): string {
   const info = orderStatusInfo(o.status);
   const lines = [
     `Olá, ${firstName(o.customer_name)}! Aqui é da ${SHOP}.`,
@@ -67,7 +67,7 @@ export function statusMessage(o: OrderLike, siteUrl?: string): string {
   if (o.status === "pronto") lines.push(``, `Seu veículo já está pronto para retirada!`);
   else if (o.due_date && o.status !== "entregue" && o.status !== "cancelado")
     lines.push(`Previsão de entrega: ${formatDateBR(o.due_date)}`);
-  if (siteUrl) lines.push(``, `Acompanhe pela placa: ${siteUrl}/consulta`);
+  lines.push(``, `Para acompanhar pela internet, solicite à oficina seu link individual de acompanhamento.`);
   return lines.join("\n");
 }
 
