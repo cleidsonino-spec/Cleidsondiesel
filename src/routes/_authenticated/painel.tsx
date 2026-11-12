@@ -78,7 +78,7 @@ function PainelLayout() {
             {(isAdmin || isSecretary) && <PanelLink to="/painel/recebimento" icon={<ClipboardCheck />} label="Recebimento" />}
             {(isAdmin || isSecretary) && <PanelLink to="/painel/assinaturas" icon={<ClipboardSignature />} label="Autorizações" />}
             {isAdmin && <PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" />}
-            {isAdmin && <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />}
+            {(isAdmin || isSecretary) && <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />}
             {isAdmin && <PanelLink to="/painel/financeiro" icon={<Wallet />} label="Financeiro" />}
             {isAdmin && <PanelLink to="/painel/estoque" icon={<Boxes />} label="Estoque" />}
             {isAdmin && <PanelLink to="/painel/indicadores" icon={<BarChart3 />} label="Indicadores" />}
