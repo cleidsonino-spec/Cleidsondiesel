@@ -187,3 +187,43 @@ A secretaria não apenas tem permissão de SELECT ampla no schema versionado: as
 - Nenhuma mudança de UI foi feita nesta etapa: esconder campos apenas na tela seria cosmético enquanto a API continuar devolvendo os dados.
 - Não foram editadas migrations, consultado banco live, executadas chamadas API reais ou realizados testes com contas/perfis.
 - O projeto proíbe edição manual de migrations; a correção efetiva depende do fluxo gerenciado autorizado.
+
+
+## Revisão específica — isolamento do financeiro por perfil (2026-11-12)
+
+### Tabelas de recebimentos e despesas
+
+Arquivos revisados:
+- `supabase/migrations/20261112130000_manual_finance_module.sql`
+- `supabase/migrations/20261113120000_protect_paid_order_totals.sql`
+- `supabase/migrations/20261113150000_financial_idempotency.sql`
+- `supabase/migrations/20261113200000_financial_idempotency_keys.sql`
+- `src/routes/_authenticated/painel.financeiro.tsx`
+- `src/routes/_authenticated/painel.index.tsx`
+- `src/lib/queries.ts`
+- `AGENTS.md`
+
+Controles confirmados no código versionado:
+- `service_order_payments` e `shop_expenses` têm RLS habilitado.
+- Grants para `authenticated` permitem SELECT e INSERT, mas não UPDATE nem DELETE direto.
+- Policies SELECT e INSERT exigem `has_role(auth.uid(),'admin')`; secretaria, mecânico e usuário comum não satisfazem essas policies.
+- INSERT também vincula `created_by` ao usuário da sessão por policy/trigger.
+- A interface financeira só executa sua consulta quando `isAdmin` é verdadeiro e apresenta mensagem de acesso restrito aos demais perfis.
+- A tela consulta os lançamentos diretamente nas duas tabelas; não foi identificada RPC ou view pública alternativa para listar recebimentos/despesas.
+- As chaves idempotentes evitam duplicação em retries, e os triggers mantêm as validações de saldo da OS.
+
+**Resultado estático:** o isolamento do caixa (recebimentos e despesas) está aplicado no banco e reforçado na interface. Uma chamada REST/PostgREST direta feita por secretaria, mecânico ou usuário comum deve ser bloqueada pelas policies RLS, mesmo que tente ignorar a tela.
+
+### Distinção importante — valores comerciais da OS
+
+A tabela `service_orders` contém `parts_value` e `labor_value`, e a consulta compartilhada de OS usa `select("*")`. A migration de acesso operacional concede SELECT de OS à secretaria. Assim, os valores de peças e mão de obra/orçamento podem estar visíveis à secretaria junto com os dados operacionais da OS.
+
+Esses valores são o preço/orçamento do serviço, não o registro de dinheiro efetivamente recebido nem as despesas da oficina. Os lançamentos reais de caixa continuam isolados nas tabelas admin-only. Não classificar a leitura do valor orçado como acesso à tabela financeira.
+
+A interface do painel geral também mostra o total da OS na lista e nas ordens aguardando aprovação. Isso é coerente com o fluxo de atendimento/orçamento existente; não expõe o saldo de caixa, pagamentos registrados ou despesas.
+
+### Limites e testes pendentes
+- Não foram feitas chamadas REST reais com sessões de admin, secretaria, mecânico e usuário comum; a conclusão é estática e não comprova a configuração do banco implantado.
+- Não foi acessado banco, executado SQL, aplicado migration ou feito deploy.
+- Recomenda-se validar em ambiente de teste: SELECT/INSERT/UPDATE/DELETE nas duas tabelas para cada perfil; confirmar que admin consegue inserir e consultar; confirmar que demais perfis recebem negação RLS.
+- Verificar também que nenhuma nova RPC/view SECURITY DEFINER seja adicionada futuramente com retorno de pagamentos ou despesas sem checagem explícita de papel.
