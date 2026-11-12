@@ -83,10 +83,10 @@ function StaffDashboard() {
     const description = drafts[orderId]?.trim();
     if (!description) { toast.error("Digite o andamento do serviço."); return; }
     const { error } = await (supabase as any).from("technical_service_logs").insert({
-      service_order_id: orderId, mechanic_user_id: user.id, procedure: "Andamento do serviço",
+      service_order_id: orderId, mechanic_user_id: user.id, procedure: "outro",
       description, result: "Em andamento", observations: ""
     });
-    if (error) { toast.error("Não foi possível salvar o andamento."); return; }
+    if (error) { toast.error(error.message || "Não foi possível salvar o andamento."); return; }
     setDrafts((old) => ({ ...old, [orderId]: "" }));
     toast.success("Andamento registrado.");
     await load();
