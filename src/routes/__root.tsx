@@ -134,7 +134,16 @@ function RootComponent() {
       // on account boundaries so a newly authenticated user cannot see data
       // fetched by the previous account.
       if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+        // Never keep cached data from a previous identity across auth boundaries.
         queryClient.clear();
+
+        if (event === "SIGNED_OUT") {
+          // Covers explicit logout and sessions invalidated/expired by Supabase.
+          // replace prevents the Back button from returning to an authenticated screen.
+          void router.navigate({ to: "/auth", replace: true });
+          return;
+        }
+
         router.invalidate();
         return;
       }
