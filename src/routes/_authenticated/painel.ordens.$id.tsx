@@ -160,6 +160,7 @@ function OrdemPage() {
           key={order.updated_at}
           initial={toForm(order)}
           submitLabel="Salvar alterações"
+          allowStatusEdit={false}
           onSubmit={async (input) => {
             const { error } = await supabase.from("service_orders").update(input).eq("id", id);
             if (error) {
