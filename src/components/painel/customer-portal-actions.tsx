@@ -17,7 +17,7 @@ export function CustomerPortalActions({ orderId, orderNumber, phone, orderStatus
     ? `https://wa.me/55${phoneDigits.startsWith("55") ? phoneDigits.slice(2) : phoneDigits}?text=${encodeURIComponent(`Olá! Acompanhe sua ordem de serviço nº ${orderNumber} na Cleidson Diesel por este link individual: ${url}`)}`
     : null;
 
-  async function revoke() {\n    if (!window.confirm("Revogar imediatamente todos os links ativos de acompanhamento desta OS? O cliente perderá o acesso.")) return;\n    setBusy(true);\n    try {\n      const { data, error } = await supabase.rpc("revoke_customer_portal_access", { _order_id: orderId });\n      if (error) throw error;\n      setAccess(null);\n      toast.success(Number(data) > 0 ? "Link de acompanhamento revogado." : "Não havia link ativo para revogar.");\n    } catch {\n      toast.error("Não foi possível revogar o link de acompanhamento.");\n    } finally {\n      setBusy(false);\n    }\n  }\n\n  async function issue() {
+  async function issue() {
     setBusy(true);
     try {
       const { data, error } = await supabase.rpc("issue_customer_portal_access", { _order_id: orderId });
@@ -33,6 +33,21 @@ export function CustomerPortalActions({ orderId, orderNumber, phone, orderStatus
     }
   }
 
+  async function revoke() {
+    if (!window.confirm("Revogar imediatamente todos os links ativos de acompanhamento desta OS? O cliente perderá o acesso.")) return;
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.rpc("revoke_customer_portal_access", { _order_id: orderId });
+      if (error) throw error;
+      setAccess(null);
+      toast.success(Number(data) > 0 ? "Link de acompanhamento revogado." : "Não havia link ativo para revogar.");
+    } catch {
+      toast.error("Não foi possível revogar o link de acompanhamento.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return <section className="space-y-3 rounded-md border border-border p-4 print:hidden">
     <div><h2 className="flex items-center gap-2 font-semibold"><Link2 className="size-4" /> Acompanhamento do cliente</h2>
       <p className="mt-1 text-sm text-muted-foreground">Gere um link individual com validade de 30 dias. Ao gerar outro, o link anterior deixa de funcionar.</p>
@@ -41,6 +56,9 @@ export function CustomerPortalActions({ orderId, orderNumber, phone, orderStatus
       <Button type="button" variant="outline" disabled={busy || orderStatus === "cancelado"} onClick={() => void issue()}>
         {busy ? <Loader2 className="animate-spin" /> : access ? <RefreshCw /> : <Link2 />}
         {access ? "Gerar novo link" : "Gerar link do cliente"}
+      </Button>
+      <Button type="button" variant="destructive" disabled={busy} onClick={() => void revoke()}>
+        {busy ? <Loader2 className="animate-spin" /> : <ShieldOff />} Revogar link ativo
       </Button>
       {url && <Button type="button" variant="outline" onClick={async () => { try { await navigator.clipboard.writeText(url); toast.success("Link copiado."); } catch { toast.error("Não foi possível copiar o link."); } }}><Copy /> Copiar link</Button>}
       {whatsappUrl && <Button asChild><a href={whatsappUrl} target="_blank" rel="noopener noreferrer"><MessageCircle /> Enviar pelo WhatsApp</a></Button>}
