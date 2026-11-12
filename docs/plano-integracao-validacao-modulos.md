@@ -177,3 +177,7 @@ O PR #42 não recebeu alteração nesta rodada; seu CI e seus testes de isolamen
 A integração deve ocorrer em uma branch única de homologação, na sequência: #33/#34, #35, #36, #38, #39/#40, #41, #42/#43, #44 e #45. Resolver em conjunto os arquivos compartilhados `src/routes/_authenticated/painel.tsx` e `src/routes/_authenticated/painel.ordens.$id.tsx`. Aplicar migrations somente em banco de teste autorizado, na ordem cronológica e após revisão de dependências. Validar RLS, papéis, triggers, RPCs, portal anon, pagamentos concorrentes, saldo de estoque, assinatura e transições de garantia.
 
 Nenhum PR foi mesclado, nenhum deploy foi realizado e nenhuma migration foi aplicada ao banco real.
+
+
+- **#41 histórico:** ampliada a linha do tempo interna para mostrar vistoria de recebimento, recebimentos financeiros, movimentações de estoque vinculadas e assinaturas, com consultas em lotes. Depende das migrations #36, #38, #39 e #40 no ambiente integrado; o portal público não utiliza essa consulta interna.
+- **CI #41 após a ampliação:** commit `b06227be81433d18886ca295265bc8da90bd2ec7` enviado; execução ainda não apareceu no momento da consulta.
