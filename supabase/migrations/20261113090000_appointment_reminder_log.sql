@@ -1,38 +1,71 @@
--- Registro manual e auditável de lembretes enviados para agendamentos.
-ALTER TABLE public.appointments
-  ADD COLUMN IF NOT EXISTS reminder_sent_at timestamptz,
-  ADD COLUMN IF NOT EXISTS reminder_sent_by uuid REFERENCES auth.users(id),
-  ADD COLUMN IF NOT EXISTS reminder_channel text;
+-- Histórico append-only de lembretes enviados manualmente para agendamentos.
+CREATE TABLE IF NOT EXISTS public.appointment_reminder_logs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  appointment_id uuid NOT NULL REFERENCES public.appointments(id) ON DELETE RESTRICT,
+  sent_at timestamptz NOT NULL DEFAULT now(),
+  sent_by uuid NOT NULL REFERENCES auth.users(id),
+  channel text NOT NULL CHECK (channel IN ('whatsapp'))
+);
 
-ALTER TABLE public.appointments
-  DROP CONSTRAINT IF EXISTS appointments_reminder_channel_check;
-ALTER TABLE public.appointments
-  ADD CONSTRAINT appointments_reminder_channel_check
-  CHECK (reminder_channel IS NULL OR reminder_channel IN ('whatsapp'));
+CREATE INDEX IF NOT EXISTS appointment_reminder_logs_appointment_idx
+  ON public.appointment_reminder_logs(appointment_id, sent_at DESC);
 
-CREATE OR REPLACE FUNCTION public.validate_appointment_reminder()
-RETURNS trigger
+ALTER TABLE public.appointment_reminder_logs ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.appointment_reminder_logs FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.appointment_reminder_logs TO authenticated;
+
+CREATE POLICY appointment_reminder_logs_staff_read
+  ON public.appointment_reminder_logs
+  FOR SELECT TO authenticated
+  USING (
+    public.has_role(auth.uid(), 'admin')
+    OR public.has_role(auth.uid(), 'secretaria')
+  );
+
+-- O registro é feito por RPC para validar função/status e preservar histórico imutável.
+CREATE OR REPLACE FUNCTION public.record_appointment_reminder(
+  _appointment_id uuid,
+  _channel text
+)
+RETURNS uuid
 LANGUAGE plpgsql
+SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  log_id uuid;
 BEGIN
-  IF NEW.reminder_sent_at IS DISTINCT FROM OLD.reminder_sent_at
-     OR NEW.reminder_sent_by IS DISTINCT FROM OLD.reminder_sent_by
-     OR NEW.reminder_channel IS DISTINCT FROM OLD.reminder_channel THEN
-    IF NOT (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'secretaria')) THEN
-      RAISE EXCEPTION 'Somente a equipe autorizada pode registrar lembretes';
-    END IF;
-    IF NEW.reminder_sent_at IS NOT NULL
-       AND (NEW.reminder_sent_by IS DISTINCT FROM auth.uid()
-         OR NEW.reminder_channel IS DISTINCT FROM 'whatsapp') THEN
-      RAISE EXCEPTION 'Dados do lembrete inválidos';
-    END IF;
+  IF auth.uid() IS NULL OR NOT (
+    public.has_role(auth.uid(), 'admin')
+    OR public.has_role(auth.uid(), 'secretaria')
+  ) THEN
+    RAISE EXCEPTION 'Acesso não autorizado para registrar lembretes';
   END IF;
-  RETURN NEW;
+
+  IF _channel <> 'whatsapp' THEN
+    RAISE EXCEPTION 'Canal de lembrete inválido';
+  END IF;
+
+  PERFORM 1
+    FROM public.appointments
+   WHERE id = _appointment_id
+     AND status = 'confirmado'
+   FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'O agendamento precisa estar confirmado para registrar o lembrete';
+  END IF;
+
+  INSERT INTO public.appointment_reminder_logs(appointment_id, sent_by, channel)
+  VALUES (_appointment_id, auth.uid(), _channel)
+  RETURNING id INTO log_id;
+
+  RETURN log_id;
 END;
 $$;
 
-DROP TRIGGER IF EXISTS appointments_reminder_guard ON public.appointments;
-CREATE TRIGGER appointments_reminder_guard
-  BEFORE UPDATE ON public.appointments
-  FOR EACH ROW EXECUTE FUNCTION public.validate_appointment_reminder();
+REVOKE ALL ON FUNCTION public.record_appointment_reminder(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.record_appointment_reminder(uuid, text) TO authenticated;
+
+COMMENT ON TABLE public.appointment_reminder_logs IS
+  'Histórico append-only dos lembretes enviados manualmente pela equipe. Não comprova entrega pelo WhatsApp.';
