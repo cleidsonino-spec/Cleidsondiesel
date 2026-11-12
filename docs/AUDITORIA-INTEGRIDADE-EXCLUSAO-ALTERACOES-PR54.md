@@ -85,3 +85,43 @@ A definição inicial de `service_orders.appointment_id` usa `ON DELETE SET NULL
 - O repositório proíbe edição manual de `supabase/migrations/` e `drizzle/`; não foi contornado esse limite.
 - O fluxo de cancelamento seguro continua especificado, mas não foi implementado nesta etapa.
 - Nenhum deploy foi realizado.
+
+## 4. Auditoria complementar — exclusão de cadastros e registros operacionais (2026-11-12)
+
+### Clientes e veículos
+- `drizzle/migrations/0006_customers_vehicles_and_warranty_module.sql` concede `SELECT, INSERT, UPDATE, DELETE` a `authenticated` nas tabelas `customers` e `vehicles`, com RLS `FOR ALL` limitada a admin.
+- A interface em `src/components/painel/registry-page.tsx` oferece exclusão de clientes e veículos ao administrador e executa `.delete()` diretamente.
+- A FK `vehicles.customer_id` não declara `ON DELETE CASCADE`; portanto, cliente com veículo vinculado não deve ser apagado. A FK `service_orders.customer_id` e `service_orders.vehicle_id` também não especifica cascata; registros referenciados devem impedir exclusão pela integridade referencial.
+- **Risco residual:** cliente ou veículo sem vínculo atual pode ser excluído fisicamente, sem trilha de auditoria própria. O histórico de OS guarda snapshots de dados, mas isso não equivale a preservar o cadastro mestre ou registrar a exclusão.
+- Recomendação: preferir inativação/arquivamento com trilha de quem e quando, mantendo os IDs e referências. Não criar soft delete sem definir o comportamento de busca, cadastro duplicado e reativação.
+
+### Agendamentos
+- A migration inicial concede `DELETE` a `authenticated` e policy `Admins delete appointments` permite exclusão a admin.
+- `service_orders.appointment_id` foi definido com `ON DELETE SET NULL`. Excluir agendamento que originou uma OS remove o vínculo de origem, sem apagar a OS.
+- A tela atual de agendamentos revisada não apresentou chamada `.delete()` nem botão de exclusão nos trechos encontrados; a permissão de API, porém, permanece no schema versionado.
+- Recomendação: revogar exclusão direta e usar status `cancelado` para agendamentos não convertidos. Para agendamento já convertido em OS, preservar vínculo histórico e registrar cancelamento/alteração sem apagar o registro.
+
+### Estoque e fornecedores
+- `suppliers` e `inventory_items` têm grants autenticados de SELECT/INSERT/UPDATE, sem DELETE. Embora as policies sejam `FOR ALL`, o privilégio SQL de DELETE não foi concedido a `authenticated`; a policy isolada não concede privilégio.
+- A interface deve preferir o campo `active` para inativar fornecedor/item, em vez de exclusão física.
+- `inventory_movements` concede apenas SELECT/INSERT; não há UPDATE/DELETE para authenticated. FKs usam `ON DELETE RESTRICT` para item, fornecedor e OS, preservando o livro de movimentos.
+- Resultado estático: o desenho do estoque é mais protetivo que clientes/veículos e agendamentos.
+
+### Financeiro, recebimento, autorizações e garantias
+- Pagamentos e despesas: grants apenas SELECT/INSERT para authenticated; sem UPDATE/DELETE direto.
+- Recebimentos: SELECT/INSERT; sem UPDATE/DELETE direto.
+- Autorizações: SELECT; gravação por RPC; sem DELETE direto.
+- Garantias: a migration final revoga todos os privilégios e concede apenas SELECT/INSERT/UPDATE a authenticated; sem DELETE direto. Triggers de auditoria registram alterações e bloqueiam exclusão da garantia.
+- Retornos e eventos de garantia: SELECT para authenticated e gravação por RPC/trigger; sem DELETE direto concedido.
+- As FKs `ON DELETE RESTRICT` em pagamentos, recebimentos, autorizações, estoque e garantias também protegem OS e registros vinculados.
+
+### Prioridade recomendada
+1. Revogar DELETE de `appointments` e remover a policy `Admins delete appointments`; preservar cancelamento por status e manter vínculo de origem com OS.
+2. Para clientes e veículos, substituir exclusão física na interface por inativação/arquivamento auditável, após definir o contrato funcional e o suporte de schema.
+3. Manter imutabilidade de movimentos de estoque, pagamentos, despesas, recebimentos, autorizações e eventos de garantia.
+4. Manter a proteção da OS já especificada: revogar DELETE direto e disponibilizar cancelamento somente por RPC transacional auditável.
+
+### Limites
+- Auditoria estática das migrations e telas versionadas; não houve chamada real à API nem teste de RLS.
+- Nenhuma migration foi criada, alterada ou executada; nenhuma mudança de produção foi feita.
+- A branch/PR continua sendo proposta não mesclada. A proteção efetiva depende da execução das mudanças de schema pelo fluxo gerenciado autorizado.
