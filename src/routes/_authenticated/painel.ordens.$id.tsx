@@ -73,6 +73,7 @@ function toForm(o: Order): OrderFormValues {
     due_date: o.due_date ?? "",
     notes: o.notes ?? "",
     inspection: readInspectionData(o.inspection_checklist),
+    vehicleReceipt: (() => { const r = (o as any).vehicle_receipt; return { receivedAt: typeof r?.received_at === "string" ? r.received_at.slice(0, 16) : "", receivedBy: typeof r?.received_by === "string" ? r.received_by : "", odometer: typeof r?.odometer === "string" ? r.odometer : "", fuelLevel: typeof r?.fuel_level === "string" ? r.fuel_level : "", damages: typeof r?.damages === "string" ? r.damages : "", observations: typeof r?.observations === "string" ? r.observations : "" }; })(),
   };
 }
 
