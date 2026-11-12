@@ -82,8 +82,17 @@ export function OrderForm({
   const { data: customers = [] } = useQuery(customersQuery());
   const { data: vehicles = [] } = useQuery(vehiclesQuery());
   const chooseCustomer = (id: string) => {
-    const c = customers.find((item) => item.id === id);
-    setV((p) => ({ ...p, customer_id: c?.id ?? "", vehicle_id: "", ...(c ? { customer_name: c.name, phone: c.phone ?? "" } : {}) }));
+    const customer = customers.find((item) => item.id === id);
+    setV((p) => {
+      const changedCustomer = (p.customer_id || "") !== (customer?.id ?? "");
+      return {
+        ...p,
+        customer_id: customer?.id ?? "",
+        vehicle_id: "",
+        ...(changedCustomer ? { plate: "", vehicle: "", vehicle_year: "", mileage: "" } : {}),
+        ...(customer ? { customer_name: customer.name, phone: customer.phone ?? "" } : {}),
+      };
+    });
   };
   const chooseVehicle = (id: string) => {
     const vehicle = vehicles.find((item) => item.id === id);
@@ -94,6 +103,13 @@ export function OrderForm({
 
   async function handle(e: FormEvent) {
     e.preventDefault();
+    if (v.vehicle_id) {
+      const linkedVehicle = vehicles.find((vehicle) => vehicle.id === v.vehicle_id);
+      if (!linkedVehicle || linkedVehicle.customer_id !== v.customer_id) {
+        toast.error("O veículo selecionado não pertence ao cliente informado. Selecione novamente o cliente e o veículo.");
+        return;
+      }
+    }
     if (!isValidPlate(v.plate)) { toast.error("Placa inválida. Ex: ABC1234 ou ABC1D23."); return; }
     if (!v.customer_name.trim()) { toast.error("Informe o nome do cliente."); return; }
     if (!v.vehicle.trim()) { toast.error("Informe o veículo."); return; }
