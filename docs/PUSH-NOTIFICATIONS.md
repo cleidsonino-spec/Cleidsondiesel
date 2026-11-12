@@ -26,26 +26,21 @@ Não envie os valores desses secrets pelo chat nem os grave em arquivos versiona
 3. Confira a execução: as três funções `register-device`, `unregister-device` e `notify-admin` devem ser implantadas no projeto indicado por `SUPABASE_PROJECT_ID`.
 4. `notify-admin` precisa permanecer com verificação JWT desativada porque recebe chamadas de Database Webhooks autenticadas pelo cabeçalho secreto. As funções de registro e remoção mantêm a verificação JWT ativada e ainda verificam a role `admin`.
 
-## Database Webhooks no Supabase
+## Caminho ativo de notificações
 
-Em **Database → Webhooks**, crie webhooks POST para:
+O fluxo principal é **trigger PostgreSQL → Cloudflare Worker `/notify` → Firebase Cloud Messaging → aparelhos Android da administração**.
 
-| Tabela | Eventos |
-| --- | --- |
-| `appointments` | INSERT |
-| `service_orders` | INSERT e UPDATE |
-| `warranties` | INSERT |
+A migration `20261110170000_cloudflare_push_triggers.sql` registra os eventos:
+- `appointments`: novo agendamento;
+- `service_orders`: nova OS e transições de status relevantes;
+- `warranties`: garantia emitida;
+- `push.notification_events`: eventos adicionais com chave idempotente.
 
-URL de destino:
+A função `push.notify_worker_on_change()` envia o payload padrão ao Worker com o segredo do Vault. A proteção para `OLD.status` fica restrita a atualizações de `service_orders`, evitando falhas em tabelas sem essa coluna.
 
-`https://vmmfifpikycnmvzibrfn.supabase.co/functions/v1/notify-admin`
+**Não crie Database Webhooks para encaminhar os mesmos eventos à função Supabase `notify-admin`.** Essa função é um caminho legado separado; mantê-la ativa junto do Worker pode gerar notificações duplicadas. Se algum webhook antigo para `notify-admin` já existir, confira e remova-o antes do teste integrado. A configuração de webhooks do projeto Supabase não é versionada neste repositório e precisa ser conferida no painel.
 
-Cabeçalhos:
-
-- `Content-Type: application/json`
-- `x-webhook-secret: <mesmo valor de PUSH_WEBHOOK_SECRET>`
-
-Use o payload padrão do Database Webhook do Supabase (`type`, `table`, `record`, `old_record`). A função filtra os eventos relevantes e ignora os demais. Para UPDATE de `service_orders`, ela só avisa quando o status muda para `pronto`.
+O Worker atualmente implantado já reconhece `notification_events`, limita título/corpo e restringe o destino a rotas internas `/painel`. A tabela `push.notification_events` usa `event_key` como chave primária; `push.dispatch_event()` usa `ON CONFLICT DO NOTHING` para impedir a repetição do mesmo evento lógico.
 
 ## Gerar o APK oficial com FCM
 
@@ -84,11 +79,4 @@ Recusa: pelo mesmo link de aprovação (nome + CPF válido), RPC `reject_quote_i
 
 ### Ação manual pendente (obrigatória)
 
-O código do Worker Cloudflare não está neste repositório. Até ele ser atualizado, os eventos novos chegam mas são ignorados. Adicione no Worker (e, se usar, em `notify-admin`):
-
-```ts
-if (table === "notification_events" && type === "INSERT") {
-  return { title: record.title, body: record.body, route: String(record.route).startsWith("/painel") ? record.route : "/painel" };
-}
-```
-Depois teste em aparelho Android real.
+O Worker implantado já contém o tratamento de `notification_events`; não é necessário acrescentar esse bloco novamente. Ainda é obrigatório testar o fluxo de ponta a ponta em aparelho Android real após confirmar que não há Database Webhooks legados duplicando os eventos.
