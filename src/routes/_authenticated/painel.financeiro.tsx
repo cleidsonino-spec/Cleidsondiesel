@@ -127,7 +127,7 @@ function FinancialPage() {
     const paidByOrder = new Map<string, number>();
     for (const p of data.payments) paidByOrder.set(p.service_order_id, (paidByOrder.get(p.service_order_id) ?? 0) + Number(p.amount));
     const outstanding = data.orders
-      .filter((o) => o.status !== "cancelado")
+      .filter((o) => ["aprovado_aguardando_encaminhamento", "em_servico", "pronto", "entregue"].includes(o.status))
       .map((order) => {
         const total = Number(order.parts_value ?? 0) + Number(order.labor_value ?? 0);
         const paid = paidByOrder.get(order.id) ?? 0;
@@ -264,7 +264,7 @@ function FinancialPage() {
           </section>
 
           <section className="space-y-3">
-            <div><h2 className="text-xl font-semibold">Contas a receber</h2><p className="text-sm text-muted-foreground">Saldo calculado pelo total da OS menos os recebimentos registrados, incluindo ordens já entregues.</p></div>
+            <div><h2 className="text-xl font-semibold">Contas a receber</h2><p className="text-sm text-muted-foreground">Saldo calculado pelo total de OS com orçamento aprovado ou serviço iniciado/concluído, menos os recebimentos registrados.</p></div>
             {summary.outstanding.length ? <div className="overflow-hidden rounded-md border bg-card divide-y">{summary.outstanding.map(({ order, paid, due }) => <article key={order.id} className="grid gap-2 p-4 sm:grid-cols-[1fr_auto] sm:items-center"><div className="min-w-0"><p className="font-medium">OS {order.number} · {order.customer_name}</p><p className="text-xs text-muted-foreground">{order.vehicle} · {order.plate} · Recebido: {formatBRL(paid)}</p></div><p className="font-semibold tabular-nums">{formatBRL(due)}</p></article>)}</div> : <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">Nenhuma OS com saldo em aberto.</p>}
           </section>
 
