@@ -31,7 +31,8 @@ BEGIN
 
   NEW.delivered_by_name := trim(NEW.delivered_by_name);
   NEW.received_by_name := trim(NEW.received_by_name);
-  NEW.delivery_confirmed_at := COALESCE(NEW.delivery_confirmed_at, now());
+  NEW.received_at := now();
+  NEW.delivery_confirmed_at := now();
   RETURN NEW;
 END;
 $$;
