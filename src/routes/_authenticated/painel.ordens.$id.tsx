@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { OrderForm, type OrderFormValues } from "@/components/painel/order-form";
 import { QuotePdfActions } from "@/components/painel/quote-pdf-actions";
 import { ApprovalActions } from "@/components/painel/approval-actions";
+import { ClientPortalActions } from "@/components/painel/client-portal-actions";
 import { WarrantyEditor } from "@/components/painel/warranty-editor";
 import { MechanicAssignment } from "@/components/painel/mechanic-assignment";
 import { warrantiesQuery } from "@/lib/warranty";
@@ -194,6 +195,7 @@ function OrdemPage() {
         />
       </div>
 
+      {(isAdmin || isSecretary) && <ClientPortalActions orderId={id} />}
       <WarrantyEditor orderId={id} orderStatus={order.status} />
       <PrintSheet order={order} />
     </div>
