@@ -73,7 +73,7 @@ BEGIN
     ORDER BY created_at DESC LIMIT 1;
   IF FOUND THEN
     quote_data := jsonb_build_object(
-      'state', q.state, 'snapshot', q.snapshot,
+      'state', q.state, 'token', q.token, 'snapshot', q.snapshot,
       'expires_at', q.expires_at, 'approved_at', q.approved_at
     );
   END IF;
