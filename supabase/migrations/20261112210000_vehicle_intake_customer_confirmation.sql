@@ -30,13 +30,10 @@ BEGIN
     RAISE EXCEPTION 'A pessoa que entregou precisa confirmar o registro de recebimento';
   END IF;
 
-  IF NEW.delivery_consent_text IS NULL
-     OR char_length(trim(NEW.delivery_consent_text)) < 20
-     OR char_length(trim(NEW.delivery_consent_text)) > 1000 THEN
-    RAISE EXCEPTION 'O texto de confirmação da entrega é obrigatório';
+  IF NEW.delivery_consent_text IS DISTINCT FROM
+     'Confirmo que entreguei o veículo à oficina e que as informações desta ficha registram as condições informadas e observadas no recebimento.' THEN
+    RAISE EXCEPTION 'O texto de confirmação da entrega não corresponde ao aceite apresentado';
   END IF;
-
-  NEW.delivery_consent_text := trim(NEW.delivery_consent_text);
   NEW.delivered_by_name := trim(NEW.delivered_by_name);
   NEW.received_by_name := trim(NEW.received_by_name);
   NEW.received_at := now();
