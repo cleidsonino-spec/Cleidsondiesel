@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { UserRoundCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 type Mechanic = { accepted_user_id: string; full_name: string; email: string };
 
 export function MechanicAssignment({ serviceOrderId, stage }: { serviceOrderId: string; stage: "diagnostico" | "servico" }) {
+  const queryClient = useQueryClient();
   const [mechanics, setMechanics] = useState<Mechanic[]>([]);
   const [selected, setSelected] = useState("");
   const [currentName, setCurrentName] = useState("");
@@ -42,6 +44,10 @@ export function MechanicAssignment({ serviceOrderId, stage }: { serviceOrderId: 
     setSaving(false);
     if (error) { toast.error(error.message || "Não foi possível encaminhar a ordem."); return; }
     toast.success(stage === "diagnostico" ? "Diagnóstico encaminhado ao mecânico." : "Serviço encaminhado ao mecânico.");
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["orders"] }),
+      queryClient.invalidateQueries({ queryKey: ["orders", serviceOrderId] }),
+    ]);
     await load();
   }
 
