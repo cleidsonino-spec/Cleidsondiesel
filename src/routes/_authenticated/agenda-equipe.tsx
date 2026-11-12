@@ -27,7 +27,18 @@ export const Route = createFileRoute("/_authenticated/agenda-equipe")({
   beforeLoad: async ({ context }) => {
     const { data, error } = await (supabase as any).from("user_roles").select("role,is_active").eq("user_id", context.user.id);
     if (error) throw error;
-    const roles = (data ?? []).filter((item: any) => item.is_active !== false).map((item: any) => item.role);
+    const rows = data ?? [];
+    const roles = rows.filter((item: any) => item.is_active !== false).map((item: any) => item.role);
+    const hasInactiveStaffRole = rows.some((item: any) =>
+      item.is_active === false && ["mecanico", "secretaria"].includes(item.role)
+    );
+    const hasActiveStaffRole = rows.some((item: any) =>
+      item.is_active !== false && ["admin", "secretaria", "mecanico"].includes(item.role)
+    );
+    if (hasInactiveStaffRole && !hasActiveStaffRole) {
+      await supabase.auth.signOut({ scope: "local" });
+      throw redirect({ to: "/auth" });
+    }
     const staffRole: AgendaRole | null = roles.includes("admin")
       ? "admin"
       : roles.includes("secretaria")
