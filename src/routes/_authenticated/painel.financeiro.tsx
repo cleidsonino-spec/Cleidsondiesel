@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 import { ArrowDownRight, ArrowUpRight, ReceiptText, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
@@ -97,7 +97,7 @@ function FinancialPage() {
   const [expenseDate, setExpenseDate] = useState(today);
   const [expenseMethod, setExpenseMethod] = useState("pix");
   const [expenseSupplier, setExpenseSupplier] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState(false);\n  const paymentRequest = useRef<{ signature: string; key: string } | null>(null);\n  const expenseRequest = useRef<{ signature: string; key: string } | null>(null);
 
   const finance = useQuery({
     queryKey: ["financial-dashboard"],
@@ -152,21 +152,38 @@ function FinancialPage() {
       toast.error("Informe um valor de recebimento válido.");
       return;
     }
-    setSaving(true);
-    const { data: userData } = await supabase.auth.getUser();
-    const { error } = await (supabase as any).from("service_order_payments").insert({
+    const payment = {
       service_order_id: paymentOrder,
       amount,
       payment_method: paymentMethod,
       notes: paymentNotes.trim() || null,
-      created_by: userData.user?.id ?? null,
+    };
+    const signature = JSON.stringify(payment);
+    if (!paymentRequest.current || paymentRequest.current.signature !== signature) {
+      paymentRequest.current = { signature, key: crypto.randomUUID() };
+    }
+    const requestKey = paymentRequest.current.key;
+    setSaving(true);
+    const { error } = await (supabase as any).from("service_order_payments").insert({
+      ...payment,
+      idempotency_key: requestKey,
     });
-    setSaving(false);
+    let alreadyRecorded = false;
     if (error) {
-      toast.error(error.message || "Não foi possível registrar o recebimento.");
+      const { data: existing, error: lookupError } = await (supabase as any)
+        .from("service_order_payments")
+        .select("id")
+        .eq("idempotency_key", requestKey)
+        .maybeSingle();
+      alreadyRecorded = Boolean(existing && !lookupError);
+    }
+    setSaving(false);
+    if (error && !alreadyRecorded) {
+      toast.error(error.message || "Não foi possível confirmar o recebimento. Tente novamente sem alterar os dados.");
       return;
     }
-    toast.success("Recebimento registrado.");
+    paymentRequest.current = null;
+    toast.success(alreadyRecorded ? "Recebimento já estava registrado; nenhum lançamento duplicado foi criado." : "Recebimento registrado.");
     setPaymentAmount("");
     setPaymentNotes("");
     await queryClient.invalidateQueries({ queryKey: ["financial-dashboard"] });
@@ -179,23 +196,40 @@ function FinancialPage() {
       toast.error("Preencha descrição, categoria e um valor válido.");
       return;
     }
-    setSaving(true);
-    const { data: userData } = await supabase.auth.getUser();
-    const { error } = await (supabase as any).from("shop_expenses").insert({
+    const expense = {
       description: expenseDescription.trim(),
       category: expenseCategory.trim(),
       amount,
       expense_date: expenseDate,
       payment_method: expenseMethod,
       supplier_name: expenseSupplier.trim() || null,
-      created_by: userData.user?.id ?? null,
+    };
+    const signature = JSON.stringify(expense);
+    if (!expenseRequest.current || expenseRequest.current.signature !== signature) {
+      expenseRequest.current = { signature, key: crypto.randomUUID() };
+    }
+    const requestKey = expenseRequest.current.key;
+    setSaving(true);
+    const { error } = await (supabase as any).from("shop_expenses").insert({
+      ...expense,
+      idempotency_key: requestKey,
     });
-    setSaving(false);
+    let alreadyRecorded = false;
     if (error) {
-      toast.error(error.message || "Não foi possível registrar a despesa.");
+      const { data: existing, error: lookupError } = await (supabase as any)
+        .from("shop_expenses")
+        .select("id")
+        .eq("idempotency_key", requestKey)
+        .maybeSingle();
+      alreadyRecorded = Boolean(existing && !lookupError);
+    }
+    setSaving(false);
+    if (error && !alreadyRecorded) {
+      toast.error(error.message || "Não foi possível confirmar a despesa. Tente novamente sem alterar os dados.");
       return;
     }
-    toast.success("Despesa registrada.");
+    expenseRequest.current = null;
+    toast.success(alreadyRecorded ? "Despesa já estava registrada; nenhum lançamento duplicado foi criado." : "Despesa registrada.");
     setExpenseDescription("");
     setExpenseAmount("");
     setExpenseSupplier("");
