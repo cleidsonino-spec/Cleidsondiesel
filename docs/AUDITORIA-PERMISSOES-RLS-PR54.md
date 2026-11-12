@@ -322,3 +322,41 @@ A consulta do painel deve usar essa RPC para obter os dados mínimos, sem depend
 - Auditoria estática dos arquivos versionados. Não houve sessão Android real, chamada ao Worker, envio FCM, acesso ao banco ou teste Realtime autenticado.
 - Nenhuma migration criada/aplicada, nenhuma configuração de push alterada e nenhum deploy realizado.
 - `AGENTS.md` proíbe edição manual de migrations; eventual alteração de trigger/schema deve seguir o fluxo gerenciado.
+
+
+## Revisão específica — notificações de OS para administração e secretaria (2026-11-12)
+
+### Matriz de eventos push encontrada
+A função `notify-admin` reconhece somente:
+- `appointments INSERT`: novo agendamento;
+- `service_orders INSERT`: nova OS;
+- `service_orders UPDATE` com transição para `pronto`: serviço pronto;
+- `warranties INSERT`: garantia emitida.
+
+Qualquer outro evento retorna `{ ignored: true }`. Em particular, não há mensagem push para transições para `em_analise`, `aguardando_aprovacao`, `aprovado_aguardando_encaminhamento`, `em_servico`, `entregue` ou `cancelado`. A transição para `aguardando_aprovacao` tem tratamento especial na trigger para acrescentar o nome do mecânico ao payload, mas o Worker não consome esse campo nem gera mensagem para esse status. Assim, o comentário da migration que promete aviso de conclusão de diagnóstico para administração e secretaria não corresponde ao roteamento atual do Worker.
+
+### Destinatários e interface
+- `sendToAdmins` consulta apenas `user_roles.role = admin` e envia FCM aos tokens desses usuários.
+- O layout do painel inicia registro push para admin e secretaria, mas o backend não seleciona secretaria como destinatária. A secretaria pode registrar token sem receber os pushes.
+- A campainha `NotificationBell` é exibida somente para admin.
+- A central `NotificationCenter` é renderizada no dashboard do painel, que é acessível a admin e secretaria. Ela calcula alertas a partir dos dados atuais, sem persistir notificações, sem marcação de leitura e sem ser um feed de eventos.
+- A central interna mostra OS aguardando aprovação, OS pronta e OS com prazo vencido; também mostra garantias a vencer e agendamentos próximos. Não representa todas as mudanças de status e não prova que um evento novo ocorreu naquele momento.
+- A área `/equipe` gera notificações do navegador apenas enquanto a página está aberta e uma alteração Realtime é recebida; não é o mecanismo push FCM do painel.
+
+### Duplicidade e confiabilidade
+- O Worker envia um push por token distinto encontrado nos metadados dos administradores; deduplica tokens em memória com `Set`.
+- Não há chave de idempotência/evento persistido para impedir reenvio do mesmo evento caso o webhook seja repetido.
+- A trigger chama `net.http_post` e não verifica de forma síncrona o resultado final de entrega FCM. O Worker retorna contagem `sent/attempted`, mas não há fila ou histórico de falhas no repositório analisado.
+- O gatilho de OS é executado em INSERT e UPDATE OF status; a função de mensagem filtra apenas transições definidas, então atualizações sem mudança de status não geram push útil. Para status `pronto`, a condição `old.status !== "pronto"` evita duplicar aviso em updates subsequentes que mantenham esse status.
+
+### Conclusão e prioridades
+1. Corrigir o destinatário: incluir secretaria nos pushes operacionais compatíveis com seu papel, sem conceder acesso ao financeiro ou estoque.
+2. Implementar mensagem explícita para diagnóstico concluído (`aguardando_aprovacao`) e definir quais outras transições devem avisar a equipe.
+3. Alinhar a interface: se a central de notificações deve ser compartilhada, exibir a campainha também para secretaria; se não, deixar explícito que a central está no dashboard, mas a campainha é exclusiva do admin.
+4. Adicionar identificador único do evento e registro de entrega/tentativas para deduplicação e diagnóstico de falhas, sem fazer a transação da OS depender do FCM.
+5. Testar cada evento e destinatário com sessões admin e secretaria; testar webhook repetido, token inválido, ausência de segredo e falha temporária do FCM.
+
+### Limites
+- Auditoria estática do código versionado. Nenhum webhook, FCM, aparelho Android, sessão de secretaria ou banco real foi testado.
+- Nenhuma migration criada/aplicada, nenhum segredo/configuração alterado e nenhum deploy realizado.
+- `AGENTS.md` proíbe edição manual de migrations; mudanças de triggers/schema dependem do fluxo gerenciado.
