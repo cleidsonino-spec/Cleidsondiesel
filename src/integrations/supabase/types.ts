@@ -378,6 +378,8 @@ export type Database = {
       }
       booked_slots: { Args: { _date: string }; Returns: string[] }
       get_quote_approval: { Args: { _token: string }; Returns: Json }
+      get_customer_portal: { Args: { _token: string }; Returns: Json }
+      issue_customer_portal_access: { Args: { _order_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -386,25 +388,6 @@ export type Database = {
         Returns: boolean
       }
       issue_quote_approval: { Args: { _order_id: string }; Returns: Json }
-      lookup_plate: {
-        Args: { _plate: string }
-        Returns: {
-          complaint: string
-          due_date: string
-          entry_date: string
-          number: number
-          status: Database["public"]["Enums"]["order_status"]
-          updated_at: string
-          vehicle: string
-        }[]
-      }
-      lookup_vehicle: {
-        Args: { _plate: string }
-        Returns: {
-          vehicle: string
-          vehicle_year: string
-        }[]
-      }
       normalize_plate: { Args: { _p: string }; Returns: string }
       quote_snapshot: {
         Args: { o: Database["public"]["Tables"]["service_orders"]["Row"] }
