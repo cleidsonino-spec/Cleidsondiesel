@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS public.warranty_returns (
   resolution text NOT NULL DEFAULT '',
   parts_used text NOT NULL DEFAULT '',
   labor_description text NOT NULL DEFAULT '',
+  customer_update text NOT NULL DEFAULT '',
   created_by uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
   updated_by uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
   received_at timestamptz NOT NULL DEFAULT now(),
@@ -150,7 +151,8 @@ CREATE OR REPLACE FUNCTION public.register_warranty_return(
   _diagnosis text DEFAULT '',
   _resolution text DEFAULT '',
   _parts_used text DEFAULT '',
-  _labor_description text DEFAULT ''
+  _labor_description text DEFAULT '',
+  _customer_update text DEFAULT ''
 )
 RETURNS uuid
 LANGUAGE plpgsql
@@ -166,6 +168,7 @@ DECLARE
   v_resolution text;
   v_parts text;
   v_labor text;
+  v_customer_update text;
 BEGIN
   IF auth.uid() IS NULL OR NOT (
     public.has_role(auth.uid(), 'admin'::public.app_role)
@@ -178,7 +181,9 @@ BEGIN
   v_diagnosis := trim(coalesce(_diagnosis, ''));
   v_resolution := trim(coalesce(_resolution, ''));
   v_parts := trim(coalesce(_parts_used, ''));
-  v_labor := trim(coalesce(_labor_description, ''));\n  v_customer_update := trim(coalesce(_customer_update, ''));
+  v_labor := trim(coalesce(_labor_description, ''));
+  v_customer_update := trim(coalesce(_customer_update, ''));
+  v_customer_update := trim(coalesce(_customer_update, ''));
 
   IF char_length(v_complaint) < 5 OR char_length(v_complaint) > 5000 THEN
     RAISE EXCEPTION 'Descreva o motivo do retorno (5 a 5000 caracteres)';
@@ -202,10 +207,10 @@ BEGIN
     END IF;
     INSERT INTO public.warranty_returns(
       warranty_id, service_order_id, status, complaint, diagnosis, resolution,
-      parts_used, labor_description, created_by, updated_by
+      parts_used, labor_description, customer_update, created_by, updated_by
     ) VALUES (
       v_warranty.id, v_warranty.service_order_id, _status, v_complaint, v_diagnosis,
-      v_resolution, v_parts, v_labor, auth.uid(), auth.uid()
+      v_resolution, v_parts, v_labor, v_customer_update, auth.uid(), auth.uid()
     ) RETURNING id INTO v_id;
     RETURN v_id;
   END IF;
@@ -232,6 +237,7 @@ BEGIN
       resolution = v_resolution,
       parts_used = v_parts,
       labor_description = v_labor,
+      customer_update = v_customer_update,
       updated_by = auth.uid(),
       updated_at = now(),
       closed_at = CASE WHEN _status IN ('resolved', 'not_covered') THEN now() ELSE NULL END
@@ -242,7 +248,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.register_warranty_return(uuid, text, uuid, text, text, text, text, text) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.register_warranty_return(uuid, text, uuid, text, text, text, text, text, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.register_warranty_return(uuid, text, uuid, text, text, text, text, text) TO authenticated;
 
 
