@@ -50,8 +50,12 @@ function PainelLayout() {
 
   async function signOut() {
     try { await unregisterAdminPushDevice(); } catch { /* O encerramento da sessão não deve depender da rede. */ }
-    await supabase.auth.signOut();
-    navigate({ to: "/auth" });
+    const { error } = await supabase.auth.signOut({ scope: "local" });
+    if (error) {
+      console.error("[Auth] Não foi possível encerrar a sessão.", error);
+      return;
+    }
+    navigate({ to: "/auth", replace: true });
   }
 
   return (
