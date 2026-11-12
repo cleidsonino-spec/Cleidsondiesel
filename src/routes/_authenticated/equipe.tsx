@@ -11,9 +11,9 @@ type Role = "secretaria" | "mecanico";
 
 export const Route = createFileRoute("/_authenticated/equipe")({
   beforeLoad: async ({ context }) => {
-    const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", context.user.id);
+    const { data, error } = await (supabase as any).from("user_roles").select("role,is_active").eq("user_id", context.user.id);
     if (error) throw error;
-    const roles = (data ?? []).map((item) => item.role);
+    const roles = (data ?? []).filter((item: any) => item.is_active !== false).map((item: any) => item.role);
     const staffRole = roles.includes("mecanico") ? "mecanico" : roles.includes("secretaria") ? "secretaria" : null;
     if (!staffRole) throw redirect({ to: "/painel" });
     return { staffRole: staffRole as Role };
