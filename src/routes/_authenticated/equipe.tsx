@@ -49,8 +49,14 @@ function StaffDashboard() {
         .select("id, service_order_id, assigned_at, service_orders(id, number, customer_name, vehicle, plate, complaint, diagnosis, due_date, status, fuel_filter_replacement, system_cleaning)")
         .eq("mechanic_user_id", user.id).eq("active", true).order("assigned_at", { ascending: false });
       if (error) toast.error("Não foi possível carregar suas ordens.");
-      setItems(data ?? []);
-      const orderIds = (data ?? []).map((row: any) => row.service_order_id);
+      // Keep legacy completed/cancelled assignments out of the active work queue.
+      // Their assignment rows remain in the database as history; nothing is deleted.
+      const activeItems = (data ?? []).filter((row: any) =>
+        row.service_orders &&
+        !["pronto", "entregue", "cancelado"].includes(row.service_orders.status)
+      );
+      setItems(activeItems);
+      const orderIds = activeItems.map((row: any) => row.service_order_id);
       if (orderIds.length) {
         const { data: logs } = await (supabase as any).from("technical_service_logs").select("id, service_order_id, procedure, description, result, observations, created_at").in("service_order_id", orderIds).order("created_at", { ascending: false });
         const grouped: Record<string, any[]> = {};
