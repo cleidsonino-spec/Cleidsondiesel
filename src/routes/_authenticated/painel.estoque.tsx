@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 import { AlertTriangle, Boxes, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ function InventoryPage() {
  const [tab,setTab]=useState<"items"|"movements"|"suppliers">("items");
  const [name,setName]=useState(""); const [code,setCode]=useState(""); const [brand,setBrand]=useState(""); const [unit,setUnit]=useState("un"); const [minimum,setMinimum]=useState("0"); const [cost,setCost]=useState("0"); const [price,setPrice]=useState("0"); const [location,setLocation]=useState("");
  const [supplierName,setSupplierName]=useState(""); const [supplierPhone,setSupplierPhone]=useState(""); const [supplierDoc,setSupplierDoc]=useState("");
+ const movementRequest=useRef<{signature:string;key:string}|null>(null);
  const [moveItem,setMoveItem]=useState(""); const [moveType,setMoveType]=useState("entrada"); const [moveQty,setMoveQty]=useState("1"); const [moveCost,setMoveCost]=useState(""); const [moveSupplier,setMoveSupplier]=useState(""); const [reference,setReference]=useState(""); const [notes,setNotes]=useState(""); const [saving,setSaving]=useState(false);
  const query=useQuery({queryKey:["inventory-module"],enabled:isAdmin,queryFn:async()=>{
   const [a,b,c]=await Promise.all([(supabase as any).from("inventory_items").select("*").order("name"),(supabase as any).from("suppliers").select("*").order("name"),(supabase as any).from("inventory_movements").select("*").order("created_at",{ascending:false}).limit(100)]);
@@ -40,8 +41,8 @@ function InventoryPage() {
   const {error}=await (supabase as any).from("suppliers").insert({name:supplierName.trim(),phone:supplierPhone.trim()||null,document:supplierDoc.trim()||null});
   setSaving(false);if(error){toast.error(error.message);return;}toast.success("Fornecedor cadastrado.");setSupplierName("");setSupplierPhone("");setSupplierDoc("");await refresh();}
  async function addMovement(e:FormEvent<HTMLFormElement>){e.preventDefault();const qty=num(moveQty);const selected=items.find(i=>i.id===moveItem);if(!selected||!Number.isFinite(qty)||qty<=0){toast.error("Selecione um item e informe quantidade válida.");return;}if(moveType==="saida"&&qty>Number(selected.quantity_on_hand)){toast.error("Quantidade maior que o saldo disponível.");return;}setSaving(true);
-  const {data:user}=await supabase.auth.getUser();const {error}=await (supabase as any).from("inventory_movements").insert({item_id:moveItem,movement_type:moveType,quantity:qty,unit_cost:moveCost.trim()?num(moveCost):null,supplier_id:moveType==="entrada"?(moveSupplier||null):null,reference:reference.trim()||null,notes:notes.trim()||null,created_by:user.user?.id??null,idempotency_key:crypto.randomUUID()});
-  setSaving(false);if(error){toast.error(error.message);return;}toast.success("Movimentação registrada.");setMoveQty("1");setMoveCost("");setReference("");setNotes("");await refresh();}
+  const {data:user}=await supabase.auth.getUser();const movement={item_id:moveItem,movement_type:moveType,quantity:qty,unit_cost:moveCost.trim()?num(moveCost):null,supplier_id:moveType==="entrada"?(moveSupplier||null):null,reference:reference.trim()||null,notes:notes.trim()||null,created_by:user.user?.id??null};const signature=JSON.stringify(movement);if(!movementRequest.current||movementRequest.current.signature!==signature)movementRequest.current={signature,key:crypto.randomUUID()};const {error}=await (supabase as any).from("inventory_movements").insert({...movement,idempotency_key:movementRequest.current.key});
+  setSaving(false);if(error){toast.error(error.message);return;}movementRequest.current=null;toast.success("Movimentação registrada.");setMoveQty("1");setMoveCost("");setReference("");setNotes("");await refresh();}
  if(!isAdmin)return <section className="rounded-md border p-6"><h1 className="text-xl font-semibold">Acesso restrito</h1><p className="mt-2 text-sm text-muted-foreground">Somente o administrador pode acessar estoque e fornecedores.</p></section>;
  return <div className="space-y-6">
   <header><p className="text-sm text-muted-foreground">Gestão da oficina</p><h1 className="text-3xl">Estoque e fornecedores</h1><p className="mt-1 text-sm text-muted-foreground">Catálogo de peças, fornecedores e movimentos auditáveis. O saldo é atualizado automaticamente.</p></header>
