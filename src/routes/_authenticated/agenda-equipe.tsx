@@ -25,6 +25,8 @@ export const Route = createFileRoute("/_authenticated/agenda-equipe")({
       throw redirect({ to: "/auth" });
     }
     if (!roles.some((role: string) => ["admin", "secretaria", "mecanico"].includes(role))) throw redirect({ to: "/equipe" });
+    const agendaRole = roles.includes("admin") ? "admin" : roles.includes("secretaria") ? "secretaria" : "mecanico";
+    return { agendaRole };
   },
   component: TeamAgendaPage,
 });
@@ -35,14 +37,40 @@ function formatDate(value: string) {
 }
 
 function TeamAgendaPage() {
+  const { agendaRole } = Route.useRouteContext();
   const [rows, setRows] = useState<AgendaRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function loadAgenda() {
     setLoading(true);
-    const { data, error } = await (supabase as any).rpc("get_staff_appointment_agenda");
-    if (error) { toast.error("Não foi possível carregar a agenda da equipe."); setRows([]); }
-    else setRows((data ?? []) as AgendaRow[]);
+    const isMechanic = agendaRole === "mecanico";
+    const { data, error } = await (supabase as any).rpc(
+      isMechanic ? "get_mechanic_appointment_agenda" : "get_staff_appointment_agenda"
+    );
+    if (error) {
+      toast.error("Não foi possível carregar a agenda da equipe.");
+      setRows([]);
+    } else if (isMechanic) {
+      // A RPC do mecânico retorna apenas os agendamentos vinculados às OS
+      // atribuídas ao usuário autenticado; normalize o formato para a tela.
+      setRows((data ?? []).map((row: any) => ({
+        appointment_id: row.id,
+        scheduled_date: row.scheduled_date,
+        scheduled_time: row.scheduled_time,
+        customer_name: row.customer_name,
+        phone: null,
+        plate: "",
+        vehicle: "",
+        service_type: "",
+        notes: null,
+        appointment_status: "pendente",
+        order_number: null,
+        order_status: null,
+        mechanic_name: row.mechanic_name,
+      })) as AgendaRow[]);
+    } else {
+      setRows((data ?? []) as AgendaRow[]);
+    }
     setLoading(false);
   }
 
@@ -72,7 +100,7 @@ function TeamAgendaPage() {
         <p className="text-sm text-muted-foreground">Placa: {row.plate || "—"} · {row.service_type || "Serviço não informado"}</p>
         {row.order_number && <p className="text-xs text-muted-foreground">OS nº {row.order_number} · {row.order_status || "Sem status"}</p>}
         {row.notes && <p className="text-xs text-muted-foreground">{row.notes}</p>}
-        {completed && <p className="flex items-center gap-1 text-sm font-medium"><Wrench className="size-4"/>Mecânico: {row.mechanic_name || "Não identificado no registro"}</p>}
+        {row.mechanic_name && <p className="flex items-center gap-1 text-sm font-medium"><Wrench className="size-4"/>Mecânico: {row.mechanic_name}</p>}
       </div>
       <span className="w-fit rounded-full bg-muted px-3 py-1 text-xs capitalize">{row.order_status || row.appointment_status}</span>
     </article>;
