@@ -123,7 +123,7 @@ function PainelIndex() {
 
       <NotificationCenter />
 
-      {isAdmin && <><StaffManagement /><StaffInvitations /></>}
+      
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Indicadores da oficina">
         <Stat icon={<Wrench />} label="Em andamento" value={stats.open} href="/painel" />
@@ -236,6 +236,20 @@ function PainelIndex() {
         )}
         {!q && filtered.length > 12 && <p className="text-center text-sm text-muted-foreground">Exibindo as 12 ordens mais recentes. Use os filtros para localizar outras.</p>}
       </section>
+
+      {isAdmin && <section className="space-y-3 rounded-md border border-border bg-card p-4">
+        <div>
+          <h2 className="text-xl font-semibold">Cadastros</h2>
+          <p className="text-sm text-muted-foreground">Gerencie os registros da oficina.</p>
+        </div>
+        <details className="rounded-md border border-border">
+          <summary className="cursor-pointer px-4 py-3 font-medium">Funcionário</summary>
+          <div className="space-y-5 border-t border-border p-4">
+            <StaffManagement />
+            <StaffInvitations />
+          </div>
+        </details>
+      </section>}
 
       {plateAppointments.length > 0 && <section className="space-y-3">
         <h2 className="text-lg">Agendamentos dessa placa</h2>
