@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { lovable } from "@/integrations/lovable";
-import { startNativeOAuth } from "@/lib/native-oauth";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/auth")({
@@ -76,7 +75,11 @@ function AuthPage() {
     setLoading(true);
     try {
       if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android") {
-        await startNativeOAuth(provider);
+        // Restore the custom-scheme callback used by the previously working APK.
+        const result = await lovable.auth.signInWithOAuth(provider, {
+          redirect_uri: "br.com.cleidsondiesel.painel://auth/callback",
+        });
+        if (result.error) toast.error("Não foi possível entrar. Tente novamente.");
         return;
       }
       const result = await lovable.auth.signInWithOAuth(provider, { redirect_uri: window.location.origin + "/auth" });
