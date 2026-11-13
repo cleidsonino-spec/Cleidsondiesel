@@ -57,7 +57,7 @@ export function toOrderInput(v: OrderFormValues): OrderInput {
     part_items: draftPartItems(v.part_items),
     parts_value: partsTotal(draftPartItems(v.part_items)),
     labor_value: parseMoney(v.labor_value),
-    discount_percent: Math.min(4, Math.max(0, parseMoney(v.discount_percent))),
+    discount_percent: parseMoney(v.discount_percent),
     status: v.status,
     entry_date: v.entry_date,
     due_date: v.due_date || null,
@@ -98,6 +98,7 @@ export function OrderForm({
     if (!v.customer_name.trim()) { toast.error("Informe o nome do cliente."); return; }
     if (!v.vehicle.trim()) { toast.error("Informe o veículo."); return; }
     if (!v.complaint.trim()) { toast.error("Descreva o serviço / reclamação."); return; }
+    if (parseMoney(v.discount_percent) > 4) { toast.error("O desconto máximo permitido é de 4%."); return; }
     if (draftPartItems(v.part_items).some((item) => !item.description || item.quantity <= 0)) { toast.error("Informe a descrição e uma quantidade válida para cada peça."); return; }
     setSaving(true);
     try { await onSubmit(toOrderInput(v)); }
