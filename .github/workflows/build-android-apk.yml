@@ -44,18 +44,26 @@ jobs:
       - name: Install image tools
         run: sudo apt-get update && sudo apt-get install -y imagemagick
 
-      - name: Prepare app icon from the website favicon
+      - name: Prepare app icon from the approved Cleidson Diesel logo
         run: |
           mkdir -p assets
-          convert public/favicon.png -resize 1024x1024 -gravity center -background none -extent 1024x1024 assets/icon-only.png
+          curl --fail --location --silent --show-error \
+            "https://cleidsondiesel.lovable.app/__l5e/assets-v1/41c2a444-72e8-4aa8-9743-53a5e065f6dc/logo-cleidson-diesel.png" \
+            --output assets/logo-cleidson-diesel.png
+          test -s assets/logo-cleidson-diesel.png
+          identify assets/logo-cleidson-diesel.png
+          convert assets/logo-cleidson-diesel.png -resize 1024x1024 -gravity center -background none -extent 1024x1024 assets/icon-only.png
+          convert assets/logo-cleidson-diesel.png -resize 680x680 -gravity center -background none -extent 1024x1024 assets/icon-foreground.png
+          convert -size 1024x1024 xc:'#FFFFFF' assets/icon-background.png
           cp assets/icon-only.png assets/splash.png
+          identify assets/icon-only.png assets/icon-foreground.png assets/icon-background.png
 
       - name: Install Capacitor and asset generator
         run: |
           mkdir -p /tmp/capacitor-tools
           cd /tmp/capacitor-tools
           npm init -y
-          npm install --no-audit --no-fund typescript @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/assets @capacitor/push-notifications@7
+          npm install --no-audit --no-fund typescript @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/assets @capacitor/app@7 @capacitor/browser@7 @capacitor/preferences@7 @capacitor/push-notifications@7
           ln -s /tmp/capacitor-tools/node_modules "$GITHUB_WORKSPACE/node_modules"
 
       - name: Add Android project
@@ -85,7 +93,7 @@ jobs:
                   break
 
           if target is None:
-              raise SystemExit("Atividade de inicialização (MAIN/LAUNCHER) não encontrada")
+              raise SystemExit("Atividade MAIN/LAUNCHER não encontrada no manifesto Android")
 
           for intent in list(target.findall("intent-filter")):
               data = intent.find("data")
@@ -105,6 +113,7 @@ jobs:
           manifest.write_bytes(ET.tostring(root, encoding="utf-8", xml_declaration=True))
           print("App Link HTTPS /auth aplicado à atividade MAIN/LAUNCHER")
           PY
+
 
       - name: Generate Android app icons
         run: npx capacitor-assets generate --android
