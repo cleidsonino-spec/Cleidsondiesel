@@ -49,11 +49,19 @@ jobs:
       - name: Install image tools
         run: sudo apt-get update && sudo apt-get install -y imagemagick
 
-      - name: Prepare app icon from the website favicon
+      - name: Prepare app icon from the approved Cleidson Diesel logo
         run: |
           mkdir -p assets
-          convert public/favicon.png -resize 1024x1024 -gravity center -background none -extent 1024x1024 assets/icon-only.png
+          curl --fail --location --silent --show-error \
+            "https://cleidsondiesel.lovable.app/__l5e/assets-v1/41c2a444-72e8-4aa8-9743-53a5e065f6dc/logo-cleidson-diesel.png" \
+            --output assets/logo-cleidson-diesel.png
+          test -s assets/logo-cleidson-diesel.png
+          identify assets/logo-cleidson-diesel.png
+          convert assets/logo-cleidson-diesel.png -resize 1024x1024 -gravity center -background none -extent 1024x1024 assets/icon-only.png
+          convert assets/logo-cleidson-diesel.png -resize 680x680 -gravity center -background none -extent 1024x1024 assets/icon-foreground.png
+          convert -size 1024x1024 xc:'#FFFFFF' assets/icon-background.png
           cp assets/icon-only.png assets/splash.png
+          identify assets/icon-only.png assets/icon-foreground.png assets/icon-background.png
 
       - name: Install Capacitor and asset generator
         run: |
@@ -104,6 +112,34 @@ jobs:
 
       - name: Sync Android project
         run: npx cap sync android
+
+      - name: Add FCM notification status icons
+        run: |
+          mkdir -p android/app/src/main/res/drawable
+          cat > android/app/src/main/res/drawable/ic_stat_quote_approved.xml <<'XML'
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="24dp"
+              android:height="24dp"
+              android:viewportWidth="24"
+              android:viewportHeight="24">
+              <path
+                  android:fillColor="#FFFFFFFF"
+                  android:pathData="M9,16.17 4.83,12 3.41,13.41 9,19 21,7 19.59,5.59z" />
+          </vector>
+          XML
+          cat > android/app/src/main/res/drawable/ic_stat_quote_rejected.xml <<'XML'
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="24dp"
+              android:height="24dp"
+              android:viewportWidth="24"
+              android:viewportHeight="24">
+              <path
+                  android:fillColor="#FFFFFFFF"
+                  android:pathData="M19,6.41 17.59,5 12,10.59 6.41,5 5,6.41 10.59,12 5,17.59 6.41,19 12,13.41 17.59,19 19,17.59 13.41,12z" />
+          </vector>
+          XML
+          test -s android/app/src/main/res/drawable/ic_stat_quote_approved.xml
+          test -s android/app/src/main/res/drawable/ic_stat_quote_rejected.xml
 
       - name: Configure release signing
         env:
