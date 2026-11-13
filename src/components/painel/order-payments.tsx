@@ -18,16 +18,17 @@ type Payment = {
   confirmed_by_name: string;
 };
 
-export function OrderPayments({ orderId, partsValue, laborValue }: {
+export function OrderPayments({ orderId, partsValue, laborValue, discountPercent = 0 }: {
   orderId: string;
   partsValue: number | string | null;
   laborValue: number | string | null;
+  discountPercent?: number | string | null;
 }) {
   const qc = useQueryClient();
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
-  const total = orderTotal(partsValue, laborValue);
+  const total = orderTotal(partsValue, laborValue, discountPercent);
   const { data: payments = [], isLoading, isError } = useQuery<Payment[]>({
     queryKey: ["order-payments", orderId],
     queryFn: async () => {
