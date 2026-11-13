@@ -67,12 +67,19 @@ BEGIN
   is_assigned_mechanic := public.is_mechanic_assigned(NEW.service_order_id, auth.uid());
 
   IF TG_OP = 'INSERT' THEN
-    IF NOT (is_admin_or_secretary OR is_assigned_mechanic) THEN
+    IF auth.uid() IS NULL OR NOT (is_admin_or_secretary OR is_assigned_mechanic) THEN
       RAISE EXCEPTION 'Sem permissão para criar relatório desta OS';
     END IF;
     IF NEW.status NOT IN ('draft', 'pending_review') OR NEW.reviewed_by IS NOT NULL OR NEW.reviewed_at IS NOT NULL THEN
       RAISE EXCEPTION 'Estado inicial inválido para relatório';
     END IF;
+
+    -- A autoria e os identificadores são definidos pelo banco, nunca pelo cliente.
+    NEW.id := gen_random_uuid();
+    NEW.created_by := auth.uid();
+    NEW.created_at := now();
+    NEW.updated_at := now();
+
     IF NEW.status = 'pending_review' THEN
       NEW.submitted_by := auth.uid();
       NEW.submitted_at := now();
@@ -144,7 +151,6 @@ BEGIN
   RETURN NEW;
 END;
 $function$;
-
 
 DROP TRIGGER IF EXISTS service_order_inspection_reports_workflow ON public.service_order_inspection_reports;
 CREATE TRIGGER service_order_inspection_reports_workflow
