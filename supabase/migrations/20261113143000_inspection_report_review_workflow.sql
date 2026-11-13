@@ -73,8 +73,7 @@ BEGIN
     IF NEW.status NOT IN ('draft', 'pending_review') OR NEW.reviewed_by IS NOT NULL OR NEW.reviewed_at IS NOT NULL THEN
       RAISE EXCEPTION 'Estado inicial inválido para relatório';
     END IF;
-    IF NOT is_admin_or_secretary AND NEW.status <> 'draft' THEN
-      NEW.status := 'pending_review';
+    IF NEW.status = 'pending_review' THEN
       NEW.submitted_by := auth.uid();
       NEW.submitted_at := now();
     END IF;
@@ -92,6 +91,10 @@ BEGIN
     ELSIF NEW.status IN ('draft', 'pending_review') THEN
       NEW.reviewed_by := NULL;
       NEW.reviewed_at := NULL;
+      IF NEW.status = 'pending_review' AND OLD.status <> 'pending_review' THEN
+        NEW.submitted_by := auth.uid();
+        NEW.submitted_at := now();
+      END IF;
     END IF;
     RETURN NEW;
   END IF;
