@@ -1,4 +1,4 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowUpRight, CalendarClock, CheckCircle2, ClipboardList,
@@ -23,6 +23,7 @@ import {
 } from "@/lib/status";
 import { formatPlate, normalizePlate } from "@/lib/plate";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import { NotificationCenter } from "@/components/painel/notifications";
 import { StaffInvitations } from "@/components/painel/staff-invitations";
 import { StaffManagement } from "@/components/painel/staff-management";
@@ -45,6 +46,7 @@ export const Route = createFileRoute("/_authenticated/painel/")({
 });
 
 type Filter = "abertas" | "todas" | OrderStatus;
+type FinancialOrderStatus = { service_order_id: string; total: number; received: number; balance: number };
 
 function daysUntil(date: string, today: string) {
   const [y, m, d] = date.split("-").map(Number);
@@ -57,6 +59,20 @@ function PainelIndex() {
   const { data: orders } = useSuspenseQuery(ordersQuery());
   const { data: appointments } = useSuspenseQuery(appointmentsQuery());
   const { data: warranties } = useSuspenseQuery(warrantiesQuery());
+  const { data: financialRows = [], isError: financialError, isLoading: financialLoading } = useQuery<FinancialOrderStatus[]>({
+    queryKey: ["financial-overview"],
+    enabled: isAdmin,
+    refetchInterval: 15000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("admin_get_financial_overview");
+      if (error) throw error;
+      return (data ?? []) as FinancialOrderStatus[];
+    },
+  });
+  const financialByOrder = useMemo(
+    () => new Map(financialRows.map((item) => [item.service_order_id, item])),
+    [financialRows],
+  );
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("abertas");
 
@@ -197,12 +213,23 @@ function PainelIndex() {
           <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-card">
             {filtered.slice(0, 12).map((o) => {
               const info = orderStatusInfo(o.status);
+              const finance = isAdmin ? financialByOrder.get(o.id) : undefined;
+              const orderBudget = orderTotal(o.parts_value, o.labor_value);
+              const received = Number(finance?.received ?? 0);
+              const pending = Number(finance?.balance ?? orderBudget);
+              const financeLabel = financialError ? "Indisponível" : financialLoading ? "Carregando..." : orderBudget <= 0 ? "Sem orçamento" : pending <= 0 ? "Quitada" : received > 0 ? "Parcialmente paga" : "Em aberto";
               return <Link key={o.id} to="/painel/ordens/$id" params={{ id: o.id }} className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1 px-4 py-4 transition-colors hover:bg-secondary md:grid-cols-[90px_140px_1fr_auto_auto]">
                 <span className="font-display text-sm text-muted-foreground">#{o.number}</span>
                 <span className="plate text-lg">{formatPlate(o.plate)}</span>
                 <span className="col-span-2 min-w-0 md:col-span-1"><span className="block truncate font-medium">{o.customer_name}</span><span className="block truncate text-sm text-muted-foreground">{o.vehicle} · {o.complaint}</span></span>
-                <span className="text-sm text-muted-foreground">{formatDateBR(o.entry_date)} · {formatBRL(orderTotal(o.parts_value, o.labor_value))}</span>
-                <span className="justify-self-end"><StatusBadge tone={info.tone} label={info.label} /></span>
+                <span className="text-sm text-muted-foreground">
+                  {formatDateBR(o.entry_date)} · {formatBRL(orderBudget)}
+                  {isAdmin && <span className="mt-1 block text-xs">Financeiro: {financeLabel}{!financialError && !financialLoading && ` · Recebido ${formatBRL(received)} · Pendente ${formatBRL(pending)}`}</span>}
+                </span>
+                <span className="flex flex-wrap justify-self-end gap-1">
+                  <StatusBadge tone={info.tone} label={info.label} />
+                  {isAdmin && !financialError && !financialLoading && orderBudget > 0 && <span className={cn("inline-flex items-center rounded-full px-2 py-1 text-xs font-medium", pending <= 0 ? "bg-success/10 text-success" : received > 0 ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground")}>{financeLabel}</span>}
+                </span>
               </Link>;
             })}
           </div>
