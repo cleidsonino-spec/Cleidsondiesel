@@ -39,7 +39,7 @@ export async function createInspectionReportPdf(
     pdf.text("CLEIDSON DIESEL", left, 23);
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(9);
-    pdf.text("Bomba injetora e injeção diesel", left, 30);
+    pdf.text("RELATÓRIO EMITIDO PELA CLEIDSON DIESEL", left, 30);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(12);
     pdf.text(continued ? "RELATÓRIO TÉCNICO • CONTINUAÇÃO" : "RELATÓRIO TÉCNICO DE INSPEÇÃO", left, 39);
