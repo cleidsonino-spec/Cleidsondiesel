@@ -65,32 +65,45 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
+          import xml.etree.ElementTree as ET
 
           manifest = Path("android/app/src/main/AndroidManifest.xml")
-          source = manifest.read_text(encoding="utf-8")
-          activity = re.compile(
-              r'(<activity\b(?=[^>]*android:name="[^"]*MainActivity")[^>]*>)([\s\\S]*?)(</activity>)'
-          )
-          match = activity.search(source)
-          if not match:
-              raise SystemExit("MainActivity não encontrada no AndroidManifest.xml")
+          tree = ET.parse(manifest)
+          root = tree.getroot()
+          android = "{http://schemas.android.com/apk/res/android}"
+          ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
 
-          callback = """
-                  <intent-filter android:autoVerify="true">
-                      <action android:name="android.intent.action.VIEW" />
-                      <category android:name="android.intent.category.DEFAULT" />
-                      <category android:name="android.intent.category.BROWSABLE" />
-                      <data android:scheme="https"
-                            android:host="cleidsondiesel.lovable.app"
-                            android:pathPrefix="/auth" />
-                  </intent-filter>
-          """
-          updated = source[:match.end(2)] + callback + source[match.end(2):]
-          if updated.count('android:host="cleidsondiesel.lovable.app"') != 1:
-              raise SystemExit("Não foi possível inserir um único App Link")
-          manifest.write_text(updated, encoding="utf-8")
-          print("App Link HTTPS /auth configurado no AndroidManifest.xml")
+          target = None
+          for activity in root.findall(".//activity"):
+              for intent in activity.findall("intent-filter"):
+                  actions = {node.get(android + "name") for node in intent.findall("action")}
+                  categories = {node.get(android + "name") for node in intent.findall("category")}
+                  if "android.intent.action.MAIN" in actions and "android.intent.category.LAUNCHER" in categories:
+                      target = activity
+                      break
+              if target is not None:
+                  break
+
+          if target is None:
+              raise SystemExit("Atividade de inicialização (MAIN/LAUNCHER) não encontrada")
+
+          for intent in list(target.findall("intent-filter")):
+              data = intent.find("data")
+              if data is not None and data.get(android + "host") == "cleidsondiesel.lovable.app":
+                  target.remove(intent)
+
+          callback = ET.SubElement(target, "intent-filter", {android + "autoVerify": "true"})
+          ET.SubElement(callback, "action", {android + "name": "android.intent.action.VIEW"})
+          ET.SubElement(callback, "category", {android + "name": "android.intent.category.DEFAULT"})
+          ET.SubElement(callback, "category", {android + "name": "android.intent.category.BROWSABLE"})
+          ET.SubElement(callback, "data", {
+              android + "scheme": "https",
+              android + "host": "cleidsondiesel.lovable.app",
+              android + "pathPrefix": "/auth"
+          })
+
+          manifest.write_bytes(ET.tostring(root, encoding="utf-8", xml_declaration=True))
+          print("App Link HTTPS /auth aplicado à atividade MAIN/LAUNCHER")
           PY
 
       - name: Generate Android app icons
