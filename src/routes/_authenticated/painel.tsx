@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { CalendarDays, Car, Users, ShieldCheck, ClipboardList, Download, ExternalLink, FileText, LogOut, Plus, ShieldAlert, Wallet, Receipt } from "lucide-react";
+import { CalendarDays, Car, Users, ShieldCheck, ClipboardList, Download, ExternalLink, FileText, LogOut, Plus, ShieldAlert, Wallet, Receipt, ClipboardCheck } from "lucide-react";
 
 import { Logo } from "@/components/site/logo";
 import { Button } from "@/components/ui/button";
@@ -85,6 +85,7 @@ function PainelLayout() {
             <PanelLink to="/painel" icon={<ClipboardList />} label="Visão geral" exact />
             <PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" />
             {(isAdmin || isSecretary) && <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />}
+            {(isAdmin || isSecretary) && <PanelLink to="/painel/relatorios" icon={<ClipboardCheck />} label="Relatórios" />}
             <PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" />
             {isAdmin && <PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" />}
             {isAdmin && <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />}
