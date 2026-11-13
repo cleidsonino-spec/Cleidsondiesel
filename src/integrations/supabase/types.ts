@@ -304,6 +304,50 @@ export type Database = {
           },
         ]
       }
+      service_order_inspection_reports: {
+        Row: {
+          id: string
+          service_order_id: string
+          diagnosis: string
+          executed_parts: string
+          rejected_items: string
+          inspection_observations: string
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          service_order_id: string
+          diagnosis?: string
+          executed_parts?: string
+          rejected_items?: string
+          inspection_observations?: string
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          service_order_id?: string
+          diagnosis?: string
+          executed_parts?: string
+          rejected_items?: string
+          inspection_observations?: string
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_order_inspection_reports_service_order_id_fkey"
+            columns: ["service_order_id"]
+            isOneToOne: true
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_dashboard_counters: {
         Row: {
           id: boolean
