@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { InspectionDiagnosisAction } from "@/components/painel/inspection-diagnosis";
 import {
   createInspectionReportPdf,
   downloadInspectionReport,
@@ -20,7 +21,7 @@ type ReportRecord = InspectionReportData & {
   reviewed_at: string | null;
 };
 type Props = {
-  order: InspectionReportOrder & { id: string };
+  order: InspectionReportOrder & { id: string; complaint: string };
   isAdmin: boolean;
   isSecretary: boolean;
 };
@@ -178,6 +179,17 @@ export function InspectionReportEditor({ order, isAdmin, isSecretary }: Props) {
         ))}
       </div>
 
+      {(manager || isAssignedMechanic) && canEdit && (
+        <InspectionDiagnosisAction
+          orderId={order.id}
+          vehicle={order.vehicle}
+          year={order.vehicle_year ?? ""}
+          complaint={order.complaint}
+          failedItems={report.rejected_items}
+          observations={report.inspection_observations}
+          onApply={(text) => setReport((current) => ({ ...current, diagnosis: text }))}
+        />
+      )}
       {record?.status === "returned" && record.review_note && (
         <div className="rounded-md border border-destructive/40 p-3 text-sm">
           <strong>Orientação da revisão:</strong> {record.review_note}
