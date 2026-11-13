@@ -123,6 +123,13 @@ export function downloadInspectionReport(file: File) {
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = file.name;
+  anchor.style.display = "none";
+  document.body.appendChild(anchor);
   anchor.click();
-  URL.revokeObjectURL(url);
+  anchor.remove();
+
+  // Android/Chrome pode iniciar o download de forma assíncrona.
+  // Revogar a URL imediatamente interrompe o acesso ao Blob antes
+  // de o navegador concluir a leitura do arquivo.
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
