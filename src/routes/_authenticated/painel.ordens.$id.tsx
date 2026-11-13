@@ -198,6 +198,7 @@ function OrdemPage() {
         />
       </div>
 
+      <div className="print:hidden"><InspectionReportEditor order={order} isAdmin={isAdmin} isSecretary={isSecretary} /></div>
       <WarrantyEditor orderId={id} orderStatus={order.status} deliveredAt={order.delivered_at} />
       <PrintSheet order={order} />
     </div>
