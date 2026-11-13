@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { InspectionReportEditor } from "@/components/painel/inspection-report-editor";
 import { Input } from "@/components/ui/input";
-import { startStaffPushNotifications, unregisterAdminPushDevice } from "@/lib/push-notifications";
+import { requestStaffPushPermission, startStaffPushNotifications, unregisterAdminPushDevice } from "@/lib/push-notifications";
 
 type Role = "secretaria" | "mecanico";
 
@@ -99,10 +99,27 @@ function StaffDashboard() {
   }, [items, loading, staffRole]);
 
   async function enableNotifications() {
-    if (!("Notification" in window)) { setNotice("Este navegador não oferece notificações."); return; }
-    const permission = await Notification.requestPermission();
-    setNotice(permission === "granted" ? "Notificações do navegador ativadas enquanto o app estiver aberto." : "Permissão de notificação não concedida.");
-    if (permission === "granted") new Notification("Cleidson Diesel", { body: "Notificações ativadas." });
+    try {
+      const nativeResult = await requestStaffPushPermission();
+      if (nativeResult.supported) {
+        setNotice(nativeResult.granted
+          ? "Notificações do Android ativadas. Registrando este aparelho para receber avisos."
+          : "Permissão de notificações do Android não concedida. Verifique as permissões do aplicativo nas configurações do celular.");
+        return;
+      }
+
+      if (!("Notification" in window)) {
+        setNotice("Este navegador não oferece notificações.");
+        return;
+      }
+      const permission = await Notification.requestPermission();
+      setNotice(permission === "granted"
+        ? "Notificações do navegador ativadas enquanto o app estiver aberto."
+        : "Permissão de notificação não concedida.");
+      if (permission === "granted") new Notification("Cleidson Diesel", { body: "Notificações ativadas." });
+    } catch {
+      setNotice("Não foi possível ativar as notificações. Verifique a configuração do aplicativo e tente novamente.");
+    }
   }
 
   async function saveLog(orderId: string) {
