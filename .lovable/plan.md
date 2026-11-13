@@ -1,43 +1,55 @@
-# Adaptar a IA de inspeção ao relatório técnico da OS
+# Relatório Técnico da OS — plano refinado (somente planejamento)
 
-## Situação atual (verificada)
-- `generateInspectionDiagnosis` (src/lib/inspection-diagnosis.functions.ts) exige login + `has_role(admin)`, usa `openai/gpt-6-astra` pelo Gateway e devolve só `{ diagnosis }`.
-- O schema (src/lib/inspection-diagnosis.ts) recebe dados do checklist; a UI (inspection-diagnosis.tsx) mostra a sugestão e aplica ao campo `diagnosis` da OS.
-- Ainda não existe tabela, tela nem PDF de "relatório técnico" (nenhuma ocorrência de `executed_parts`/`inspection_observations`). É pré-requisito desta etapa ou de uma etapa anterior.
+## Decisões confirmadas
+- Relatório opcional, 1 por OS, totalmente separado do orçamento e do PDF do orçamento.
+- Campos: Diagnóstico, Peças/serviços executados, Itens reprovados, Observações da inspeção.
+- PDF próprio e compartilhável; cabeçalho CLEIDSON DIESEL + "RELATÓRIO EMITIDO PELA CLEIDSON DIESEL".
+- Mecânico atribuído preenche; secretaria pode corrigir/completar ao aprovar.
+- IA gera só sugestão preliminar separada; nunca preenche campos; aplicar exige clique explícito; tudo com trilha de auditoria.
+- Tabela base: `public.service_order_inspection_reports` (da branch GitHub separada). Não criar `technical_reports`.
+- Projeto principal publicado: não alterar, não publicar, não aplicar no banco ativo.
 
-## O que será feito (somente em branch/draft separado, banco isolado do draft)
-1. Relatório técnico por OS (se ainda não criado): campos diagnosis, executed_parts, rejected_items, inspection_observations, estado (rascunho / enviado / aprovado pela secretaria).
-2. Sugestão da IA: botão "Gerar sugestão da IA" no relatório; resultado aparece numa caixa identificada "Sugestão da IA — revise antes de usar". Nunca preenche campos sozinha.
-3. Aplicar explicitamente: botões "Aplicar ao diagnóstico" / "Descartar". Ao aplicar, o texto entra no campo editável; só vai ao relatório/PDF após salvar. Fica registrado quem aplicou, quando, e que veio de IA.
-4. Aprovação da secretaria: ao aprovar, registra revisor humano; PDF mostra a nota "Texto com apoio de IA, revisado por <nome> em <data>" apenas se houve conteúdo de IA aplicado.
-5. PDF do relatório em arquivo próprio (`src/lib/technical-report-pdf.ts`), sem tocar em `quote-pdf.ts`.
+## Etapas
+1. Revisar a branch separada: estrutura de `service_order_inspection_reports`, RLS, GRANTs, funções e telas existentes. Ajustar o plano ao que ela já tem (nada aqui foi verificado ainda, pois a branch não está neste workspace).
+2. Completar o schema na branch (se faltar): estados (rascunho / enviado / aprovado / devolvido), `submitted_by/at`, `approved_by/at`, `ai_assisted`, e histórico de correções da secretaria (valor antes/depois por campo).
+3. Trilha da IA: tabela de sugestões ligada ao relatório (quem gerou, quando, modelo, texto sugerido, status sugerida/aplicada/descartada, quem aplicou, em qual campo). Sem UPDATE/DELETE direto; só RPCs.
+4. Função server-side de sugestão: recebe apenas `orderId`; busca os 4 campos + modelo/ano, km e queixa no servidor; nunca envia nome, telefone, CPF, placa ou valores. Reaproveita prompt e tratamento de erros da IA atual.
+5. Tela do relatório na OS (mecânico e secretaria): campos editáveis, caixa "Sugestão da IA — revise antes de usar" com Aplicar/Descartar, botão Enviar (mecânico) e Aprovar/Devolver (secretaria).
+6. PDF do relatório em arquivo próprio, com logo e cabeçalho definidos; nota de "conteúdo com apoio de IA revisado por humano" quando aplicável.
+7. Testes e validação no ambiente isolado da branch.
 
-## Permissões
-- Gerar/aplicar sugestão: admin, secretaria, ou mecânico com atribuição ativa na OS (`is_mechanic_assigned`).
-- Checagem no servidor: nova RPC SECURITY DEFINER `can_edit_technical_report(_order_id)` chamada via `context.supabase` (nunca admin client); a função recebe `orderId` e busca ela mesma os dados técnicos no banco — o cliente não envia o texto que alimenta a IA, evitando forjar dados de outra OS.
-- Aprovar relatório: só admin/secretaria. Mecânico não aprovado/desativado (`user_roles.is_active=false`) é bloqueado.
-- Dados enviados à IA: os 4 campos + modelo/ano do veículo, quilometragem e queixa. Sem nome, telefone, CPF, placa, valores.
+## Permissões (checadas no banco, não só na tela)
+| Ação | Admin | Secretaria | Mecânico atribuído | Mecânico não atribuído |
+|---|---|---|---|---|
+| Ver relatório | sim | sim | sim | não |
+| Editar rascunho | sim | sim | sim (até enviar) | não |
+| Gerar/aplicar sugestão IA | sim | sim | sim (até enviar) | não |
+| Corrigir e aprovar | sim | sim | não | não |
+| Gerar PDF | ver decisão pendente | | | |
+- Contas desativadas (`is_active=false`) bloqueadas em todas as ações.
+- Mecânico continua sem ver valores do orçamento.
+- Verificação de papel via `has_role` / `is_mechanic_assigned` com o usuário logado, nunca com acesso administrativo.
 
-## Migração necessária (sim)
-- Tabela `technical_reports` (1 por OS) + RLS + GRANTs, se não existir.
-- Tabela `technical_report_ai_suggestions`: report_id, order_id, generated_by, generated_at, model, input_hash, suggestion_text, status (sugerida/aplicada/descartada), applied_by, applied_at, applied_field.
-- Colunas no relatório: `ai_assisted boolean`, `reviewed_by`, `reviewed_at`.
-- RPCs: `record_ai_suggestion`, `apply_ai_suggestion`, `approve_technical_report` (SECURITY DEFINER com checagem de papel/atribuição). Sem UPDATE/DELETE direto nas sugestões (trilha imutável).
-- Aplicada só no banco do draft; nada no banco ativo.
+## Testes
+- Regras puras: sugestão nunca altera campos sem "aplicar"; dados pessoais ficam fora do envio à IA; nota de IA só aparece no PDF se houve aplicação.
+- Permissões no banco: mecânico não atribuído negado; mecânico não edita após envio; só admin/secretaria aprovam; desativado bloqueado.
+- Fluxo ponta a ponta na branch: mecânico preenche + aplica IA + envia → secretaria corrige + aprova → PDF; trilha registra cada passo.
+- Confirmar que orçamento e PDF do orçamento seguem idênticos.
 
-## Arquivos
-- Novos: `src/lib/technical-report-ai.ts` (schemas zod + prompt), `src/lib/technical-report-ai.functions.ts`, `src/components/painel/technical-report-ai.tsx`, `src/lib/technical-report-pdf.ts`, testes em `src/test/technical-report-ai.test.ts`.
-- Alterados: tela do relatório técnico da OS (mecânico e secretaria); `AGENTS.md` (regra da IA no relatório).
-- Inalterados: quote-pdf, fluxo de orçamento, layout global, IA atual do checklist (continua para admin).
+## Decisões em aberto
+1. PDF pode ser emitido antes da aprovação da secretaria? (ex.: só com marca "RASCUNHO", ou só após aprovar)
+2. Mecânico pode editar depois de enviado/devolvido?
+3. Relatório aprovado pode ser reaberto? Se sim, por quem, e o PDF antigo fica invalidado?
+4. Itens reprovados: texto livre ou vindos do checklist de inspeção?
+5. Peças executadas: texto livre ou ligado às peças da OS (sem valores)?
+6. Cliente recebe o PDF só por compartilhamento manual, ou também por link?
+7. A IA atual do checklist (só admin) continua igual ou passa a usar o mesmo fluxo?
 
-## Validação
-- Testes: schema rejeita campos pessoais; texto de IA só entra após "aplicar"; PDF marca apoio de IA somente quando aplicado.
-- Playwright no draft: mecânico atribuído gera/aplica; mecânico não atribuído recebe negação; secretaria corrige e aprova; admin vê trilha.
-
-## Riscos e limitações
-- IA pode errar; mitigado por revisão obrigatória e prompt restrito a dados recebidos.
-- Custo de créditos de IA por geração; limitar a 1 geração a cada ~30s por relatório.
-- Texto aplicado pode ser editado depois; a trilha guarda o texto original sugerido, não garante que o final seja igual.
-- Depende do relatório técnico existir; se for criado em outra etapa, o schema deve ser alinhado.
-- Testes com papéis exigem contas de teste no banco do draft.
-- Nada é publicado; aceitar o draft aplicará as migrações ao banco ativo — decisão sua.
+## Riscos
+- O schema da branch pode diferir deste plano; etapa 1 define o ajuste.
+- Aceitar a branch aplicaria as migrações no banco ativo — decisão sua, fora desta etapa.
+- IA pode errar; mitigado por revisão humana e prompt restrito.
+- Custo de créditos por geração; prever limite de frequência.
+- Texto aplicado pode ser editado depois; a trilha guarda o original sugerido.
+- Testes de papéis exigem contas de teste no ambiente isolado.
+- Não pude atualizar o roadmap nesta etapa (modo de planejamento).
