@@ -17,7 +17,16 @@ export function WarrantyEditor({ orderId, orderStatus, deliveredAt }: { orderId:
   const list = data.filter((w) => w.service_order_id === orderId);
   const canIssue = canIssueWarranty(orderStatus, deliveredAt);
   const deliveryDate = deliveredAt
-    ? new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bahia", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(deliveredAt))
+    ? (() => {
+        const parts = new Intl.DateTimeFormat("en", {
+          timeZone: "America/Bahia",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).formatToParts(new Date(deliveredAt));
+        const part = (type: "year" | "month" | "day") => parts.find((item) => item.type === type)?.value ?? "";
+        return `${part("year")}-${part("month")}-${part("day")}`;
+      })()
     : "";
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
