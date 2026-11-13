@@ -47,7 +47,7 @@ function privateKeyBytes(value) {
   const pem = value
     .replace("-----BEGIN PRIVATE KEY-----", "")
     .replace("-----END PRIVATE KEY-----", "")
-    .replace(/[\\r\\n\\t ]/g, "");
+    .replace(/[\r\n\t ]/g, "");
   return Uint8Array.from(atob(pem), (char) => char.charCodeAt(0));
 }
 
@@ -238,7 +238,6 @@ async function sendPush(env, notification) {
   const results = await Promise.all(
     [...tokens].map(async (token) => {
       const androidNotification = {
-        channel_id: "default",
         ...(notification.icon ? { icon: notification.icon } : {}),
         ...(notification.color ? { color: notification.color } : {}),
       };
