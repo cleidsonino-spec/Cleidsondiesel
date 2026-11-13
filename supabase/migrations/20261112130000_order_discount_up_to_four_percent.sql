@@ -129,3 +129,98 @@ BEGIN
   );
 END;
 $function$;
+
+
+-- O resumo geral do Financeiro também usa o total líquido após o desconto.
+CREATE OR REPLACE FUNCTION public.admin_get_financial_overview()
+RETURNS TABLE(
+  service_order_id uuid,
+  order_number integer,
+  customer_name text,
+  plate text,
+  order_status text,
+  total numeric,
+  received numeric,
+  balance numeric,
+  paid_percent numeric,
+  last_payment_at timestamp with time zone
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.has_role(auth.uid(), 'admin'::public.app_role) THEN
+    RAISE EXCEPTION 'Acesso restrito ao administrador';
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    so.id,
+    so.number,
+    so.customer_name,
+    so.plate,
+    so.status::text,
+    (
+      round(coalesce(so.parts_value, 0) + coalesce(so.labor_value, 0), 2)
+      - round(
+          (coalesce(so.parts_value, 0) + coalesce(so.labor_value, 0))
+          * coalesce(so.discount_percent, 0) / 100,
+          2
+        )
+    )::numeric,
+    coalesce(pay.received, 0)::numeric,
+    greatest(
+      (
+        round(coalesce(so.parts_value, 0) + coalesce(so.labor_value, 0), 2)
+        - round(
+            (coalesce(so.parts_value, 0) + coalesce(so.labor_value, 0))
+            * coalesce(so.discount_percent, 0) / 100,
+            2
+          )
+      ) - coalesce(pay.received, 0),
+      0
+    )::numeric,
+    CASE
+      WHEN (
+        round(coalesce(so.parts_value, 0) + coalesce(so.labor_value, 0), 2)
+        - round(
+            (coalesce(so.parts_value, 0) + coalesce(so.labor_value, 0))
+            * coalesce(so.discount_percent, 0) / 100,
+            2
+          )
+      ) > 0
+      THEN round(
+        (
+          coalesce(pay.received, 0)
+          / (
+              round(coalesce(so.parts_value, 0) + coalesce(so.labor_value, 0), 2)
+              - round(
+                  (coalesce(so.parts_value, 0) + coalesce(so.labor_value, 0))
+                  * coalesce(so.discount_percent, 0) / 100,
+                  2
+                )
+            )
+        ) * 100,
+        2
+      )
+      ELSE 0
+    END::numeric,
+    pay.last_payment_at
+  FROM public.service_orders so
+  LEFT JOIN LATERAL (
+    SELECT
+      sum(p.amount)::numeric(12,2) AS received,
+      max(p.confirmed_at) AS last_payment_at
+    FROM public.service_order_payments p
+    WHERE p.service_order_id = so.id
+  ) pay ON true
+  WHERE so.status <> 'cancelado'::public.order_status
+    AND (
+      coalesce(so.parts_value, 0) + coalesce(so.labor_value, 0) > 0
+      OR coalesce(pay.received, 0) > 0
+    )
+  ORDER BY so.number DESC;
+END;
+$function$;
