@@ -82,20 +82,33 @@ Reutilizam o gatilho `push.notify_worker_on_change()` → Worker `/notify` (segr
 
 Recusa: pelo mesmo link de aprovação (nome + CPF válido), RPC `reject_quote_identified`; estado `rejected`, OS não muda.
 
-### Ação manual pendente (obrigatória)
+### Correção de ícones e cores FCM
 
-O código do Worker Cloudflare não está neste repositório. Até ele ser atualizado, os eventos novos chegam mas são ignorados. Adicione no Worker (e, se usar, em `notify-admin`):
+O código-fonte versionado do Worker está em [cloudflare/cleidson-diesel-push/worker.js](../cloudflare/cleidson-diesel-push/worker.js). Ele mantém os endpoints `/register`, `/unregister`, `/notify` e `/health`, a autenticação existente e o filtro de eventos. Para `notification_events`, agora encaminha ao FCM o ícone e a cor permitidos para aprovação/recusa:
 
-```ts
-if (table === "notification_events" && type === "INSERT") {
-  return {
-    title: record.title, body: record.body,
-    route: String(record.route).startsWith("/painel") ? record.route : "/painel",
-    // Android (FCM message.android.notification): ícone e cor por evento
-    icon: record.icon ?? undefined,   // ic_stat_quote_approved (check) | ic_stat_quote_rejected (x-circle)
-    color: record.color ?? undefined, // #16A34A verde (aprovado) | #DC2626 vermelho (recusado)
-  };
-}
-```
-No envio FCM use `android: { notification: { icon, color } }`. Os ícones `ic_stat_quote_approved` (check-circle) e `ic_stat_quote_rejected` (x-circle) devem existir como drawables brancos/transparentes em `android/app/src/main/res/drawable*` do APK; sem eles o Android usa o ícone padrão, mantendo a cor.
-Depois teste em aparelho Android real.
+- `ic_stat_quote_approved` + `#16A34A` para orçamento aprovado.
+- `ic_stat_quote_rejected` + `#DC2626` para orçamento recusado.
+
+O Worker só aceita esses dois nomes de ícone e escolhe a cor correspondente no próprio código. Outros valores recebidos no banco não podem selecionar recursos arbitrários do APK.
+
+O workflow de release Android cria os dois drawables vetoriais brancos e transparentes no pacote, depois do `npx cap sync android`. Assim, o Android consegue exibir o ícone pequeno de notificação com a cor indicada pelo FCM.
+
+### Publicação manual do Worker (não automática)
+
+A atualização do arquivo no GitHub **não publica** o Worker Cloudflare. Depois de revisar e integrar esta alteração, a publicação deverá ser feita separadamente no Cloudflare:
+
+1. Abra o Worker `cleidson-diesel-push` no painel Cloudflare.
+2. Atualize o código com o conteúdo de `cloudflare/cleidson-diesel-push/worker.js`.
+3. Preserve os bindings existentes: `FIREBASE_SERVICE_ACCOUNT_JSON`, `PUSH_TOKENS`, `PUSH_WEBHOOK_SECRET`, `SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_URL`. Não substitua nem exponha os valores secretos.
+4. Publique e confirme que `GET /health` responde com `ok: true`.
+5. Gere um novo APK oficial pelo workflow. O APK instalado anteriormente não contém os novos drawables.
+
+### Testes específicos desta correção
+
+1. Gerar o APK oficial e confirmar que o build incluiu `ic_stat_quote_approved` e `ic_stat_quote_rejected`.
+2. Instalar o APK atualizado em aparelho Android e confirmar que o token foi registrado.
+3. Em ambiente de teste, emitir aprovação e recusa de orçamento e conferir, respectivamente, ícone de check verde e X vermelho.
+4. Conferir que lembrete, OS em serviço, OS pronta, novo agendamento, diagnóstico concluído e garantia continuam recebendo notificações.
+5. Confirmar que eventos desconhecidos continuam sendo ignorados e que chamadas sem o segredo correto recebem HTTP 401.
+
+Não considerar a correção concluída só pelo build: é necessário testar o recebimento real no Android. Esta PR não altera o Worker ativo, secrets, banco de dados nem publica APK.
