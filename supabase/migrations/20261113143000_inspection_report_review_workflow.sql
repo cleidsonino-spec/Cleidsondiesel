@@ -127,3 +127,10 @@ BEGIN
   RETURN NEW;
 END;
 $function$;
+
+
+DROP TRIGGER IF EXISTS service_order_inspection_reports_workflow ON public.service_order_inspection_reports;
+CREATE TRIGGER service_order_inspection_reports_workflow
+BEFORE INSERT OR UPDATE ON public.service_order_inspection_reports
+FOR EACH ROW
+EXECUTE FUNCTION public.enforce_inspection_report_workflow();
