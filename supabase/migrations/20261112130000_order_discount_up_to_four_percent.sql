@@ -224,3 +224,47 @@ BEGIN
   ORDER BY so.number DESC;
 END;
 $function$;
+
+-- Não permite reduzir o total da OS abaixo do que já foi recebido.
+-- A trava também cobre alterações posteriores em peças, mão de obra ou desconto.
+CREATE OR REPLACE FUNCTION public.prevent_service_order_total_below_received()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_received numeric(12,2);
+  v_new_total numeric(12,2);
+BEGIN
+  v_new_total :=
+    round(coalesce(NEW.parts_value, 0) + coalesce(NEW.labor_value, 0), 2)
+    - round(
+        (coalesce(NEW.parts_value, 0) + coalesce(NEW.labor_value, 0))
+        * coalesce(NEW.discount_percent, 0) / 100,
+        2
+      );
+
+  SELECT coalesce(sum(p.amount), 0)::numeric(12,2)
+  INTO v_received
+  FROM public.service_order_payments p
+  WHERE p.service_order_id = NEW.id;
+
+  IF v_received > v_new_total THEN
+    RAISE EXCEPTION
+      'O total da OS não pode ficar abaixo dos valores já recebidos (%).',
+      v_received;
+  END IF;
+
+  RETURN NEW;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS service_order_total_not_below_received
+  ON public.service_orders;
+
+CREATE TRIGGER service_order_total_not_below_received
+BEFORE UPDATE OF parts_value, labor_value, discount_percent
+ON public.service_orders
+FOR EACH ROW
+EXECUTE FUNCTION public.prevent_service_order_total_below_received();
