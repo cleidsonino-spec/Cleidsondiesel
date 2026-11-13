@@ -245,10 +245,23 @@ BEGIN
         2
       );
 
-  SELECT coalesce(sum(p.amount), 0)::numeric(12,2)
-  INTO v_received
-  FROM public.service_order_payments p
-  WHERE p.service_order_id = NEW.id;
+  -- Só bloqueia uma redução que ultrapasse o total já recebido.
+  -- Edições que mantêm ou aumentam o total continuam permitidas.
+  IF v_new_total < (
+    round(coalesce(OLD.parts_value, 0) + coalesce(OLD.labor_value, 0), 2)
+    - round(
+        (coalesce(OLD.parts_value, 0) + coalesce(OLD.labor_value, 0))
+        * coalesce(OLD.discount_percent, 0) / 100,
+        2
+      )
+  ) THEN
+    SELECT coalesce(sum(p.amount), 0)::numeric(12,2)
+    INTO v_received
+    FROM public.service_order_payments p
+    WHERE p.service_order_id = NEW.id;
+  ELSE
+    RETURN NEW;
+  END IF;
 
   IF v_received > v_new_total THEN
     RAISE EXCEPTION
