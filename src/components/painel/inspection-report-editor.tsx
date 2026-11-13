@@ -80,7 +80,7 @@ export function InspectionReportEditor({ order, isAdmin, isSecretary }: Props) {
     return () => { active = false; };
   }, [order.id]);
 
-  const canEdit = manager || (isAssignedMechanic && (!record || record.status === "draft" || record.status === "returned"));
+  const canEdit = (manager && record?.status !== "approved") || (isAssignedMechanic && (!record || record.status === "draft" || record.status === "returned"));
   const canReview = manager && record?.status === "pending_review";
   const canEmit = manager && record?.status === "approved";
 
