@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { CalendarDays, Car, Users, ShieldCheck, ClipboardList, Download, ExternalLink, FileText, LogOut, Plus, ShieldAlert, Wallet } from "lucide-react";
+import { CalendarDays, Car, Users, ShieldCheck, ClipboardList, Download, ExternalLink, FileText, LogOut, Plus, ShieldAlert, Wallet, Receipt } from "lucide-react";
 
 import { Logo } from "@/components/site/logo";
 import { Button } from "@/components/ui/button";
@@ -89,6 +89,7 @@ function PainelLayout() {
             {isAdmin && <PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" />}
             {isAdmin && <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />}
             {isAdmin && <PanelLink to="/painel/financeiro" icon={<Wallet />} label="Financeiro" /> }
+            {(isAdmin || isSecretary) && <PanelLink to="/painel/cobrancas" icon={<Receipt />} label="Cobranças" /> }
             {isAdmin && <NotificationBell />}
             <Button asChild size="sm" className="ml-auto shrink-0"><Link to="/painel/ordens/nova" search={{}}><Plus /> Nova OS</Link></Button>
           </nav>
