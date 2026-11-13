@@ -164,7 +164,7 @@ export function OrderForm({
 
       <Section title="Valores e prazos">
         <F label="Mão de obra (R$)"><Input value={v.labor_value} onChange={(e) => set("labor_value", e.target.value)} inputMode="decimal" placeholder="0,00" /></F>
-        <F label="Desconto no total (%)"><Input type="number" min="0" max="4" step="0.5" value={v.discount_percent} onChange={(e) => set("discount_percent", e.target.value)} inputMode="decimal" placeholder="0" /><span className="text-xs text-muted-foreground">Opcional · máximo permitido: 4%.</span></F>
+        <F label="Desconto no total (%)"><Input type="number" min="0" max="4" step="0.01" value={v.discount_percent} onChange={(e) => set("discount_percent", e.target.value)} inputMode="decimal" placeholder="0" /><span className="text-xs text-muted-foreground">Opcional · máximo permitido: 4%.</span></F>
         <div className="flex flex-col justify-end rounded-sm border border-primary/40 bg-primary/10 px-4 py-2">
           <span className="text-xs text-muted-foreground">Subtotal: {formatBRL(subtotal)}</span>
           <span className="text-xs text-muted-foreground">Desconto: {formatBRL(discountAmount)}</span>
