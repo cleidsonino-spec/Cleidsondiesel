@@ -192,6 +192,7 @@ export type Database = {
           complaint: string
           created_at: string
           created_by: string | null
+          delivered_at: string | null
           customer_id: string | null
           customer_name: string
           diagnosis: string | null
@@ -221,6 +222,7 @@ export type Database = {
           complaint: string
           created_at?: string
           created_by?: string | null
+          delivered_at?: string | null
           customer_id?: string | null
           customer_name: string
           diagnosis?: string | null
@@ -250,6 +252,7 @@ export type Database = {
           complaint?: string
           created_at?: string
           created_by?: string | null
+          delivered_at?: string | null
           customer_id?: string | null
           customer_name?: string
           diagnosis?: string | null
