@@ -44,7 +44,7 @@ export async function startStaffPushNotifications() {
 
   const action = await PushNotifications.addListener("pushNotificationActionPerformed", ({ notification }) => {
     const route = notification.data?.route;
-    if (typeof route === "string" && route.startsWith("/painel")) {
+    if (typeof route === "string" && (route.startsWith("/painel") || route.startsWith("/equipe"))) {
       window.location.assign(route);
     }
   });
