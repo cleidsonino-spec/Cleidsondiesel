@@ -43,7 +43,7 @@ export function OrderPayments({ orderId, partsValue, laborValue }: {
   async function confirmPayment() {
     const rawAmount = amount.trim();
     const parsed = rawAmount.includes(",")
-      ? Number(rawAmount.replace(/\\./g, "").replace(",", "."))
+      ? Number(rawAmount.replace(/\./g, "").replace(",", "."))
       : Number(rawAmount);
     if (!Number.isFinite(parsed) || parsed <= 0) {
       toast.error("Informe um valor válido.");
