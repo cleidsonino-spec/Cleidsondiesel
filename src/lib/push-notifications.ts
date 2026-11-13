@@ -25,6 +25,24 @@ async function sendTokenToWorker(path: "register" | "unregister", token: string)
   }
 }
 
+
+export async function requestStaffPushPermission() {
+  if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") {
+    return { supported: false as const, granted: false };
+  }
+
+  let permission = await PushNotifications.checkPermissions();
+  if (permission.receive === "prompt" || permission.receive === "prompt-with-rationale") {
+    permission = await PushNotifications.requestPermissions();
+  }
+  if (permission.receive !== "granted") {
+    return { supported: true as const, granted: false };
+  }
+
+  await PushNotifications.register();
+  return { supported: true as const, granted: true };
+}
+
 export async function startStaffPushNotifications() {
   if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") return () => {};
 
@@ -51,11 +69,7 @@ export async function startStaffPushNotifications() {
   listeners.push(action);
 
   try {
-    let permission = await PushNotifications.checkPermissions();
-    if (permission.receive === "prompt" || permission.receive === "prompt-with-rationale") {
-      permission = await PushNotifications.requestPermissions();
-    }
-    if (permission.receive === "granted") await PushNotifications.register();
+    await requestStaffPushPermission();
   } catch {
     console.error("[Push] Não foi possível ativar notificações neste aparelho.");
   }
