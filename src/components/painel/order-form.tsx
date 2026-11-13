@@ -163,7 +163,7 @@ export function OrderForm({
       </Section>
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button type="submit" size="lg" disabled={saving} className="h-12">{saving ? <Loader2 className="animate-spin" /> : <Save />}{submitLabel}</Button>
+        <Button type="submit" size="lg" disabled={saving} className="h-12 w-full sm:w-auto">{saving ? <Loader2 className="animate-spin" /> : <Save />}{submitLabel}</Button>
         {extraActions}
       </div>
     </form>
@@ -171,7 +171,7 @@ export function OrderForm({
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
-  return <fieldset className="grid gap-4 rounded-md border border-border bg-card p-5 sm:grid-cols-2 lg:grid-cols-3"><legend className="px-2 font-display text-sm uppercase text-primary">{title}</legend>{children}</fieldset>;
+  return <fieldset className="grid gap-4 rounded-md border border-border bg-card p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-3"><legend className="px-2 font-display text-sm uppercase text-primary">{title}</legend>{children}</fieldset>;
 }
 function F({ label, children, wide }: { label: string; children: ReactNode; wide?: boolean }) {
   return <div className={wide ? "space-y-2 sm:col-span-2 lg:col-span-3" : "space-y-2"}><Label>{label}</Label>{children}</div>;

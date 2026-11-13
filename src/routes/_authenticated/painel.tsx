@@ -1,12 +1,13 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { CalendarDays, Car, Users, ShieldCheck, ClipboardList, Download, ExternalLink, FileText, LogOut, Plus, ShieldAlert, Wallet, Receipt, ClipboardCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CalendarDays, Car, Users, ShieldCheck, ClipboardList, Download, ExternalLink, FileText, LogOut, Plus, ShieldAlert, Wallet, Receipt, ClipboardCheck, Menu } from "lucide-react";
 
 import { Logo } from "@/components/site/logo";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationBell } from "@/components/painel/notifications";
 import { startStaffPushNotifications, unregisterAdminPushDevice } from "@/lib/push-notifications";
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({
@@ -44,6 +45,7 @@ export const Route = createFileRoute("/_authenticated/painel")({
 function PainelLayout() {
   const { isAdmin, isSecretary, user } = Route.useRouteContext();
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!isAdmin && !isSecretary) return;
@@ -78,10 +80,45 @@ function PainelLayout() {
             </Button>
             <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex"><Link to="/"><ExternalLink /> Ver site</Link></Button>
             <Button variant="ghost" size="sm" onClick={signOut} aria-label="Sair"><LogOut /> <span className="hidden sm:inline">Sair</span></Button>
+            {(isAdmin || isSecretary) && (
+              <div className="md:hidden">
+                <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="icon" aria-label="Abrir menu do painel"><Menu /></Button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-[min(88vw,22rem)] overflow-y-auto">
+                    <SheetHeader className="text-left">
+                      <SheetTitle>Cleidson Diesel</SheetTitle>
+                      <SheetDescription>Acesso rápido às áreas do painel.</SheetDescription>
+                    </SheetHeader>
+                    <nav className="mt-6 grid gap-1">
+                      <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Operação</p>
+                      <SheetClose asChild><PanelLink to="/painel" icon={<ClipboardList />} label="Visão geral" exact /></SheetClose>
+                      <SheetClose asChild><PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" /></SheetClose>
+                      <SheetClose asChild><PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" /></SheetClose>
+                      <SheetClose asChild><PanelLink to="/painel/relatorios" icon={<ClipboardCheck />} label="Relatórios" /></SheetClose>
+                      <p className="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cadastros</p>
+                      <SheetClose asChild><PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" /></SheetClose>
+                      {isAdmin && <SheetClose asChild><PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" /></SheetClose>}
+                      <p className="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Gestão</p>
+                      {isAdmin && <SheetClose asChild><PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" /></SheetClose>}
+                      {isAdmin && <SheetClose asChild><PanelLink to="/painel/financeiro" icon={<Wallet />} label="Financeiro" /></SheetClose>}
+                      <SheetClose asChild><PanelLink to="/painel/cobrancas" icon={<Receipt />} label="Cobranças" /></SheetClose>
+                      {isAdmin && <div className="px-3 py-2"><NotificationBell /></div>}
+                      <SheetClose asChild>
+                        <Link to="/painel/ordens/nova" search={{}} className="mt-4 flex items-center justify-center gap-2 rounded-sm bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground">
+                          <Plus className="size-4" /> Nova ordem de serviço
+                        </Link>
+                      </SheetClose>
+                    </nav>
+                  </SheetContent>
+                </Sheet>
+              </div>
+            )}
           </div>
         </div>
         {(isAdmin || isSecretary) && (
-          <nav className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 pb-2">
+          <nav className="mx-auto hidden max-w-6xl items-center gap-1 overflow-x-auto px-4 pb-2 md:flex">
             <PanelLink to="/painel" icon={<ClipboardList />} label="Visão geral" exact />
             <PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" />
             {(isAdmin || isSecretary) && <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />}
@@ -110,7 +147,7 @@ function PainelLayout() {
 }
 
 function PanelLink({ to, icon, label, exact }: {
-  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias" | "/painel/financeiro" | "/painel/relatorios";
+  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias" | "/painel/financeiro" | "/painel/relatorios" | "/painel/cobrancas";
   icon: React.ReactNode;
   label: string;
   exact?: boolean;
