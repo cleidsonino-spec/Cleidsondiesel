@@ -25,6 +25,8 @@ export const Route = createFileRoute("/_authenticated/agenda-equipe")({
       throw redirect({ to: "/auth" });
     }
     if (!roles.some((role: string) => ["admin", "secretaria", "mecanico"].includes(role))) throw redirect({ to: "/equipe" });
+    const agendaRole = roles.includes("admin") ? "admin" : roles.includes("secretaria") ? "secretaria" : "mecanico";
+    return { agendaRole };
   },
   component: TeamAgendaPage,
 });
@@ -35,14 +37,40 @@ function formatDate(value: string) {
 }
 
 function TeamAgendaPage() {
+  const { agendaRole } = Route.useRouteContext();
   const [rows, setRows] = useState<AgendaRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function loadAgenda() {
     setLoading(true);
-    const { data, error } = await (supabase as any).rpc("get_staff_appointment_agenda");
-    if (error) { toast.error("Não foi possível carregar a agenda da equipe."); setRows([]); }
-    else setRows((data ?? []) as AgendaRow[]);
+    const isMechanic = agendaRole === "mecanico";
+    const { data, error } = await (supabase as any).rpc(
+      isMechanic ? "get_mechanic_appointment_agenda" : "get_staff_appointment_agenda"
+    );
+    if (error) {
+      toast.error("Não foi possível carregar a agenda da equipe.");
+      setRows([]);
+    } else if (isMechanic) {
+      // A RPC do mecânico retorna apenas os agendamentos vinculados às OS
+      // atribuídas ao usuário autenticado; normalize o formato para a tela.
+      setRows((data ?? []).map((row: any) => ({
+        appointment_id: row.id,
+        scheduled_date: row.scheduled_date,
+        scheduled_time: row.scheduled_time,
+        customer_name: row.customer_name,
+        phone: null,
+        plate: "",
+        vehicle: "",
+        service_type: "",
+        notes: null,
+        appointment_status: "pendente",
+        order_number: null,
+        order_status: null,
+        mechanic_name: row.mechanic_name,
+      })) as AgendaRow[]);
+    } else {
+      setRows((data ?? []) as AgendaRow[]);
+    }
     setLoading(false);
   }
 
@@ -64,15 +92,14 @@ function TeamAgendaPage() {
   }), [rows, todayKey]);
 
   function renderAppointment(row: AgendaRow) {
-    const completed = row.order_status === "pronto" || row.order_status === "entregue";
     return <article key={row.appointment_id} className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-[130px_1fr_auto] sm:items-center">
       <div><p className="flex items-center gap-2 font-semibold text-primary"><Clock3 className="size-4"/>{String(row.scheduled_time).slice(0, 5)}</p><p className="text-xs capitalize text-muted-foreground">{formatDate(row.scheduled_date)}</p></div>
       <div className="min-w-0 space-y-1">
         <p className="font-semibold">{row.customer_name} · {row.vehicle || "Veículo não informado"}</p>
-        <p className="text-sm text-muted-foreground">Placa: {row.plate || "—"} · {row.service_type || "Serviço não informado"}</p>
+        {agendaRole !== "mecanico" && <p className="text-sm text-muted-foreground">Placa: {row.plate || "—"} · {row.service_type || "Serviço não informado"}</p>}
         {row.order_number && <p className="text-xs text-muted-foreground">OS nº {row.order_number} · {row.order_status || "Sem status"}</p>}
         {row.notes && <p className="text-xs text-muted-foreground">{row.notes}</p>}
-        {completed && <p className="flex items-center gap-1 text-sm font-medium"><Wrench className="size-4"/>Mecânico: {row.mechanic_name || "Não identificado no registro"}</p>}
+        {row.mechanic_name && <p className="flex items-center gap-1 text-sm font-medium"><Wrench className="size-4"/>Mecânico: {row.mechanic_name}</p>}
       </div>
       <span className="w-fit rounded-full bg-muted px-3 py-1 text-xs capitalize">{row.order_status || row.appointment_status}</span>
     </article>;
