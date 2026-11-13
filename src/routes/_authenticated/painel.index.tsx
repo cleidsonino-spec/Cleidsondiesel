@@ -25,8 +25,6 @@ import { formatPlate, normalizePlate } from "@/lib/plate";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationCenter } from "@/components/painel/notifications";
-import { StaffInvitations } from "@/components/painel/staff-invitations";
-import { StaffManagement } from "@/components/painel/staff-management";
 
 export const Route = createFileRoute("/_authenticated/painel/")({
   head: () => ({ meta: [
@@ -236,20 +234,6 @@ function PainelIndex() {
         )}
         {!q && filtered.length > 12 && <p className="text-center text-sm text-muted-foreground">Exibindo as 12 ordens mais recentes. Use os filtros para localizar outras.</p>}
       </section>
-
-      {isAdmin && <section className="space-y-3 rounded-md border border-border bg-card p-4">
-        <div>
-          <h2 className="text-xl font-semibold">Cadastros</h2>
-          <p className="text-sm text-muted-foreground">Gerencie os registros da oficina.</p>
-        </div>
-        <details className="rounded-md border border-border">
-          <summary className="cursor-pointer px-4 py-3 font-medium">Funcionário</summary>
-          <div className="space-y-5 border-t border-border p-4">
-            <StaffManagement />
-            <StaffInvitations />
-          </div>
-        </details>
-      </section>}
 
       {plateAppointments.length > 0 && <section className="space-y-3">
         <h2 className="text-lg">Agendamentos dessa placa</h2>
