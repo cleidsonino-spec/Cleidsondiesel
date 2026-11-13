@@ -1,6 +1,6 @@
 import type { Database } from "@/integrations/supabase/types";
 import { readPartItems } from "./parts";
-import { formatBRL, orderTotal } from "./status";
+import { formatBRL, orderDiscountAmount, orderTotal } from "./status";
 import { formatPlate } from "./plate";
 import { formatDateBR } from "./schedule";
 import logoAsset from "@/assets/logo-cleidson-diesel.png.asset.json";
@@ -138,16 +138,20 @@ export async function createQuotePdf(o: Order, preparedBy = "", options: QuotePd
   });
   room(35);
   y += 5;
-  pdf.setFillColor(245, 247, 249); pdf.roundedRect(111, y, 83, 29, 2, 2, "F");
+  const hasDiscount = Number(o.discount_percent ?? 0) > 0;
+  const summaryHeight = hasDiscount ? 36 : 29;
+  pdf.setFillColor(245, 247, 249); pdf.roundedRect(111, y, 83, summaryHeight, 2, 2, "F");
   pdf.setTextColor(65, 65, 65);
   text(`Peças: ${formatBRL(Number(o.parts_value))}`, 116, y + 7, 8);
   text(`Mão de obra: ${formatBRL(Number(o.labor_value))}`, 116, y + 14, 8);
-  pdf.setFillColor(25, 35, 45); pdf.roundedRect(111, y + 18, 83, 11, 1.5, 1.5, "F");
+  if (hasDiscount) text(`Desconto (${Number(o.discount_percent)}%): -${formatBRL(orderDiscountAmount(o.parts_value, o.labor_value, o.discount_percent))}`, 116, y + 21, 8);
+  const totalY = hasDiscount ? y + 32 : y + 25;
+  pdf.setFillColor(25, 35, 45); pdf.roundedRect(111, totalY - 7, 83, 11, 1.5, 1.5, "F");
   pdf.setTextColor(255, 255, 255);
-  text("TOTAL DO ORÇAMENTO", 115, y + 25, 7, true);
+  text("TOTAL DO ORÇAMENTO", 115, totalY, 7, true);
   pdf.setFont("helvetica", "bold"); pdf.setFontSize(12);
-  pdf.text(formatBRL(orderTotal(o.parts_value, o.labor_value)), 190, y + 25, { align: "right" });
-  pdf.setTextColor(35); y += 36;
+  pdf.text(formatBRL(orderTotal(o.parts_value, o.labor_value, o.discount_percent)), 190, totalY, { align: "right" });
+  pdf.setTextColor(35); y += summaryHeight + 7;
 
   section("Condições de pagamento", options.paymentTerms);
   section("Formas de pagamento", options.paymentMethods);
