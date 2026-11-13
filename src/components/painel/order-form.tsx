@@ -11,7 +11,6 @@ import type { Database } from "@/integrations/supabase/types";
 import { isValidPlate, normalizePlate } from "@/lib/plate";
 import { formatBRL, ORDER_STATUSES, orderTotal, type OrderStatus } from "@/lib/status";
 import { draftPartItems, lineTotal, parseMoney, parseQuantity, partsTotal, type PartDraft } from "@/lib/parts";
-import { InspectionDiagnosisAction } from "@/components/painel/inspection-diagnosis";
 import { writeInspectionData, type InspectionData } from "@/lib/inspection";
 import { useQuery } from "@tanstack/react-query";
 import { customersQuery, vehiclesQuery } from "@/lib/registry";
@@ -127,22 +126,7 @@ export function OrderForm({
 
       <Section title="Serviço">
         <F label="Reclamação / serviço solicitado" wide><Textarea value={v.complaint} onChange={(e) => set("complaint", e.target.value)} rows={2} /></F>
-        <F label="Diagnóstico para o cliente" wide><Textarea value={v.diagnosis} onChange={(e) => set("diagnosis", e.target.value)} rows={4} placeholder="Descreva o diagnóstico ou gere uma sugestão com IA abaixo." /></F>
-        <F label="Peças e serviços executados" wide><Textarea value={v.parts} onChange={(e) => set("parts", e.target.value)} rows={3} placeholder="Ex: kit reparo bomba, 4 bicos, calibração..." /></F>
       </Section>
-
-      <Section title="Inspeção do mecânico">
-        <F label="Itens reprovados" wide>
-          <Textarea value={v.inspection.failedItems} onChange={(e) => set("inspection", { ...v.inspection, failedItems: e.target.value })} rows={4} placeholder={"Informe apenas os itens que foram reprovados.\nEx.: Bico injetor 2 — retorno acima do especificado."} />
-        </F>
-        <F label="Observações da inspeção" wide>
-          <Textarea value={v.inspection.observations} onChange={(e) => set("inspection", { ...v.inspection, observations: e.target.value })} rows={4} placeholder="Descreva testes realizados, sintomas, medições e outras observações técnicas." />
-        </F>
-      </Section>
-      <InspectionDiagnosisAction vehicle={v.vehicle} year={v.vehicle_year} complaint={v.complaint} failedItems={v.inspection.failedItems} observations={v.inspection.observations} onApply={(text) => {
-        if (v.diagnosis.trim() && !window.confirm("Substituir o diagnóstico atual pela sugestão da IA?")) return;
-        set("diagnosis", text);
-      }} />
 
       <Section title="Peças e valores">
         <div className="space-y-3 sm:col-span-2 lg:col-span-3">
