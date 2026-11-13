@@ -83,7 +83,7 @@ function InspectionReportsPage() {
     return String(order?.number ?? "").includes(term)
       || (order?.customer_name ?? "").toLocaleLowerCase("pt-BR").includes(term)
       || (order?.vehicle ?? "").toLocaleLowerCase("pt-BR").includes(term)
-      || normalizePlate(order?.plate ?? "").includes(normalized);
+      || (normalized.length > 0 && normalizePlate(order?.plate ?? "").includes(normalized));
   }), [data, filter, term, normalized]);
 
   const counts = useMemo(() => data.reduce((acc, row) => {
