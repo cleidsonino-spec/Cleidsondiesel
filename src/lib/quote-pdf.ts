@@ -138,7 +138,7 @@ export async function createQuotePdf(o: Order, preparedBy = "", options: QuotePd
   });
   const hasDiscount = Number(o.discount_percent ?? 0) > 0;
   const summaryHeight = hasDiscount ? 36 : 29;
-  room(summaryHeight + 7);
+  room(summaryHeight + 12);
   y += 5;
   pdf.setFillColor(245, 247, 249); pdf.roundedRect(111, y, 83, summaryHeight, 2, 2, "F");
   pdf.setTextColor(65, 65, 65);
