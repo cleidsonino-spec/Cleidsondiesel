@@ -184,6 +184,8 @@ export interface FileRoutesByFullPath {
   '/painel/garantias/': typeof AuthenticatedPainelGarantiasIndexRoute
 }
 export interface FileRoutesByTo {
+  '/painel/financeiro': typeof AuthenticatedPainelFinanceiroRoute
+  '/painel/cobrancas': typeof AuthenticatedPainelCobrancasRoute
   '/': typeof IndexRoute
   '/agendar': typeof AgendarRoute
   '/auth': typeof AuthRoute
@@ -256,6 +258,8 @@ export interface FileRouteTypes {
     | '/painel/garantias/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/painel/financeiro'
+    | '/painel/cobrancas'
     | '/'
     | '/agendar'
     | '/auth'
