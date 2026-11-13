@@ -33,6 +33,7 @@ export type OrderFormValues = {
   parts: string;
   part_items: PartDraft[];
   labor_value: string;
+  discount_percent: string;
   status: OrderStatus;
   entry_date: string;
   due_date: string;
@@ -56,6 +57,7 @@ export function toOrderInput(v: OrderFormValues): OrderInput {
     part_items: draftPartItems(v.part_items),
     parts_value: partsTotal(draftPartItems(v.part_items)),
     labor_value: parseMoney(v.labor_value),
+    discount_percent: Math.min(4, Math.max(0, parseMoney(v.discount_percent))),
     status: v.status,
     entry_date: v.entry_date,
     due_date: v.due_date || null,
@@ -103,7 +105,9 @@ export function OrderForm({
   }
 
   const piecesTotal = partsTotal(draftPartItems(v.part_items));
-  const total = orderTotal(piecesTotal, parseMoney(v.labor_value));
+  const subtotal = orderTotal(piecesTotal, parseMoney(v.labor_value));
+  const total = orderTotal(piecesTotal, parseMoney(v.labor_value), v.discount_percent);
+  const discountAmount = Math.round((subtotal - total) * 100) / 100;
   const updatePart = (index: number, key: keyof PartDraft, value: string) =>
     set("part_items", v.part_items.map((item, i) => i === index ? { ...item, [key]: value } : item));
 
@@ -159,8 +163,11 @@ export function OrderForm({
 
       <Section title="Valores e prazos">
         <F label="Mão de obra (R$)"><Input value={v.labor_value} onChange={(e) => set("labor_value", e.target.value)} inputMode="decimal" placeholder="0,00" /></F>
+        <F label="Desconto no total (%)"><Input type="number" min="0" max="4" step="0.5" value={v.discount_percent} onChange={(e) => set("discount_percent", e.target.value)} inputMode="decimal" placeholder="0" /><span className="text-xs text-muted-foreground">Opcional · máximo permitido: 4%.</span></F>
         <div className="flex flex-col justify-end rounded-sm border border-primary/40 bg-primary/10 px-4 py-2">
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">Total</span><span className="font-display text-2xl">{formatBRL(total)}</span>
+          <span className="text-xs text-muted-foreground">Subtotal: {formatBRL(subtotal)}</span>
+          <span className="text-xs text-muted-foreground">Desconto: {formatBRL(discountAmount)}</span>
+          <span className="text-xs uppercase tracking-wider text-muted-foreground">Total com desconto</span><span className="font-display text-2xl">{formatBRL(total)}</span>
         </div>
         <F label="Status">
           <Select value={v.status} onValueChange={(s) => set("status", s as OrderStatus)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ORDER_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent></Select>
