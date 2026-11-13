@@ -127,7 +127,13 @@ export function InspectionReportEditor({ order, isAdmin, isSecretary }: Props) {
     if (!canEmit) return;
     setBusy(true);
     try {
-      const file = await createInspectionReportPdf(order, report);
+      // O banco valida o perfil e devolve apenas o conteúdo do relatório aprovado.
+      const { data: approvedData, error: authorizationError } = await (supabase as any)
+        .rpc("get_approved_inspection_report_for_pdf", { _service_order_id: order.id });
+      if (authorizationError || !approvedData) {
+        throw new Error(authorizationError?.message ?? "Relatório aprovado não disponível para emissão.");
+      }
+      const file = await createInspectionReportPdf(order, approvedData as InspectionReportData);
       if (!share) {
         downloadInspectionReport(file);
       } else if (navigator.share && navigator.canShare?.({ files: [file] })) {
