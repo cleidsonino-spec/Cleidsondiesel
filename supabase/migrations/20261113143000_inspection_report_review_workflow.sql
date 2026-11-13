@@ -76,7 +76,13 @@ BEGIN
     IF NEW.status = 'pending_review' THEN
       NEW.submitted_by := auth.uid();
       NEW.submitted_at := now();
+    ELSE
+      NEW.submitted_by := NULL;
+      NEW.submitted_at := NULL;
     END IF;
+    NEW.reviewed_by := NULL;
+    NEW.reviewed_at := NULL;
+    NEW.review_note := '';
     RETURN NEW;
   END IF;
 
@@ -111,6 +117,9 @@ BEGIN
       IF NEW.status = 'pending_review' AND OLD.status <> 'pending_review' THEN
         NEW.submitted_by := auth.uid();
         NEW.submitted_at := now();
+      ELSE
+        NEW.submitted_by := OLD.submitted_by;
+        NEW.submitted_at := OLD.submitted_at;
       END IF;
     END IF;
     RETURN NEW;
