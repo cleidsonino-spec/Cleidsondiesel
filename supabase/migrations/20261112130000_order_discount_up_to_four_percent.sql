@@ -33,10 +33,11 @@ AS $function$
       (coalesce(o.parts_value, 0) + coalesce(o.labor_value, 0))
       * coalesce(o.discount_percent, 0) / 100, 2
     ),
-    'total', round(
-      (coalesce(o.parts_value, 0) + coalesce(o.labor_value, 0))
-      * (1 - coalesce(o.discount_percent, 0) / 100), 2
-    ),
+    'total', round(coalesce(o.parts_value, 0) + coalesce(o.labor_value, 0), 2)
+      - round(
+        (coalesce(o.parts_value, 0) + coalesce(o.labor_value, 0))
+        * coalesce(o.discount_percent, 0) / 100, 2
+      ),
     'due_date', o.due_date
   );
 $function$;
@@ -88,9 +89,10 @@ BEGIN
   END IF;
 
   v_total := round(
+    (coalesce(v_order.parts_value, 0) + coalesce(v_order.labor_value, 0)), 2
+  ) - round(
     (coalesce(v_order.parts_value, 0) + coalesce(v_order.labor_value, 0))
-    * (1 - coalesce(v_order.discount_percent, 0) / 100),
-    2
+    * coalesce(v_order.discount_percent, 0) / 100, 2
   );
 
   SELECT coalesce(sum(p.amount), 0)::numeric(12,2)
