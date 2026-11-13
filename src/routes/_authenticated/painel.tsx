@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { CalendarDays, Car, Users, ShieldCheck, ClipboardList, Download, ExternalLink, FileText, LogOut, Plus, ShieldAlert, Wallet, Receipt, ClipboardCheck, Menu } from "lucide-react";
+import { CalendarDays, Car, Users, UserCog, ShieldCheck, ClipboardList, Download, ExternalLink, FileText, LogOut, Plus, ShieldAlert, Wallet, Receipt, ClipboardCheck, Menu } from "lucide-react";
 
 import { Logo } from "@/components/site/logo";
 import { Button } from "@/components/ui/button";
@@ -99,6 +99,7 @@ function PainelLayout() {
                       <SheetClose asChild><PanelLink to="/painel/relatorios" icon={<ClipboardCheck />} label="Relatórios" /></SheetClose>
                       <p className="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cadastros</p>
                       <SheetClose asChild><PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" /></SheetClose>
+                      {isAdmin && <SheetClose asChild><PanelLink to="/painel/funcionarios" icon={<UserCog />} label="Funcionário" /></SheetClose>}
                       {isAdmin && <SheetClose asChild><PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" /></SheetClose>}
                       <p className="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Gestão</p>
                       {isAdmin && <SheetClose asChild><PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" /></SheetClose>}
@@ -124,6 +125,7 @@ function PainelLayout() {
             {(isAdmin || isSecretary) && <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />}
             {(isAdmin || isSecretary) && <PanelLink to="/painel/relatorios" icon={<ClipboardCheck />} label="Relatórios" />}
             <PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" />
+            {isAdmin && <PanelLink to="/painel/funcionarios" icon={<UserCog />} label="Funcionário" />}
             {isAdmin && <PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" />}
             {isAdmin && <PanelLink to="/painel/garantias" icon={<ShieldCheck />} label="Garantias" />}
             {isAdmin && <PanelLink to="/painel/financeiro" icon={<Wallet />} label="Financeiro" /> }
@@ -147,7 +149,7 @@ function PainelLayout() {
 }
 
 function PanelLink({ to, icon, label, exact }: {
-  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias" | "/painel/financeiro" | "/painel/relatorios" | "/painel/cobrancas";
+  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias" | "/painel/financeiro" | "/painel/relatorios" | "/painel/cobrancas" | "/painel/funcionarios";
   icon: React.ReactNode;
   label: string;
   exact?: boolean;
