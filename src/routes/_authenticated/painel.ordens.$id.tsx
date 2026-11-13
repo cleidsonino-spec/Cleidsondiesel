@@ -8,6 +8,7 @@ import { QuotePdfActions } from "@/components/painel/quote-pdf-actions";
 import { ApprovalActions } from "@/components/painel/approval-actions";
 import { WarrantyEditor } from "@/components/painel/warranty-editor";
 import { MechanicAssignment } from "@/components/painel/mechanic-assignment";
+import { OrderPayments } from "@/components/painel/order-payments";
 import { warrantiesQuery } from "@/lib/warranty";
 import { StatusBadge } from "@/components/site/status-badge";
 import {
@@ -120,6 +121,7 @@ function OrdemPage() {
 
       {/* WhatsApp */}
       <ApprovalActions order={order} />
+      {(isAdmin || isSecretary) && <div className="print:hidden"><OrderPayments orderId={id} partsValue={order.parts_value} laborValue={order.labor_value} /></div>
       {(isAdmin || isSecretary) && ((order as any).fuel_filter_replacement !== null || (order as any).system_cleaning !== null) && <section className="rounded-md border border-primary/30 bg-primary/5 p-4">
         <h2 className="font-semibold">Recomendações do mecânico para o orçamento</h2>
         <p className="mb-3 text-xs text-muted-foreground">Respostas registradas durante o diagnóstico.</p>
