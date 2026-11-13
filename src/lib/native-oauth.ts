@@ -6,38 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 const CALLBACK_HOST = "cleidsondiesel.lovable.app";
 const CALLBACK_PATH = "/auth";
+const LEGACY_CALLBACK_PROTOCOL = "br.com.cleidsondiesel.painel:";
 const STATE_STORAGE_KEY = "cleidson-diesel-native-oauth-state";
-
-type OAuthProvider = "google" | "lovable";
-
-function createState() {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
-/**
- * Starts the same Lovable OAuth broker flow used by cloud-auth-js, but in the
- * system browser so Android can reopen this app through a verified HTTPS App Link.
- */
-export async function startNativeOAuth(provider: OAuthProvider) {
-  const state = createState();
-  localStorage.setItem(STATE_STORAGE_KEY, state);
-
-  const initiateUrl = new URL("/~oauth/initiate", window.location.origin);
-  initiateUrl.search = new URLSearchParams({
-    provider,
-    redirect_uri: `${window.location.origin}${CALLBACK_PATH}`,
-    state,
-  }).toString();
-
-  try {
-    await Browser.open({ url: initiateUrl.toString(), presentationStyle: "fullscreen" });
-  } catch (error) {
-    localStorage.removeItem(STATE_STORAGE_KEY);
-    throw error;
-  }
-}
 
 async function completeNativeOAuth(rawUrl: string) {
   let callbackUrl: URL;
@@ -47,25 +17,32 @@ async function completeNativeOAuth(rawUrl: string) {
     return false;
   }
 
-  if (
-    callbackUrl.protocol !== "https:" ||
-    callbackUrl.hostname !== CALLBACK_HOST ||
-    callbackUrl.pathname !== CALLBACK_PATH
-  ) {
-    return false;
-  }
+  const isVerifiedHttpsCallback =
+    callbackUrl.protocol === "https:" &&
+    callbackUrl.hostname === CALLBACK_HOST &&
+    callbackUrl.pathname === CALLBACK_PATH;
+  const isLegacyCustomCallback =
+    callbackUrl.protocol === LEGACY_CALLBACK_PROTOCOL &&
+    callbackUrl.hostname === "auth" &&
+    callbackUrl.pathname === "/callback";
 
-  // Lovable's broker returns the OAuth response in the URL fragment. Query
-  // parameters are also read for compatibility with broker response variants.
+  if (!isVerifiedHttpsCallback && !isLegacyCustomCallback) return false;
+
+  // Both callback formats return the session in the URL fragment; query is
+  // also supported for compatibility with broker response variants.
   const fragment = new URLSearchParams(callbackUrl.hash.replace(/^#/, ""));
   const query = callbackUrl.searchParams;
   const read = (key: string) => fragment.get(key) ?? query.get(key);
 
-  const returnedState = read("state");
-  const expectedState = localStorage.getItem(STATE_STORAGE_KEY);
-  if (!returnedState || !expectedState || returnedState !== expectedState) {
-    console.warn("[Auth] Retorno OAuth ignorado: estado inválido ou expirado.");
-    return false;
+  // The HTTPS broker flow uses our own state value. The legacy URI flow uses
+  // the OAuth SDK's state validation, as in the previously working APK.
+  if (isVerifiedHttpsCallback) {
+    const returnedState = read("state");
+    const expectedState = localStorage.getItem(STATE_STORAGE_KEY);
+    if (!returnedState || !expectedState || returnedState !== expectedState) {
+      console.warn("[Auth] Retorno OAuth HTTPS ignorado: estado inválido ou expirado.");
+      return false;
+    }
   }
 
   const access_token = read("access_token");
@@ -75,19 +52,28 @@ async function completeNativeOAuth(rawUrl: string) {
     return false;
   }
 
-  const { error } = await supabase.auth.setSession({ access_token, refresh_token });
-  if (error) {
+  const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
+  if (error || !data.session) {
     console.error("[Auth] Não foi possível restaurar a sessão OAuth.", error);
     return false;
   }
 
   localStorage.removeItem(STATE_STORAGE_KEY);
   await Browser.close().catch(() => undefined);
-  window.location.assign("/painel");
+
+  const { data: roleData } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", data.session.user.id)
+    .maybeSingle();
+
+  window.location.assign(
+    roleData?.role === "secretaria" || roleData?.role === "mecanico" ? "/equipe" : "/painel",
+  );
   return true;
 }
 
-/** Registers the verified App Link callback, including cold app launches. */
+/** Registers both the legacy custom-scheme callback and the HTTPS App Link. */
 export async function initializeNativeOAuthCallback() {
   if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") {
     return () => undefined;
@@ -107,7 +93,6 @@ export async function initializeNativeOAuthCallback() {
     void handleUrl(url);
   });
 
-  // Register the listener first so a callback arriving during startup is not lost.
   const launch = await App.getLaunchUrl();
   if (launch?.url) await handleUrl(launch.url);
 
