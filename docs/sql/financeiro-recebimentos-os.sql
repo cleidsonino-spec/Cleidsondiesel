@@ -17,6 +17,33 @@ ALTER TABLE public.service_order_payments ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.service_order_payments FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.service_order_payments TO service_role;
 
+-- Depois do primeiro recebimento, o orçamento original fica congelado.
+-- Alterações posteriores em peças/mão de obra exigem estorno formal (fora deste fluxo).
+CREATE OR REPLACE FUNCTION public.prevent_service_order_budget_change_after_payment()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $
+BEGIN
+  IF (NEW.parts_value IS DISTINCT FROM OLD.parts_value
+      OR NEW.labor_value IS DISTINCT FROM OLD.labor_value)
+     AND EXISTS (
+       SELECT 1 FROM public.service_order_payments p
+       WHERE p.service_order_id = OLD.id
+     ) THEN
+    RAISE EXCEPTION 'O orçamento não pode ser alterado após o primeiro recebimento confirmado';
+  END IF;
+  RETURN NEW;
+END;
+$;
+
+DROP TRIGGER IF EXISTS service_orders_preserve_budget_after_payment ON public.service_orders;
+CREATE TRIGGER service_orders_preserve_budget_after_payment
+BEFORE UPDATE OF parts_value, labor_value ON public.service_orders
+FOR EACH ROW
+EXECUTE FUNCTION public.prevent_service_order_budget_change_after_payment();
+
 -- Nenhum INSERT/UPDATE/DELETE direto: recebimentos são imutáveis e entram pela RPC.
 CREATE OR REPLACE FUNCTION public.confirm_service_order_payment(
   _order_id uuid,
