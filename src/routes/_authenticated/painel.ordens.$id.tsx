@@ -30,7 +30,7 @@ import { readPartItems } from "@/lib/parts";
 import { readInspectionData } from "@/lib/inspection";
 import { orderQuery } from "@/lib/queries";
 import { formatDateBR } from "@/lib/schedule";
-import { formatBRL, orderStatusInfo, orderTotal } from "@/lib/status";
+import { formatBRL, orderDiscountAmount, orderStatusInfo, orderTotal } from "@/lib/status";
 import { quoteMessage, statusMessage, waLink } from "@/lib/whatsapp";
 
 type Order = Database["public"]["Tables"]["service_orders"]["Row"];
@@ -65,6 +65,7 @@ function toForm(o: Order): OrderFormValues {
       ? (Number(o.parts_value) ? [{ description: o.parts || "Peças (valor anterior)", quantity: "1", unit_value: money(o.parts_value) }] : [{ description: "", quantity: "1", unit_value: "" }])
       : readPartItems(o.part_items).map((item) => ({ description: item.description, quantity: String(item.quantity), unit_value: money(item.unit_value) })),
     labor_value: money(o.labor_value),
+    discount_percent: String(Number(o.discount_percent ?? 0)),
     status: o.status,
     entry_date: o.entry_date,
     due_date: o.due_date ?? "",
@@ -121,7 +122,7 @@ function OrdemPage() {
 
       {/* WhatsApp */}
       <ApprovalActions order={order} />
-      {(isAdmin || isSecretary) && <div className="print:hidden"><OrderPayments orderId={id} partsValue={order.parts_value} laborValue={order.labor_value} /></div>}
+      {(isAdmin || isSecretary) && <div className="print:hidden"><OrderPayments orderId={id} partsValue={order.parts_value} laborValue={order.labor_value} discountPercent={order.discount_percent} /></div>}
       {(isAdmin || isSecretary) && ((order as any).fuel_filter_replacement !== null || (order as any).system_cleaning !== null) && <section className="rounded-md border border-primary/30 bg-primary/5 p-4">
         <h2 className="font-semibold">Recomendações do mecânico para o orçamento</h2>
         <p className="mb-3 text-xs text-muted-foreground">Respostas registradas durante o diagnóstico.</p>
@@ -260,8 +261,9 @@ function PrintSheet({ order: o }: { order: Order }) {
         <p className="flex justify-between">
           <span>Mão de obra</span> <span>{formatBRL(Number(o.labor_value))}</span>
         </p>
+        {Number(o.discount_percent) > 0 && <p className="flex justify-between"><span>Desconto ({Number(o.discount_percent)}%)</span><span>-{formatBRL(orderDiscountAmount(o.parts_value, o.labor_value, o.discount_percent))}</span></p>}
         <p className="flex justify-between text-base font-bold">
-          <span>Total</span> <span>{formatBRL(orderTotal(o.parts_value, o.labor_value))}</span>
+          <span>Total</span> <span>{formatBRL(orderTotal(o.parts_value, o.labor_value, o.discount_percent))}</span>
         </p>
       </div>
       <div className="mt-16 grid grid-cols-2 gap-10 text-center">

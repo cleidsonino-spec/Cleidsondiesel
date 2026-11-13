@@ -49,6 +49,7 @@ type OrderLike = {
   part_items?: unknown;
   parts_value: number | string;
   labor_value: number | string;
+  discount_percent?: number | string | null;
   due_date: string | null;
 };
 
@@ -72,7 +73,7 @@ export function statusMessage(o: OrderLike, siteUrl?: string): string {
 }
 
 export function quoteMessage(o: OrderLike, approvalLink?: string, preparedBy?: string): string {
-  const total = orderTotal(o.parts_value, o.labor_value);
+  const total = orderTotal(o.parts_value, o.labor_value, o.discount_percent);
   const lines = [
     `Olá, ${firstName(o.customer_name)}! Aqui é da ${SHOP}.`,
     ``,
@@ -88,6 +89,7 @@ export function quoteMessage(o: OrderLike, approvalLink?: string, preparedBy?: s
     ``,
     `Peças: ${formatBRL(Number(o.parts_value ?? 0))}`,
     `Mão de obra: ${formatBRL(Number(o.labor_value ?? 0))}`,
+    ...(Number(o.discount_percent ?? 0) > 0 ? [`Desconto (${Number(o.discount_percent)}%): -${formatBRL(orderTotal(o.parts_value, o.labor_value) - total)}`] : []),
     `*Total: ${formatBRL(total)}*`,
   );
   if (o.due_date) lines.push(`Previsão de entrega: ${formatDateBR(o.due_date)}`);
