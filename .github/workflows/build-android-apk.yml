@@ -69,6 +69,60 @@ jobs:
       - name: Add Android project
         run: npx cap add android
 
+      - name: Configure verified HTTPS OAuth callback for Android
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          tree = ET.parse(manifest)
+          root = tree.getroot()
+          ns = {"android": "http://schemas.android.com/apk/res/android"}
+          android = "{http://schemas.android.com/apk/res/android}"
+          app = root.find("application")
+          if app is None:
+              raise SystemExit("AndroidManifest.xml sem elemento application")
+          activity = next(
+              (item for item in app.findall("activity")
+               if item.get(android + "name", "").endswith("MainActivity")),
+              None,
+          )
+          if activity is None:
+              raise SystemExit("MainActivity não encontrada no AndroidManifest.xml")
+
+          # Avoid duplicate intent filters when this workflow is rerun or regenerated.
+          for item in list(activity.findall("intent-filter")):
+              data = item.find("data")
+              if data is not None and data.get(android + "host") == "cleidsondiesel.lovable.app":
+                  activity.remove(item)
+
+          intent = ET.SubElement(activity, "intent-filter", {"{http://schemas.android.com/apk/res/android}autoVerify": "true"})
+          ET.SubElement(intent, "action", {android + "name": "android.intent.action.VIEW"})
+          ET.SubElement(intent, "category", {android + "name": "android.intent.category.DEFAULT"})
+          ET.SubElement(intent, "category", {android + "name": "android.intent.category.BROWSABLE"})
+          ET.SubElement(intent, "data", {
+              android + "scheme": "https",
+              android + "host": "cleidsondiesel.lovable.app",
+              android + "pathPrefix": "/auth",
+          })
+          tree.write(manifest, encoding="utf-8", xml_declaration=True)
+
+          # Fail the build if the generated manifest does not contain the expected App Link.
+          checked = ET.parse(manifest).getroot()
+          main = next(item for item in checked.find("application").findall("activity")
+                      if item.get(android + "name", "").endswith("MainActivity"))
+          if not any(
+              f.get("{http://schemas.android.com/apk/res/android}autoVerify") == "true"
+              and any(d.get(android + "host") == "cleidsondiesel.lovable.app"
+                      and d.get(android + "pathPrefix") == "/auth"
+                      for d in f.findall("data"))
+              for f in main.findall("intent-filter")
+          ):
+              raise SystemExit("App Link HTTPS não foi configurado corretamente")
+          print("App Link HTTPS /auth configurado no AndroidManifest.xml")
+          PY
+
       - name: Generate Android app icons
         run: npx capacitor-assets generate --android
 
