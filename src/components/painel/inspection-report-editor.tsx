@@ -98,13 +98,19 @@ export function InspectionReportEditor({ order, isAdmin, isSecretary }: Props) {
   async function persist(status: ReportRecord["status"]) {
     setBusy(true);
     const payload = {
-      service_order_id: order.id,
-      ...report,
+      diagnosis: report.diagnosis,
+      executed_parts: report.executed_parts,
+      rejected_items: report.rejected_items,
+      inspection_observations: report.inspection_observations,
       status,
-      ...(record ? {} : { created_by: (await supabase.auth.getUser()).data.user?.id ?? null }),
     };
-    const { data, error } = await (supabase as any).from("service_order_inspection_reports")
-      .upsert(payload, { onConflict: "service_order_id" })
+    // Evita upsert: o trigger gera o ID no INSERT e protege esse ID nos UPDATEs.
+    const query = record
+      ? (supabase as any).from("service_order_inspection_reports")
+          .update(payload).eq("id", record.id)
+      : (supabase as any).from("service_order_inspection_reports")
+          .insert({ service_order_id: order.id, ...payload });
+    const { data, error } = await query
       .select("id, diagnosis, executed_parts, rejected_items, inspection_observations, status, review_note, submitted_at, reviewed_at")
       .single();
     setBusy(false);
