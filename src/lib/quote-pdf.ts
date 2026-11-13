@@ -136,10 +136,10 @@ export async function createQuotePdf(o: Order, preparedBy = "", options: QuotePd
     for (const s of lines) { text(s, 34, y + 6, 8); y += 4.5; }
     y += 5; line(y);
   });
-  room(35);
-  y += 5;
   const hasDiscount = Number(o.discount_percent ?? 0) > 0;
   const summaryHeight = hasDiscount ? 36 : 29;
+  room(summaryHeight + 7);
+  y += 5;
   pdf.setFillColor(245, 247, 249); pdf.roundedRect(111, y, 83, summaryHeight, 2, 2, "F");
   pdf.setTextColor(65, 65, 65);
   text(`Peças: ${formatBRL(Number(o.parts_value))}`, 116, y + 7, 8);
