@@ -82,10 +82,9 @@ export function InspectionReportEditor({ order }: Props) {
   }
 
   async function getPdf() {
-    if (!exists) {
-      const saved = await save();
-      if (!saved) return null;
-    }
+    // Always persist the current form contents before creating the PDF.
+    const saved = await save();
+    if (!saved) return null;
     setGenerating(true);
     try {
       const file = await createInspectionReportPdf(order, report);
