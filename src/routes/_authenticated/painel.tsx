@@ -149,7 +149,7 @@ function PainelLayout() {
 }
 
 function PanelLink({ to, icon, label, exact }: {
-  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias" | "/painel/financeiro" | "/painel/relatorios" | "/painel/cobrancas";
+  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias" | "/painel/financeiro" | "/painel/relatorios" | "/painel/cobrancas" | "/painel/funcionarios";
   icon: React.ReactNode;
   label: string;
   exact?: boolean;
