@@ -146,6 +146,22 @@ function notificationFor(payload) {
     };
   }
 
+  if (table === "service_order_inspection_reports" &&
+      (event === "INSERT" || event === "UPDATE") &&
+      record.status === "pending_review" &&
+      (event === "INSERT" || oldRecord.status !== "pending_review")) {
+    const order = record.service_order || {};
+    const orderId = value(record.service_order_id, order.id);
+    if (!orderId) return null;
+    return {
+      title: "Relatório técnico enviado para revisão",
+      body: "O mecânico enviou o relatório da OS nº " + value(String(order.number ?? ""), "—") +
+        " para revisão. " + customerVehicle(order),
+      route: "/painel/ordens/" + orderId,
+      broadcastAdmins: true,
+    };
+  }
+
   if (table === "service_orders" && event === "INSERT") {
     return {
       title: "Nova ordem de serviço",
@@ -244,10 +260,25 @@ async function sendPush(env, message) {
         }),
       },
     );
-    return response.ok;
+    if (response.ok) return { ok: true };
+    let failure = {};
+    try { failure = await response.json(); } catch { /* resposta sem JSON */ }
+    const fcmError = failure.error || {};
+    const detail = Array.isArray(fcmError.details)
+      ? fcmError.details.find((item) => typeof item.errorCode === "string")
+      : null;
+    return {
+      ok: false,
+      httpStatus: response.status,
+      code: typeof detail?.errorCode === "string" ? detail.errorCode : value(fcmError.status, "FCM_SEND_FAILED"),
+    };
   }));
 
-  return { sent: results.filter(Boolean).length, attempted: results.length };
+  return {
+    sent: results.filter((item) => item.ok).length,
+    attempted: results.length,
+    failures: results.filter((item) => !item.ok).map(({ httpStatus, code }) => ({ httpStatus, code })),
+  };
 }
 
 async function updateDeviceRegistration(request, env, user, path) {
