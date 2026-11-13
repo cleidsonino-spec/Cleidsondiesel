@@ -16,7 +16,9 @@ export function WarrantyEditor({ orderId, orderStatus, deliveredAt }: { orderId:
   const { data } = useSuspenseQuery(warrantiesQuery());
   const list = data.filter((w) => w.service_order_id === orderId);
   const canIssue = canIssueWarranty(orderStatus, deliveredAt);
-  const deliveryDate = deliveredAt?.slice(0, 10) ?? "";
+  const deliveryDate = deliveredAt
+    ? new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bahia", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(deliveredAt))
+    : "";
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
   const qc = useQueryClient();
