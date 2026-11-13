@@ -8,8 +8,14 @@ export const generateInspectionDiagnosis = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => inspectionDiagnosisInput.parse(input))
   .handler(async ({ data, context }) => {
     setResponseHeader("Cache-Control", "no-store");
-    const { data: allowed, error } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (error || !allowed) throw new Error("Sem permissão para gerar diagnóstico.");
+    const [{ data: isAdmin, error: adminError }, { data: isSecretary, error: secretaryError }, { data: isAssigned, error: mechanicError }] = await Promise.all([
+      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
+      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "secretaria" }),
+      context.supabase.rpc("is_mechanic_assigned", { _order_id: data.order_id, _user_id: context.userId }),
+    ]);
+    if (adminError || secretaryError || mechanicError || !(isAdmin || isSecretary || isAssigned)) {
+      throw new Error("Sem permissão para gerar diagnóstico para esta ordem de serviço.");
+    }
 
     const { generateResponse, GatewayError } = await import("@lovable.dev/ai-gateway");
     try {

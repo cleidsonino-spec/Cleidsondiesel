@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const inspectionDiagnosisInput = z.object({
+  order_id: z.string().uuid(),
   vehicle: z.string().trim().max(200),
   vehicle_year: z.string().trim().max(20),
   complaint: z.string().trim().max(3000),
