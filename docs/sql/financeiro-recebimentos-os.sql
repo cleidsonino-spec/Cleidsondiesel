@@ -24,7 +24,7 @@ RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $
+AS $$
 BEGIN
   IF (NEW.parts_value IS DISTINCT FROM OLD.parts_value
       OR NEW.labor_value IS DISTINCT FROM OLD.labor_value)
@@ -36,7 +36,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$$;
 
 DROP TRIGGER IF EXISTS service_orders_preserve_budget_after_payment ON public.service_orders;
 CREATE TRIGGER service_orders_preserve_budget_after_payment
