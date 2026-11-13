@@ -80,15 +80,24 @@ BEGIN
     RETURN NEW;
   END IF;
 
+  -- Depois de aprovado, o conteúdo e o estado ficam imutáveis.
+  -- Uma correção posterior exige um fluxo explícito de reabertura, ainda não habilitado.
+  IF OLD.status = 'approved' THEN
+    RAISE EXCEPTION 'Relatório aprovado não pode ser alterado';
+  END IF;
+
   IF is_admin_or_secretary THEN
-    IF OLD.status <> 'approved' AND NEW.status = 'approved' THEN
+    IF NEW.status IN ('approved', 'returned') AND OLD.status <> 'pending_review' THEN
+      RAISE EXCEPTION 'Somente um relatório aguardando revisão pode ser aprovado ou devolvido';
+    END IF;
+    IF NEW.status = 'approved' THEN
       NEW.reviewed_by := auth.uid();
       NEW.reviewed_at := now();
       NEW.review_note := '';
-    ELSIF OLD.status <> 'returned' AND NEW.status = 'returned' THEN
+    ELSIF NEW.status = 'returned' THEN
       NEW.reviewed_by := auth.uid();
       NEW.reviewed_at := now();
-    ELSIF NEW.status IN ('draft', 'pending_review') THEN
+    ELSE
       NEW.reviewed_by := NULL;
       NEW.reviewed_at := NULL;
       IF NEW.status = 'pending_review' AND OLD.status <> 'pending_review' THEN
@@ -118,8 +127,3 @@ BEGIN
   RETURN NEW;
 END;
 $function$;
-
-DROP TRIGGER IF EXISTS enforce_inspection_report_workflow ON public.service_order_inspection_reports;
-CREATE TRIGGER enforce_inspection_report_workflow
-BEFORE INSERT OR UPDATE ON public.service_order_inspection_reports
-FOR EACH ROW EXECUTE FUNCTION public.enforce_inspection_report_workflow();
