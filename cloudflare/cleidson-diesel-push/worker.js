@@ -159,9 +159,9 @@ function notificationFor(payload) {
   if (table === "service_orders" && event === "UPDATE" &&
       oldRecord.status !== "aguardando_aprovacao" && record.status === "aguardando_aprovacao") {
     return {
-      title: "Diagnóstico concluído!",
-      body: "OS nº " + value(String(record.number ?? ""), "—") + " · " +
-        customerVehicle(record) + " · diagnóstico enviado para orçamento.",
+      title: "Diagnóstico do mecânico enviado",
+      body: "O diagnóstico da OS nº " + value(String(record.number ?? ""), "—") +
+        " foi enviado e aguarda revisão. " + customerVehicle(record),
       route: "/painel/ordens/" + record.id,
       broadcastAdmins: true,
     };
