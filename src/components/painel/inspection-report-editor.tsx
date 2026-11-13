@@ -56,27 +56,38 @@ export function InspectionReportEditor({ order, isAdmin, isSecretary }: Props) {
 
   useEffect(() => {
     let active = true;
-    Promise.all([
-      (supabase as any).from("service_order_inspection_reports")
-        .select("id, diagnosis, executed_parts, rejected_items, inspection_observations, status, review_note, submitted_at, reviewed_at")
-        .eq("service_order_id", order.id).maybeSingle(),
-      supabase.rpc("is_mechanic_assigned", { _order_id: order.id }),
-    ]).then(([result, assigned]) => {
-      if (!active) return;
-      if (result.error) toast.error(`Não foi possível carregar o relatório: ${result.error.message}`);
-      if (result.data) {
-        setRecord(result.data as ReportRecord);
-        setReport({
-          diagnosis: result.data.diagnosis ?? "",
-          executed_parts: result.data.executed_parts ?? "",
-          rejected_items: result.data.rejected_items ?? "",
-          inspection_observations: result.data.inspection_observations ?? "",
-        });
-        setReviewNote(result.data.review_note ?? "");
+    async function loadReport() {
+      try {
+        const [result, assigned] = await Promise.all([
+          (supabase as any).from("service_order_inspection_reports")
+            .select("id, diagnosis, executed_parts, rejected_items, inspection_observations, status, review_note, submitted_at, reviewed_at")
+            .eq("service_order_id", order.id).maybeSingle(),
+          supabase.rpc("is_mechanic_assigned", { _order_id: order.id }),
+        ]);
+        if (!active) return;
+        if (result.error) toast.error(`Não foi possível carregar o relatório: ${result.error.message}`);
+        else if (result.data) {
+          setRecord(result.data as ReportRecord);
+          setReport({
+            diagnosis: result.data.diagnosis ?? "",
+            executed_parts: result.data.executed_parts ?? "",
+            rejected_items: result.data.rejected_items ?? "",
+            inspection_observations: result.data.inspection_observations ?? "",
+          });
+          setReviewNote(result.data.review_note ?? "");
+        }
+        if (assigned.error) {
+          console.error("[InspectionReport] Falha ao verificar mecânico atribuído.", assigned.error);
+        } else {
+          setIsAssignedMechanic(Boolean(assigned.data));
+        }
+      } catch (error) {
+        if (active) toast.error(error instanceof Error ? error.message : "Não foi possível carregar o relatório técnico.");
+      } finally {
+        if (active) setLoaded(true);
       }
-      setIsAssignedMechanic(Boolean(assigned.data));
-      setLoaded(true);
-    });
+    }
+    void loadReport();
     return () => { active = false; };
   }, [order.id]);
 
