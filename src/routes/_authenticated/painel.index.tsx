@@ -121,8 +121,6 @@ function PainelIndex() {
 
       <NotificationCenter />
 
-      
-
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Indicadores da oficina">
         <Stat icon={<Wrench />} label="Em andamento" value={stats.open} href="/painel" />
         <Stat icon={<ClipboardList />} label="Aguardando aprovação" value={stats.waiting} href="/painel" />
