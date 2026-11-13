@@ -23,9 +23,9 @@ import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
 import { Route as AuthenticatedPainelIndexRouteImport } from './routes/_authenticated/painel.index'
 import { Route as AuthenticatedPainelAgendamentosRouteImport } from './routes/_authenticated/painel.agendamentos'
 import { Route as AuthenticatedPainelClientesRouteImport } from './routes/_authenticated/painel.clientes'
-import { Route as AuthenticatedPainelGarantiasRouteImport } from './routes/_authenticated/painel.garantias'
-import { Route as AuthenticatedPainelFinanceiroRouteImport } from './routes/_authenticated/painel.financeiro'
 import { Route as AuthenticatedPainelCobrancasRouteImport } from './routes/_authenticated/painel.cobrancas'
+import { Route as AuthenticatedPainelFinanceiroRouteImport } from './routes/_authenticated/painel.financeiro'
+import { Route as AuthenticatedPainelGarantiasRouteImport } from './routes/_authenticated/painel.garantias'
 import { Route as AuthenticatedPainelOrcamentosRouteImport } from './routes/_authenticated/painel.orcamentos'
 import { Route as AuthenticatedPainelVeiculosRouteImport } from './routes/_authenticated/painel.veiculos'
 import { Route as AuthenticatedPainelGarantiasIndexRouteImport } from './routes/_authenticated/painel.garantias.index'
@@ -106,22 +106,24 @@ const AuthenticatedPainelClientesRoute =
     path: '/clientes',
     getParentRoute: () => AuthenticatedPainelRoute,
   } as any)
+const AuthenticatedPainelCobrancasRoute =
+  AuthenticatedPainelCobrancasRouteImport.update({
+    id: '/cobrancas',
+    path: '/cobrancas',
+    getParentRoute: () => AuthenticatedPainelRoute,
+  } as any)
+const AuthenticatedPainelFinanceiroRoute =
+  AuthenticatedPainelFinanceiroRouteImport.update({
+    id: '/financeiro',
+    path: '/financeiro',
+    getParentRoute: () => AuthenticatedPainelRoute,
+  } as any)
 const AuthenticatedPainelGarantiasRoute =
   AuthenticatedPainelGarantiasRouteImport.update({
     id: '/garantias',
     path: '/garantias',
     getParentRoute: () => AuthenticatedPainelRoute,
   } as any)
-const AuthenticatedPainelFinanceiroRoute = AuthenticatedPainelFinanceiroRouteImport.update({
-  id: '/financeiro',
-  path: '/financeiro',
-  getParentRoute: () => AuthenticatedPainelRoute,
-} as any)
-const AuthenticatedPainelCobrancasRoute = AuthenticatedPainelCobrancasRouteImport.update({
-  id: '/cobrancas',
-  path: '/cobrancas',
-  getParentRoute: () => AuthenticatedPainelRoute,
-} as any)
 const AuthenticatedPainelOrcamentosRoute =
   AuthenticatedPainelOrcamentosRouteImport.update({
     id: '/orcamentos',
@@ -172,9 +174,9 @@ export interface FileRoutesByFullPath {
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/painel/clientes': typeof AuthenticatedPainelClientesRoute
-  '/painel/garantias': typeof AuthenticatedPainelGarantiasRouteWithChildren
-  '/painel/financeiro': typeof AuthenticatedPainelFinanceiroRoute
   '/painel/cobrancas': typeof AuthenticatedPainelCobrancasRoute
+  '/painel/financeiro': typeof AuthenticatedPainelFinanceiroRoute
+  '/painel/garantias': typeof AuthenticatedPainelGarantiasRouteWithChildren
   '/painel/orcamentos': typeof AuthenticatedPainelOrcamentosRoute
   '/painel/veiculos': typeof AuthenticatedPainelVeiculosRoute
   '/painel/': typeof AuthenticatedPainelIndexRoute
@@ -184,8 +186,6 @@ export interface FileRoutesByFullPath {
   '/painel/garantias/': typeof AuthenticatedPainelGarantiasIndexRoute
 }
 export interface FileRoutesByTo {
-  '/painel/financeiro': typeof AuthenticatedPainelFinanceiroRoute
-  '/painel/cobrancas': typeof AuthenticatedPainelCobrancasRoute
   '/': typeof IndexRoute
   '/agendar': typeof AgendarRoute
   '/auth': typeof AuthRoute
@@ -197,6 +197,8 @@ export interface FileRoutesByTo {
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/painel/clientes': typeof AuthenticatedPainelClientesRoute
+  '/painel/cobrancas': typeof AuthenticatedPainelCobrancasRoute
+  '/painel/financeiro': typeof AuthenticatedPainelFinanceiroRoute
   '/painel/orcamentos': typeof AuthenticatedPainelOrcamentosRoute
   '/painel/veiculos': typeof AuthenticatedPainelVeiculosRoute
   '/painel': typeof AuthenticatedPainelIndexRoute
@@ -220,9 +222,9 @@ export interface FileRoutesById {
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/_authenticated/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/_authenticated/painel/clientes': typeof AuthenticatedPainelClientesRoute
-  '/_authenticated/painel/garantias': typeof AuthenticatedPainelGarantiasRouteWithChildren
-  '/_authenticated/painel/financeiro': typeof AuthenticatedPainelFinanceiroRoute
   '/_authenticated/painel/cobrancas': typeof AuthenticatedPainelCobrancasRoute
+  '/_authenticated/painel/financeiro': typeof AuthenticatedPainelFinanceiroRoute
+  '/_authenticated/painel/garantias': typeof AuthenticatedPainelGarantiasRouteWithChildren
   '/_authenticated/painel/orcamentos': typeof AuthenticatedPainelOrcamentosRoute
   '/_authenticated/painel/veiculos': typeof AuthenticatedPainelVeiculosRoute
   '/_authenticated/painel/': typeof AuthenticatedPainelIndexRoute
@@ -246,9 +248,9 @@ export interface FileRouteTypes {
     | '/orcamento/$token'
     | '/painel/agendamentos'
     | '/painel/clientes'
-    | '/painel/garantias'
-    | '/painel/financeiro'
     | '/painel/cobrancas'
+    | '/painel/financeiro'
+    | '/painel/garantias'
     | '/painel/orcamentos'
     | '/painel/veiculos'
     | '/painel/'
@@ -258,8 +260,6 @@ export interface FileRouteTypes {
     | '/painel/garantias/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/painel/financeiro'
-    | '/painel/cobrancas'
     | '/'
     | '/agendar'
     | '/auth'
@@ -271,6 +271,8 @@ export interface FileRouteTypes {
     | '/orcamento/$token'
     | '/painel/agendamentos'
     | '/painel/clientes'
+    | '/painel/cobrancas'
+    | '/painel/financeiro'
     | '/painel/orcamentos'
     | '/painel/veiculos'
     | '/painel'
@@ -293,9 +295,9 @@ export interface FileRouteTypes {
     | '/orcamento/$token'
     | '/_authenticated/painel/agendamentos'
     | '/_authenticated/painel/clientes'
-    | '/_authenticated/painel/garantias'
-    | '/_authenticated/painel/financeiro'
     | '/_authenticated/painel/cobrancas'
+    | '/_authenticated/painel/financeiro'
+    | '/_authenticated/painel/garantias'
     | '/_authenticated/painel/orcamentos'
     | '/_authenticated/painel/veiculos'
     | '/_authenticated/painel/'
@@ -502,9 +504,9 @@ const AuthenticatedPainelGarantiasRouteWithChildren =
 interface AuthenticatedPainelRouteChildren {
   AuthenticatedPainelAgendamentosRoute: typeof AuthenticatedPainelAgendamentosRoute
   AuthenticatedPainelClientesRoute: typeof AuthenticatedPainelClientesRoute
-  AuthenticatedPainelGarantiasRoute: typeof AuthenticatedPainelGarantiasRouteWithChildren
-  AuthenticatedPainelFinanceiroRoute: typeof AuthenticatedPainelFinanceiroRoute
   AuthenticatedPainelCobrancasRoute: typeof AuthenticatedPainelCobrancasRoute
+  AuthenticatedPainelFinanceiroRoute: typeof AuthenticatedPainelFinanceiroRoute
+  AuthenticatedPainelGarantiasRoute: typeof AuthenticatedPainelGarantiasRouteWithChildren
   AuthenticatedPainelOrcamentosRoute: typeof AuthenticatedPainelOrcamentosRoute
   AuthenticatedPainelVeiculosRoute: typeof AuthenticatedPainelVeiculosRoute
   AuthenticatedPainelIndexRoute: typeof AuthenticatedPainelIndexRoute
@@ -515,10 +517,10 @@ interface AuthenticatedPainelRouteChildren {
 const AuthenticatedPainelRouteChildren: AuthenticatedPainelRouteChildren = {
   AuthenticatedPainelAgendamentosRoute: AuthenticatedPainelAgendamentosRoute,
   AuthenticatedPainelClientesRoute: AuthenticatedPainelClientesRoute,
+  AuthenticatedPainelCobrancasRoute: AuthenticatedPainelCobrancasRoute,
+  AuthenticatedPainelFinanceiroRoute: AuthenticatedPainelFinanceiroRoute,
   AuthenticatedPainelGarantiasRoute:
     AuthenticatedPainelGarantiasRouteWithChildren,
-  AuthenticatedPainelFinanceiroRoute: AuthenticatedPainelFinanceiroRoute,
-  AuthenticatedPainelCobrancasRoute: AuthenticatedPainelCobrancasRoute,
   AuthenticatedPainelOrcamentosRoute: AuthenticatedPainelOrcamentosRoute,
   AuthenticatedPainelVeiculosRoute: AuthenticatedPainelVeiculosRoute,
   AuthenticatedPainelIndexRoute: AuthenticatedPainelIndexRoute,
