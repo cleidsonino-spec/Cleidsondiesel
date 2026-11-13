@@ -59,13 +59,18 @@ function InspectionReportsPage() {
     queryKey: ["inspection-reports", "management"],
     refetchInterval: 15000,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("service_order_inspection_reports")
-        .select("id,service_order_id,diagnosis,executed_parts,rejected_items,inspection_observations,status,submitted_at,reviewed_at,created_at,updated_at,service_orders(id,number,customer_name,vehicle,plate,status)")
-        .order("updated_at", { ascending: false })
-        .limit(500);
-      if (error) throw error;
-      return (data ?? []) as ReportRow[];
+      const pageSize = 500;
+      const all: ReportRow[] = [];
+      for (let offset = 0; ; offset += pageSize) {
+        const { data, error } = await (supabase as any)
+          .from("service_order_inspection_reports")
+          .select("id,service_order_id,diagnosis,executed_parts,rejected_items,inspection_observations,status,submitted_at,reviewed_at,created_at,updated_at,service_orders(id,number,customer_name,vehicle,plate,status)")
+          .order("updated_at", { ascending: false })
+          .range(offset, offset + pageSize - 1);
+        if (error) throw error;
+        all.push(...((data ?? []) as ReportRow[]));
+        if (!data || data.length < pageSize) return all;
+      }
     },
   });
 
