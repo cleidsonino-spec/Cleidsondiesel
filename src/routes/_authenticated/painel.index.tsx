@@ -59,7 +59,7 @@ function PainelIndex() {
   const { data: orders } = useSuspenseQuery(ordersQuery());
   const { data: appointments } = useSuspenseQuery(appointmentsQuery());
   const { data: warranties } = useSuspenseQuery(warrantiesQuery());
-  const { data: financialRows = [] } = useQuery<FinancialOrderStatus[]>({
+  const { data: financialRows = [], isError: financialError, isLoading: financialLoading } = useQuery<FinancialOrderStatus[]>({
     queryKey: ["financial-overview"],
     enabled: isAdmin,
     refetchInterval: 15000,
@@ -217,18 +217,18 @@ function PainelIndex() {
               const orderBudget = orderTotal(o.parts_value, o.labor_value);
               const received = Number(finance?.received ?? 0);
               const pending = Number(finance?.balance ?? orderBudget);
-              const financeLabel = orderBudget <= 0 ? "Sem orçamento" : pending <= 0 ? "Quitada" : received > 0 ? "Parcialmente paga" : "Em aberto";
+              const financeLabel = financialError ? "Indisponível" : financialLoading ? "Carregando..." : orderBudget <= 0 ? "Sem orçamento" : pending <= 0 ? "Quitada" : received > 0 ? "Parcialmente paga" : "Em aberto";
               return <Link key={o.id} to="/painel/ordens/$id" params={{ id: o.id }} className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1 px-4 py-4 transition-colors hover:bg-secondary md:grid-cols-[90px_140px_1fr_auto_auto]">
                 <span className="font-display text-sm text-muted-foreground">#{o.number}</span>
                 <span className="plate text-lg">{formatPlate(o.plate)}</span>
                 <span className="col-span-2 min-w-0 md:col-span-1"><span className="block truncate font-medium">{o.customer_name}</span><span className="block truncate text-sm text-muted-foreground">{o.vehicle} · {o.complaint}</span></span>
                 <span className="text-sm text-muted-foreground">
                   {formatDateBR(o.entry_date)} · {formatBRL(orderBudget)}
-                  {isAdmin && <span className="mt-1 block text-xs">Financeiro: {financeLabel} · Recebido {formatBRL(received)} · Pendente {formatBRL(pending)}</span>}
+                  {isAdmin && <span className="mt-1 block text-xs">Financeiro: {financeLabel}{!financialError && !financialLoading && ` · Recebido ${formatBRL(received)} · Pendente ${formatBRL(pending)}`}</span>}
                 </span>
                 <span className="flex flex-wrap justify-self-end gap-1">
                   <StatusBadge tone={info.tone} label={info.label} />
-                  {isAdmin && orderBudget > 0 && <span className={cn("inline-flex items-center rounded-full px-2 py-1 text-xs font-medium", pending <= 0 ? "bg-success/10 text-success" : received > 0 ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground")}>{financeLabel}</span>}
+                  {isAdmin && !financialError && !financialLoading && orderBudget > 0 && <span className={cn("inline-flex items-center rounded-full px-2 py-1 text-xs font-medium", pending <= 0 ? "bg-success/10 text-success" : received > 0 ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground")}>{financeLabel}</span>}
                 </span>
               </Link>;
             })}
