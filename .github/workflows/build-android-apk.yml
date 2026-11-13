@@ -110,8 +110,18 @@ jobs:
               android + "pathPrefix": "/auth"
           })
 
+          legacy = ET.SubElement(target, "intent-filter")
+          ET.SubElement(legacy, "action", {android + "name": "android.intent.action.VIEW"})
+          ET.SubElement(legacy, "category", {android + "name": "android.intent.category.DEFAULT"})
+          ET.SubElement(legacy, "category", {android + "name": "android.intent.category.BROWSABLE"})
+          ET.SubElement(legacy, "data", {
+              android + "scheme": "br.com.cleidsondiesel.painel",
+              android + "host": "auth",
+              android + "path": "/callback"
+          })
+
           manifest.write_bytes(ET.tostring(root, encoding="utf-8", xml_declaration=True))
-          print("App Link HTTPS /auth aplicado à atividade MAIN/LAUNCHER")
+          print("App Links HTTPS /auth e esquema legado /auth/callback aplicados")
           PY
 
 
