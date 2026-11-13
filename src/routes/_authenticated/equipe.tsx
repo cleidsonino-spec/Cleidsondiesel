@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { InspectionReportEditor } from "@/components/painel/inspection-report-editor";
 import { Input } from "@/components/ui/input";
+import { startStaffPushNotifications, unregisterAdminPushDevice } from "@/lib/push-notifications";
 
 type Role = "secretaria" | "mecanico";
 
@@ -67,6 +68,16 @@ function StaffDashboard() {
   }
 
   useEffect(() => {
+    let cancelled = false;
+    let stop: (() => void) | undefined;
+    void startStaffPushNotifications().then((cleanup) => {
+      if (cancelled) cleanup();
+      else stop = cleanup;
+    }).catch(() => console.error("[Push] Falha ao iniciar notificações da equipe."));
+    return () => { cancelled = true; stop?.(); };
+  }, []);
+
+  useEffect(() => {
     void load();
     const channel = supabase.channel("staff-live-" + user.id)
       .on("postgres_changes", { event: "*", schema: "public", table: staffRole === "mecanico" ? "service_order_assignments" : "appointments" }, () => {
@@ -79,6 +90,13 @@ function StaffDashboard() {
       }).subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, [user.id, staffRole]);
+
+  useEffect(() => {
+    if (staffRole !== "mecanico" || loading) return;
+    const orderId = new URLSearchParams(window.location.search).get("os");
+    if (!orderId) return;
+    document.getElementById("service-order-" + orderId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [items, loading, staffRole]);
 
   async function enableNotifications() {
     if (!("Notification" in window)) { setNotice("Este navegador não oferece notificações."); return; }
@@ -112,6 +130,7 @@ function StaffDashboard() {
   }
 
   async function signOut() {
+    await unregisterAdminPushDevice();
     await supabase.auth.signOut();
     navigate({ to: "/auth" });
   }
@@ -134,7 +153,7 @@ function StaffDashboard() {
       <div className="space-y-3">{items.map((item) => {
         const order = item.service_orders;
         const id = staffRole === "mecanico" ? item.service_order_id : item.id;
-        return <article key={item.id} className="space-y-3 rounded-lg border bg-card p-4">
+        return <article id={staffRole === "mecanico" ? "service-order-" + id : undefined} key={item.id} className="space-y-3 rounded-lg border bg-card p-4">
           {staffRole === "mecanico" ? <>
             <div className="flex flex-wrap justify-between gap-2"><h3 className="font-semibold">OS nº {order?.number ?? "—"} · {order?.vehicle ?? "Veículo"}</h3><span className="text-sm font-medium text-primary">{({ recebido: "Aguardando diagnóstico", em_analise: "Em diagnóstico", aguardando_aprovacao: "Aguardando orçamento/aprovação", em_servico: "Em serviço", pronto: "Serviço concluído", entregue: "Entregue", cancelado: "Cancelado" } as Record<string,string>)[order?.status] ?? order?.status ?? "—"}</span></div>
             <p className="text-sm">Placa: {order?.plate ?? "—"} · Prazo: {order?.due_date ?? "Não informado"}</p>
