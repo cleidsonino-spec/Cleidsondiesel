@@ -51,8 +51,18 @@ export function appointmentStatusInfo(s: AppointmentStatus) {
   return APPOINTMENT_STATUSES.find((x) => x.value === s) ?? APPOINTMENT_STATUSES[0]!;
 }
 
-export function orderTotal(parts: number | string | null, labor: number | string | null): number {
-  return Number(parts ?? 0) + Number(labor ?? 0);
+export function orderSubtotal(parts: number | string | null, labor: number | string | null): number {
+  return Math.round((Number(parts ?? 0) + Number(labor ?? 0)) * 100) / 100;
+}
+
+export function orderDiscountAmount(parts: number | string | null, labor: number | string | null, discountPercent: number | string | null = 0): number {
+  const subtotal = orderSubtotal(parts, labor);
+  const percent = Math.min(4, Math.max(0, Number(discountPercent ?? 0)));
+  return Math.round(subtotal * percent) / 100;
+}
+
+export function orderTotal(parts: number | string | null, labor: number | string | null, discountPercent: number | string | null = 0): number {
+  return Math.max(0, Math.round((orderSubtotal(parts, labor) - orderDiscountAmount(parts, labor, discountPercent)) * 100) / 100);
 }
 
 export function formatBRL(v: number): string {
