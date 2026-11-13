@@ -168,7 +168,6 @@ export interface FileRoutesByFullPath {
   '/painel/clientes': typeof AuthenticatedPainelClientesRoute
   '/painel/garantias': typeof AuthenticatedPainelGarantiasRouteWithChildren
   '/painel/financeiro': typeof AuthenticatedPainelFinanceiroRoute
-  '/painel/financeiro': typeof AuthenticatedPainelFinanceiroRoute
   '/painel/orcamentos': typeof AuthenticatedPainelOrcamentosRoute
   '/painel/veiculos': typeof AuthenticatedPainelVeiculosRoute
   '/painel/': typeof AuthenticatedPainelIndexRoute
@@ -238,7 +237,6 @@ export interface FileRouteTypes {
     | '/painel/agendamentos'
     | '/painel/clientes'
     | '/painel/garantias'
-    | '/painel/financeiro'
     | '/painel/financeiro'
     | '/painel/orcamentos'
     | '/painel/veiculos'
