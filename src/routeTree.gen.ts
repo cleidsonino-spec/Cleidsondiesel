@@ -23,6 +23,7 @@ import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
 import { Route as AuthenticatedPainelIndexRouteImport } from './routes/_authenticated/painel.index'
 import { Route as AuthenticatedPainelAgendamentosRouteImport } from './routes/_authenticated/painel.agendamentos'
 import { Route as AuthenticatedPainelClientesRouteImport } from './routes/_authenticated/painel.clientes'
+import { Route as AuthenticatedPainelFuncionariosRouteImport } from './routes/_authenticated/painel.funcionarios'
 import { Route as AuthenticatedPainelCobrancasRouteImport } from './routes/_authenticated/painel.cobrancas'
 import { Route as AuthenticatedPainelFinanceiroRouteImport } from './routes/_authenticated/painel.financeiro'
 import { Route as AuthenticatedPainelGarantiasRouteImport } from './routes/_authenticated/painel.garantias'
@@ -106,6 +107,11 @@ const AuthenticatedPainelClientesRoute =
     path: '/clientes',
     getParentRoute: () => AuthenticatedPainelRoute,
   } as any)
+const AuthenticatedPainelFuncionariosRoute = AuthenticatedPainelFuncionariosRouteImport.update({
+  id: '/funcionarios',
+  path: '/funcionarios',
+  getParentRoute: () => AuthenticatedPainelRoute,
+} as any)
 const AuthenticatedPainelCobrancasRoute =
   AuthenticatedPainelCobrancasRouteImport.update({
     id: '/cobrancas',
@@ -174,6 +180,8 @@ export interface FileRoutesByFullPath {
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/painel/clientes': typeof AuthenticatedPainelClientesRoute
+  '/painel/funcionarios': typeof AuthenticatedPainelFuncionariosRoute
+  '/painel/funcionarios': typeof AuthenticatedPainelFuncionariosRoute
   '/painel/cobrancas': typeof AuthenticatedPainelCobrancasRoute
   '/painel/financeiro': typeof AuthenticatedPainelFinanceiroRoute
   '/painel/garantias': typeof AuthenticatedPainelGarantiasRouteWithChildren
@@ -222,6 +230,7 @@ export interface FileRoutesById {
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/_authenticated/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/_authenticated/painel/clientes': typeof AuthenticatedPainelClientesRoute
+  '/_authenticated/painel/funcionarios': typeof AuthenticatedPainelFuncionariosRoute
   '/_authenticated/painel/cobrancas': typeof AuthenticatedPainelCobrancasRoute
   '/_authenticated/painel/financeiro': typeof AuthenticatedPainelFinanceiroRoute
   '/_authenticated/painel/garantias': typeof AuthenticatedPainelGarantiasRouteWithChildren
@@ -248,6 +257,8 @@ export interface FileRouteTypes {
     | '/orcamento/$token'
     | '/painel/agendamentos'
     | '/painel/clientes'
+    | '/painel/funcionarios'
+    | '/painel/funcionarios'
     | '/painel/cobrancas'
     | '/painel/financeiro'
     | '/painel/garantias'
@@ -295,6 +306,7 @@ export interface FileRouteTypes {
     | '/orcamento/$token'
     | '/_authenticated/painel/agendamentos'
     | '/_authenticated/painel/clientes'
+    | '/_authenticated/painel/funcionarios'
     | '/_authenticated/painel/cobrancas'
     | '/_authenticated/painel/financeiro'
     | '/_authenticated/painel/garantias'
@@ -411,6 +423,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPainelAgendamentosRouteImport
       parentRoute: typeof AuthenticatedPainelRoute
     }
+    '/_authenticated/painel/funcionarios': {
+      id: '/_authenticated/painel/funcionarios'
+      path: '/funcionarios'
+      fullPath: '/painel/funcionarios'
+      preLoaderRoute: typeof AuthenticatedPainelFuncionariosRouteImport
+      parentRoute: typeof AuthenticatedPainelRoute
+    }
     '/_authenticated/painel/clientes': {
       id: '/_authenticated/painel/clientes'
       path: '/clientes'
@@ -504,6 +523,7 @@ const AuthenticatedPainelGarantiasRouteWithChildren =
 interface AuthenticatedPainelRouteChildren {
   AuthenticatedPainelAgendamentosRoute: typeof AuthenticatedPainelAgendamentosRoute
   AuthenticatedPainelClientesRoute: typeof AuthenticatedPainelClientesRoute
+  AuthenticatedPainelFuncionariosRoute: typeof AuthenticatedPainelFuncionariosRoute
   AuthenticatedPainelCobrancasRoute: typeof AuthenticatedPainelCobrancasRoute
   AuthenticatedPainelFinanceiroRoute: typeof AuthenticatedPainelFinanceiroRoute
   AuthenticatedPainelGarantiasRoute: typeof AuthenticatedPainelGarantiasRouteWithChildren
@@ -517,6 +537,7 @@ interface AuthenticatedPainelRouteChildren {
 const AuthenticatedPainelRouteChildren: AuthenticatedPainelRouteChildren = {
   AuthenticatedPainelAgendamentosRoute: AuthenticatedPainelAgendamentosRoute,
   AuthenticatedPainelClientesRoute: AuthenticatedPainelClientesRoute,
+  AuthenticatedPainelFuncionariosRoute: AuthenticatedPainelFuncionariosRoute,
   AuthenticatedPainelCobrancasRoute: AuthenticatedPainelCobrancasRoute,
   AuthenticatedPainelFinanceiroRoute: AuthenticatedPainelFinanceiroRoute,
   AuthenticatedPainelGarantiasRoute:
