@@ -198,7 +198,7 @@ function PainelIndex() {
           <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por placa ou nome do cliente" className="h-12 pl-12" aria-label="Buscar por placa ou cliente" />
         </div>
-        {!q && <div className="flex gap-2 overflow-x-auto pb-1">
+        {!q && <div className="flex flex-wrap gap-2">
           {([{ v: "abertas", l: "Abertas" }, { v: "todas", l: "Todas" }, ...ORDER_STATUSES.map((s) => ({ v: s.value, l: s.label }))] as { v: Filter; l: string }[]).map((f) => (
             <button key={f.v} onClick={() => setFilter(f.v)} className={cn("shrink-0 rounded-sm border px-3 py-1.5 text-sm transition-colors", filter === f.v ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:text-foreground")}>{f.l}</button>
           ))}
