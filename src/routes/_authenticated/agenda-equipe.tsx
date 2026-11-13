@@ -92,12 +92,11 @@ function TeamAgendaPage() {
   }), [rows, todayKey]);
 
   function renderAppointment(row: AgendaRow) {
-    const completed = row.order_status === "pronto" || row.order_status === "entregue";
     return <article key={row.appointment_id} className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-[130px_1fr_auto] sm:items-center">
       <div><p className="flex items-center gap-2 font-semibold text-primary"><Clock3 className="size-4"/>{String(row.scheduled_time).slice(0, 5)}</p><p className="text-xs capitalize text-muted-foreground">{formatDate(row.scheduled_date)}</p></div>
       <div className="min-w-0 space-y-1">
         <p className="font-semibold">{row.customer_name} · {row.vehicle || "Veículo não informado"}</p>
-        <p className="text-sm text-muted-foreground">Placa: {row.plate || "—"} · {row.service_type || "Serviço não informado"}</p>
+        {agendaRole !== "mecanico" && <p className="text-sm text-muted-foreground">Placa: {row.plate || "—"} · {row.service_type || "Serviço não informado"}</p>}
         {row.order_number && <p className="text-xs text-muted-foreground">OS nº {row.order_number} · {row.order_status || "Sem status"}</p>}
         {row.notes && <p className="text-xs text-muted-foreground">{row.notes}</p>}
         {row.mechanic_name && <p className="flex items-center gap-1 text-sm font-medium"><Wrench className="size-4"/>Mecânico: {row.mechanic_name}</p>}
