@@ -232,26 +232,10 @@ function PrintSheet({ order: o }: { order: Order }) {
           </p>
         ))}
       </div>
-      {(
-        [
-          ["Reclamação", o.complaint],
-          ["Diagnóstico", o.diagnosis],
-          ["Peças e serviços", o.parts],
-        ] as [string, string | null][]
-      ).map(([k, v]) => (
-        <div key={k} className="mt-4">
-          <p className="font-bold">{k}</p>
-          <p className="whitespace-pre-wrap">{v || "—"}</p>
-        </div>
-      ))}
-      {(() => {
-        const inspection = readInspectionData(o.inspection_checklist);
-        return inspection.failedItems || inspection.observations ? <div className="mt-4 space-y-2">
-          <p className="font-bold">Inspeção</p>
-          {inspection.failedItems && <div><p className="font-semibold">Itens reprovados</p><p className="whitespace-pre-wrap">{inspection.failedItems}</p></div>}
-          {inspection.observations && <div><p className="font-semibold">Observações da inspeção</p><p className="whitespace-pre-wrap">{inspection.observations}</p></div>}
-        </div> : null;
-      })()}
+      <div className="mt-4">
+        <p className="font-bold">Reclamação</p>
+        <p className="whitespace-pre-wrap">{o.complaint || "—"}</p>
+      </div>
       {readPartItems(o.part_items).length > 0 && <table className="mt-4 w-full text-left">
         <thead><tr className="border-b border-foreground"><th className="py-2">Peça</th><th className="py-2 text-right">Qtd.</th><th className="py-2 text-right">Unitário</th><th className="py-2 text-right">Total</th></tr></thead>
         <tbody>{readPartItems(o.part_items).map((item, index) => <tr key={index}><td className="py-1">{item.description}</td><td className="text-right">{item.quantity}</td><td className="text-right">{formatBRL(item.unit_value)}</td><td className="text-right">{formatBRL(item.value)}</td></tr>)}</tbody>
