@@ -5,14 +5,14 @@ import { Button } from "@/components/ui/button";
 import { generateInspectionDiagnosis } from "@/lib/inspection-diagnosis.functions";
 import { diagnosisText, inspectionDiagnosisInput, type InspectionDiagnosis } from "@/lib/inspection-diagnosis";
 
-export function InspectionDiagnosisAction({ vehicle, year, complaint, failedItems, observations, onApply }: {
-  vehicle: string; year: string; complaint: string; failedItems: string; observations: string; onApply: (text: string) => void;
+export function InspectionDiagnosisAction({ orderId, vehicle, year, complaint, failedItems, observations, onApply }: {
+  orderId: string; vehicle: string; year: string; complaint: string; failedItems: string; observations: string; onApply: (text: string) => void;
 }) {
   const generate = useServerFn(generateInspectionDiagnosis);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggestion, setSuggestion] = useState<{ fingerprint: string; result: InspectionDiagnosis } | null>(null);
-  const input = { vehicle, vehicle_year: year, complaint, failed_items: failedItems, observations };
+  const input = { order_id: orderId, vehicle, vehicle_year: year, complaint, failed_items: failedItems, observations };
   const fingerprint = JSON.stringify(input);
   const stale = suggestion?.fingerprint !== fingerprint;
 
