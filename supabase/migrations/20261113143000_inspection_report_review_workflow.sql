@@ -80,6 +80,14 @@ BEGIN
     RETURN NEW;
   END IF;
 
+  -- A identidade do relatório e sua OS de origem não podem ser trocadas após a criação.
+  IF NEW.id <> OLD.id
+    OR NEW.service_order_id <> OLD.service_order_id
+    OR NEW.created_by IS DISTINCT FROM OLD.created_by
+    OR NEW.created_at <> OLD.created_at THEN
+    RAISE EXCEPTION 'A identificação e a ordem de serviço do relatório são imutáveis';
+  END IF;
+
   -- Depois de aprovado, o conteúdo e o estado ficam imutáveis.
   -- Uma correção posterior exige um fluxo explícito de reabertura, ainda não habilitado.
   IF OLD.status = 'approved' THEN
