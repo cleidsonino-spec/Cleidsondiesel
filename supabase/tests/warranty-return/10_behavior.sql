@@ -51,6 +51,13 @@ BEGIN
 END $$;
 SELECT public.register_warranty_return('20000000-0000-4000-8000-000000000001','Cliente relata falha após entrega',(SELECT return_id FROM test_ids),'in_review','Falha confirmada','Em análise');
 SELECT public.register_warranty_return('20000000-0000-4000-8000-000000000001','Cliente relata falha após entrega',(SELECT return_id FROM test_ids),'resolved','Falha confirmada','Componente substituído');
+DO $
+DECLARE n integer; rid uuid;
+BEGIN
+ SELECT return_id INTO rid FROM test_ids;
+ SELECT count(*) INTO n FROM public.warranty_return_events WHERE warranty_return_id=rid AND event_type='updated';
+ IF n <> 2 THEN RAISE EXCEPTION 'FAIL: expected two update audit events, got %', n; END IF;
+END $;
 UPDATE test_ids SET open_return_id = public.register_warranty_return('20000000-0000-4000-8000-000000000001','Retorno sintético para abertura de OS');
 UPDATE test_ids SET return_order_id=public.open_warranty_return_service_order(open_return_id);
 DO $$
@@ -75,12 +82,26 @@ BEGIN
  SELECT * INTO c FROM public.get_warranty_return_context(oid);
  IF c.return_id IS NULL OR c.original_order_number IS NULL THEN RAISE EXCEPTION 'FAIL: assigned mechanic could not read context'; END IF;
  IF to_jsonb(c)::text ~* '(parts_value|labor_value|order_total|financial_total)' THEN RAISE EXCEPTION 'FAIL: financial data leaked in context'; END IF;
-END $$;
+ IF NOT EXISTS (SELECT 1 FROM public.warranty_returns WHERE return_service_order_id=oid) THEN RAISE EXCEPTION 'FAIL: assigned mechanic cannot read assigned return row'; END IF;
+ BEGIN
+  PERFORM public.open_warranty_return_service_order((SELECT open_return_id FROM test_ids));
+  RAISE EXCEPTION 'FAIL: mechanic opened return OS';
+ EXCEPTION WHEN raise_exception THEN
+  IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+ END;
+ BEGIN
+  PERFORM public.register_warranty_return('20000000-0000-4000-8000-000000000001','Tentativa de mecânico');
+  RAISE EXCEPTION 'FAIL: mechanic registered warranty return';
+ EXCEPTION WHEN raise_exception THEN
+  IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
+ END;
+END $;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000004',true);
 DO $$
 DECLARE oid uuid;
 BEGIN
  SELECT return_order_id INTO oid FROM test_ids;
+ IF EXISTS (SELECT 1 FROM public.warranty_returns WHERE return_service_order_id=oid) THEN RAISE EXCEPTION 'FAIL: unassigned mechanic read return row'; END IF;
  BEGIN
   PERFORM * FROM public.get_warranty_return_context(oid);
   RAISE EXCEPTION 'FAIL: unassigned mechanic read context';
