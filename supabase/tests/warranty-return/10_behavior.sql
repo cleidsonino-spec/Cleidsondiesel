@@ -99,10 +99,14 @@ INSERT INTO public.technical_service_logs(service_order_id,procedure,description
 VALUES ('10000000-0000-4000-8000-000000000001','Teste','Inspeção sintética','OK','Sem dados reais');
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000003',true);
-DO $$
-DECLARE c record; oid uuid;
+DO $
+DECLARE c record; oid uuid; n integer;
 BEGIN
  SELECT return_order_id INTO oid FROM test_ids;
+ -- Mesma consulta usada pela fila: somente atribuições ativas do usuário logado.
+ SELECT count(*) INTO n FROM public.service_order_assignments
+ WHERE service_order_id=oid AND mechanic_user_id=auth.uid() AND active=true;
+ IF n <> 1 THEN RAISE EXCEPTION 'FAIL: return OS is not visible in assigned mechanic queue'; END IF;
  SELECT * INTO c FROM public.get_warranty_return_context(oid);
  IF c.return_id IS NULL OR c.original_order_number IS NULL THEN RAISE EXCEPTION 'FAIL: assigned mechanic could not read context'; END IF;
  IF to_jsonb(c)::text ~* '(parts_value|labor_value|order_total|financial_total)' THEN RAISE EXCEPTION 'FAIL: financial data leaked in context'; END IF;
@@ -121,10 +125,13 @@ BEGIN
  END;
 END $$;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000004',true);
-DO $$
-DECLARE oid uuid;
+DO $
+DECLARE oid uuid; n integer;
 BEGIN
  SELECT return_order_id INTO oid FROM test_ids;
+ SELECT count(*) INTO n FROM public.service_order_assignments
+ WHERE service_order_id=oid AND active=true;
+ IF n <> 0 THEN RAISE EXCEPTION 'FAIL: unassigned mechanic sees return in assigned queue'; END IF;
  IF EXISTS (SELECT 1 FROM public.warranty_returns WHERE return_service_order_id=oid) THEN RAISE EXCEPTION 'FAIL: unassigned mechanic read return row'; END IF;
  BEGIN
   PERFORM * FROM public.get_warranty_return_context(oid);
