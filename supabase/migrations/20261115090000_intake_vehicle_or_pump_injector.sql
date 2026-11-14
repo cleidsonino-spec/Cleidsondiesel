@@ -5,6 +5,11 @@ ALTER TABLE public.vehicle_intake_records
   ADD COLUMN IF NOT EXISTS arrived_on_tow_truck boolean,
   ADD COLUMN IF NOT EXISTS delivered_items jsonb NOT NULL DEFAULT '[]'::jsonb;
 
+-- Compatibilidade: fichas antigas representam veículos e não tinham a pergunta do reboque.
+UPDATE public.vehicle_intake_records
+SET arrived_on_tow_truck = false
+WHERE intake_type = 'vehicle' AND arrived_on_tow_truck IS NULL;
+
 ALTER TABLE public.vehicle_intake_records
   ALTER COLUMN plate DROP NOT NULL;
 
@@ -112,3 +117,45 @@ COMMENT ON COLUMN public.vehicle_intake_records.arrived_on_tow_truck IS
   'Informa se o veículo chegou no reboque; nulo para bomba/bicos.';
 COMMENT ON COLUMN public.vehicle_intake_records.delivered_items IS
   'Itens entregues em mãos, cada objeto contendo description e quantity; obrigatório para pump_injector.';
+
+
+-- Valida a estrutura dos itens já no recebimento, não apenas na abertura da OS.
+CREATE OR REPLACE FUNCTION public.validate_vehicle_intake_record()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+DECLARE
+  v_item jsonb;
+BEGIN
+  IF NEW.intake_type = 'pump_injector' THEN
+    IF jsonb_typeof(NEW.delivered_items) <> 'array'
+       OR jsonb_array_length(NEW.delivered_items) = 0 THEN
+      RAISE EXCEPTION 'Informe ao menos um item entregue';
+    END IF;
+    FOR v_item IN SELECT value FROM jsonb_array_elements(NEW.delivered_items)
+    LOOP
+      IF length(trim(coalesce(v_item->>'description',''))) < 2
+         OR coalesce(v_item->>'quantity','') !~ '^[1-9][0-9]*$' THEN
+        RAISE EXCEPTION 'Cada item entregue precisa de descrição e quantidade inteira maior que zero';
+      END IF;
+    END LOOP;
+  ELSIF NEW.intake_type = 'vehicle' THEN
+    IF NEW.plate IS NULL OR length(trim(NEW.plate)) < 5
+       OR NEW.arrived_on_tow_truck IS NULL THEN
+      RAISE EXCEPTION 'Recebimento de veículo exige placa e resposta sobre reboque';
+    END IF;
+    IF jsonb_array_length(NEW.delivered_items) <> 0 THEN
+      RAISE EXCEPTION 'Itens entregues em mãos só se aplicam à modalidade bomba/bicos';
+    END IF;
+  ELSE
+    RAISE EXCEPTION 'Modalidade de recebimento inválida';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS vehicle_intake_validate_record ON public.vehicle_intake_records;
+CREATE TRIGGER vehicle_intake_validate_record
+  BEFORE INSERT OR UPDATE ON public.vehicle_intake_records
+  FOR EACH ROW EXECUTE FUNCTION public.validate_vehicle_intake_record();
