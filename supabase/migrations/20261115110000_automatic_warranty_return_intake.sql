@@ -55,6 +55,11 @@ BEGIN
   END IF;
 
   IF v_has_source_intake THEN
+    v_source_intake.plate := v_plate;
+    v_source_intake.intake_type := v_intake_type;
+    v_source_intake.arrived_on_tow_truck := v_arrived_on_tow_truck;
+    v_source_intake.delivered_items := v_delivered_items;
+
     INSERT INTO public.vehicle_intake_records (
       customer_name, vehicle, plate, received_at, received_by,
       received_by_name, notes, intake_type, arrived_on_tow_truck,
