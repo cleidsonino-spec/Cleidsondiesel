@@ -110,7 +110,7 @@ export async function createQuotePdf(o: Order, preparedBy = "", options: QuotePd
   text(`Validade: ${validDays} dias`, left + 4, y + 10, 7);
   y += 18;
   section("Dados do cliente", `${o.customer_name}\nTelefone: ${o.phone || "—"}`);
-  section("Veículo / equipamento", `${o.vehicle}${o.vehicle_year ? ` • ${o.vehicle_year}` : ""} • Placa: ${formatPlate(o.plate)}\nQuilometragem: ${o.mileage || "—"}`);
+  section("Veículo / equipamento", `${o.vehicle}${o.vehicle_year ? ` • ${o.vehicle_year}` : ""} • Placa: ${formatPlate(o.plate) || "Não se aplica"}\nQuilometragem: ${o.mileage || "—"}`);
   section("Prazos", `Entrada: ${formatDateBR(o.entry_date)} • Previsão de entrega: ${o.due_date ? formatDateBR(o.due_date) : "A combinar"}`);
   section("Serviço solicitado", o.complaint);
   if (preparedBy.trim()) section("Responsável pelo orçamento", preparedBy.trim());
