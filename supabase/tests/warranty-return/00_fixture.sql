@@ -58,6 +58,10 @@ CREATE TABLE public.service_order_assignments (
   assigned_at timestamptz NOT NULL DEFAULT now(),
   active boolean NOT NULL DEFAULT true
 );
+-- Regra real do banco: somente um mecânico ativo por OS.
+CREATE UNIQUE INDEX service_order_assignments_one_active_mechanic
+  ON public.service_order_assignments(service_order_id)
+  WHERE active;
 CREATE OR REPLACE FUNCTION public.is_mechanic_assigned(_order_id uuid, _user_id uuid DEFAULT auth.uid())
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
   SELECT EXISTS (SELECT 1 FROM public.service_order_assignments
