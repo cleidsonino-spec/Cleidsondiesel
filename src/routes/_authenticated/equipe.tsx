@@ -35,6 +35,7 @@ function StaffDashboard() {
   const { user, staffRole } = Route.useRouteContext();
   const navigate = useNavigate();
   const [items, setItems] = useState<any[]>([]);
+  const [orderView, setOrderView] = useState<"active" | "history">("active");
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("Ative as notificações do navegador para acompanhar atualizações.");
   const [drafts, setDrafts] = useState<Record<string,string>>({});
@@ -163,6 +164,14 @@ function StaffDashboard() {
     navigate({ to: "/auth" });
   }
 
+  const visibleItems = staffRole === "mecanico"
+    ? items.filter((item) => {
+        const status = item.service_orders?.status;
+        const isHistorical = status === "entregue" || status === "cancelado";
+        return orderView === "history" ? isHistorical : !isHistorical;
+      })
+    : items;
+
   return <main className="mx-auto min-h-screen max-w-5xl space-y-6 px-4 py-6">
     <header className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
       <div><p className="text-sm text-muted-foreground">Cleidson Diesel · Área da equipe</p>
@@ -177,8 +186,12 @@ function StaffDashboard() {
     <div className="rounded-lg border bg-card p-4"><a href="/agenda-equipe" className="flex items-center gap-2 font-medium text-primary hover:underline"><CalendarDays className="size-5"/>Abrir agenda da equipe</a><p className="mt-1 text-sm text-muted-foreground">Consulte horários agendados e o histórico de atendimentos.</p></div>
     <section className="space-y-3">
       <div className="flex items-center gap-2">{staffRole === "mecanico" ? <Wrench/> : <CalendarDays/>}<h2 className="text-xl font-semibold">{staffRole === "mecanico" ? "Minhas ordens de serviço" : "Agenda de atendimentos"}</h2></div>
-      {loading ? <p className="rounded border p-5 text-muted-foreground">Carregando…</p> : items.length === 0 ? <p className="rounded border border-dashed p-8 text-center text-muted-foreground">{staffRole === "mecanico" ? "Nenhuma ordem atribuída no momento." : "Nenhum atendimento agendado."}</p> :
-      <div className="space-y-3">{items.map((item) => {
+      {staffRole === "mecanico" && !loading && <div className="flex flex-wrap gap-2" role="tablist" aria-label="Ordens do mecânico">
+        <Button type="button" variant={orderView === "active" ? "default" : "outline"} role="tab" aria-selected={orderView === "active"} onClick={() => setOrderView("active")}>Em andamento ({items.filter((item) => !["entregue", "cancelado"].includes(item.service_orders?.status)).length})</Button>
+        <Button type="button" variant={orderView === "history" ? "default" : "outline"} role="tab" aria-selected={orderView === "history"} onClick={() => setOrderView("history")}>Histórico ({items.filter((item) => ["entregue", "cancelado"].includes(item.service_orders?.status)).length})</Button>
+      </div>}
+      {loading ? <p className="rounded border p-5 text-muted-foreground">Carregando…</p> : visibleItems.length === 0 ? <p className="rounded border border-dashed p-8 text-center text-muted-foreground">{staffRole === "mecanico" ? (orderView === "history" ? "Nenhuma ordem entregue ou cancelada no histórico." : "Nenhuma ordem em andamento atribuída no momento.") : "Nenhum atendimento agendado."}</p> :
+      <div className="space-y-3">{visibleItems.map((item) => {
         const order = item.service_orders;
         const id = staffRole === "mecanico" ? item.service_order_id : item.id;
         return <article id={staffRole === "mecanico" ? "service-order-" + id : undefined} key={item.id} className="space-y-3 rounded-lg border bg-card p-4">
@@ -200,9 +213,11 @@ function StaffDashboard() {
             <p className="text-sm"><strong>Cliente:</strong> {order?.customer_name ?? "—"}</p>
             <p className="text-sm"><strong>Reclamação:</strong> {order?.complaint ?? "—"}</p>
             {order?.diagnosis && <p className="text-sm"><strong>Diagnóstico:</strong> {order.diagnosis}</p>}
+            {!["entregue", "cancelado"].includes(order?.status) && <>
             <>{order?.status === "recebido" && <Button onClick={() => void startDiagnosis(id)}>Iniciar diagnóstico</Button>}{order?.status === "em_analise" && <div className="space-y-2"><label className="text-sm font-medium" htmlFor={"diagnosis-" + id}>Resultado do diagnóstico</label><textarea id={"diagnosis-" + id} value={diagnoses[id] ?? order?.diagnosis ?? ""} onChange={(e) => setDiagnoses((old) => ({ ...old, [id]: e.target.value }))} placeholder="Descreva os testes realizados, defeitos encontrados e reparos recomendados" className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /><div className="grid gap-3 rounded-md border-2 border-primary/30 bg-muted/30 p-4 sm:grid-cols-2"><fieldset className="space-y-2"><legend className="text-sm font-semibold">Necessita trocar os filtros de combustível?</legend><div className="flex gap-4">{[true, false].map((value) => <label key={String(value)} className="flex cursor-pointer items-center gap-2 rounded-md border bg-background px-4 py-2 text-sm"><input type="radio" name={"fuel-filter-" + id} checked={maintenanceChecks[id]?.fuelFilter === value} onChange={() => setMaintenanceChecks((old) => ({ ...old, [id]: { fuelFilter: value, systemCleaning: old[id]?.systemCleaning ?? null } }))} />{value ? "Sim" : "Não"}</label>)}</div></fieldset><fieldset className="space-y-2"><legend className="text-sm font-semibold">Necessita limpeza do sistema?</legend><div className="flex gap-4">{[true, false].map((value) => <label key={String(value)} className="flex cursor-pointer items-center gap-2 rounded-md border bg-background px-4 py-2 text-sm"><input type="radio" name={"system-cleaning-" + id} checked={maintenanceChecks[id]?.systemCleaning === value} onChange={() => setMaintenanceChecks((old) => ({ ...old, [id]: { fuelFilter: old[id]?.fuelFilter ?? null, systemCleaning: value } }))} />{value ? "Sim" : "Não"}</label>)}</div></fieldset></div><p className="text-xs text-muted-foreground">As respostas serão enviadas junto com o diagnóstico para a secretaria preparar o orçamento.</p><Button onClick={() => void completeDiagnosis(id)}>Concluir diagnóstico e enviar para orçamento</Button></div>}{order?.status === "aguardando_aprovacao" && <p className="rounded-md bg-muted p-3 text-sm">Diagnóstico concluído. Aguardando orçamento e aprovação do cliente.</p>}{order?.status === "em_servico" && <div className="space-y-2"><div className="flex flex-col gap-2 sm:flex-row"><Input value={drafts[id] ?? ""} onChange={(e) => setDrafts((old) => ({...old,[id]:e.target.value}))} placeholder="Descreva o andamento do serviço"/><Button onClick={() => void saveLog(id)}>Registrar andamento</Button></div><Button variant="outline" onClick={() => void changeStatus(id, "pronto")}>Concluir serviço</Button></div>}</>
             <div className="space-y-2 border-t pt-3"><h4 className="text-sm font-semibold">Histórico do serviço</h4>{(history[id] ?? []).length ? (history[id] ?? []).map((log: any) => <div key={log.id} className="rounded bg-muted/50 p-3 text-sm"><p className="font-medium">{log.procedure} · {log.result}</p><p>{log.description}</p>{log.observations && <p className="text-muted-foreground">{log.observations}</p>}<p className="mt-1 text-xs text-muted-foreground">{new Date(log.created_at).toLocaleString("pt-BR")}</p></div>) : <p className="text-xs text-muted-foreground">Nenhum andamento registrado ainda.</p>}</div>
             {order && <div className="border-t pt-3"><InspectionReportEditor order={{ id, number: order.number, customer_name: order.customer_name, phone: order.phone ?? null, vehicle: order.vehicle, vehicle_year: order.vehicle_year ?? null, plate: order.plate, mileage: order.mileage ?? null, entry_date: order.entry_date, complaint: order.complaint }} isAdmin={false} isSecretary={false} /></div>}
+            </>}
           </> : <>
             <div className="flex flex-wrap justify-between gap-2"><h3 className="font-semibold">{item.customer_name} · {item.vehicle}</h3><span className="text-sm text-muted-foreground">{item.status}</span></div>
             <p className="text-sm">{item.scheduled_date} às {String(item.scheduled_time).slice(0,5)} · {item.plate}</p>
