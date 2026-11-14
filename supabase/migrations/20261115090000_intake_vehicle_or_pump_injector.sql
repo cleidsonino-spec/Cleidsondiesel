@@ -83,12 +83,14 @@ BEGIN
     RAISE EXCEPTION 'Ficha de recebimento não encontrada';
   END IF;
 
-  IF lower(trim(v_intake.customer_name)) <> lower(trim(NEW.customer_name))
-     OR lower(trim(v_intake.vehicle)) <> lower(trim(NEW.vehicle)) THEN
-    RAISE EXCEPTION 'Cliente e veículo/equipamento da OS devem corresponder à ficha de recebimento';
+  IF lower(trim(v_intake.customer_name)) <> lower(trim(NEW.customer_name)) THEN
+    RAISE EXCEPTION 'O cliente da OS deve corresponder à ficha de recebimento';
   END IF;
 
   IF v_intake.intake_type = 'vehicle' THEN
+    IF lower(trim(v_intake.vehicle)) <> lower(trim(NEW.vehicle)) THEN
+      RAISE EXCEPTION 'O veículo da OS deve corresponder à ficha de recebimento';
+    END IF;
     IF NEW.plate IS NULL
        OR regexp_replace(upper(trim(v_intake.plate)), '[^A-Z0-9]', '', 'g')
           <> regexp_replace(upper(trim(NEW.plate)), '[^A-Z0-9]', '', 'g') THEN
