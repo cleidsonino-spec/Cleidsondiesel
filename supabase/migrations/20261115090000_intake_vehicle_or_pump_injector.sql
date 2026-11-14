@@ -26,8 +26,11 @@ ALTER TABLE public.vehicle_intake_records
       OR
       (intake_type = 'pump_injector' AND plate IS NULL
         AND arrived_on_tow_truck IS NULL
-        AND jsonb_typeof(delivered_items) = 'array'
-        AND jsonb_array_length(delivered_items) > 0)
+        AND CASE
+          WHEN jsonb_typeof(delivered_items) = 'array'
+            THEN jsonb_array_length(delivered_items) > 0
+          ELSE false
+        END)
     ),
   ADD CONSTRAINT vehicle_intake_records_delivered_items_array_check
     CHECK (jsonb_typeof(delivered_items) = 'array');
@@ -52,10 +55,13 @@ DECLARE
   v_intake public.vehicle_intake_records;
   v_item jsonb;
 BEGIN
-  IF TG_OP = 'UPDATE'
-     AND OLD.vehicle_intake_id IS NOT NULL
-     AND NEW.vehicle_intake_id IS DISTINCT FROM OLD.vehicle_intake_id THEN
-    RAISE EXCEPTION 'A ficha de recebimento vinculada à OS não pode ser alterada';
+  IF TG_OP = 'UPDATE' AND OLD.vehicle_intake_id IS NOT NULL THEN
+    IF NEW.vehicle_intake_id IS DISTINCT FROM OLD.vehicle_intake_id THEN
+      RAISE EXCEPTION 'A ficha de recebimento vinculada à OS não pode ser alterada';
+    END IF;
+    -- A ficha registra o estado do recebimento; edições posteriores da OS
+    -- não devem bloquear correções legítimas de cliente/equipamento/placa.
+    RETURN NEW;
   END IF;
 
   IF NEW.vehicle_intake_id IS NULL THEN
@@ -92,8 +98,10 @@ BEGIN
     IF NEW.plate IS NOT NULL AND trim(NEW.plate) <> '' THEN
       RAISE EXCEPTION 'OS de bomba/bicos não deve possuir placa de veículo';
     END IF;
-    IF jsonb_typeof(v_intake.delivered_items) <> 'array'
-       OR jsonb_array_length(v_intake.delivered_items) = 0 THEN
+    IF jsonb_typeof(v_intake.delivered_items) IS DISTINCT FROM 'array' THEN
+      RAISE EXCEPTION 'Informe os itens e as quantidades entregues na ficha';
+    END IF;
+    IF jsonb_array_length(v_intake.delivered_items) = 0 THEN
       RAISE EXCEPTION 'Informe os itens e as quantidades entregues na ficha';
     END IF;
     FOR v_item IN SELECT value FROM jsonb_array_elements(v_intake.delivered_items)
@@ -129,8 +137,10 @@ DECLARE
   v_item jsonb;
 BEGIN
   IF NEW.intake_type = 'pump_injector' THEN
-    IF jsonb_typeof(NEW.delivered_items) <> 'array'
-       OR jsonb_array_length(NEW.delivered_items) = 0 THEN
+    IF jsonb_typeof(NEW.delivered_items) IS DISTINCT FROM 'array' THEN
+      RAISE EXCEPTION 'Informe ao menos um item entregue';
+    END IF;
+    IF jsonb_array_length(NEW.delivered_items) = 0 THEN
       RAISE EXCEPTION 'Informe ao menos um item entregue';
     END IF;
     FOR v_item IN SELECT value FROM jsonb_array_elements(NEW.delivered_items)
