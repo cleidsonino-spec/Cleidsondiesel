@@ -17,6 +17,11 @@ VALUES
  ('10000000-0000-4000-8000-000000000001','entregue',now(),'00000000-0000-4000-8000-000000000001','Cliente sintético','Hilux teste','Revisão concluída'),
  ('10000000-0000-4000-8000-000000000002','em_servico',NULL,'00000000-0000-4000-8000-000000000001','Cliente sintético 2','Van teste','Falha de teste'),
  ('10000000-0000-4000-8000-000000000003','entregue',NULL,'00000000-0000-4000-8000-000000000001','Cliente sintético 3','Caminhão teste','Entrega sem timestamp');
+-- Mecânico atribuído à OS original deve herdar a OS de retorno.
+INSERT INTO public.service_order_assignments(service_order_id,mechanic_user_id,assigned_by,active)
+VALUES ('10000000-0000-4000-8000-000000000001',
+        '00000000-0000-4000-8000-000000000003',
+        '00000000-0000-4000-8000-000000000001',true);
 INSERT INTO public.warranties(id,service_order_id,duration_months,start_date,end_date,created_by)
 VALUES ('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001',3,CURRENT_DATE,CURRENT_DATE+90,'00000000-0000-4000-8000-000000000001');
 DO $$
@@ -68,19 +73,27 @@ BEGIN
 END $audit$;
 UPDATE test_ids SET open_return_id = public.register_warranty_return('20000000-0000-4000-8000-000000000001','Retorno sintético para abertura de OS');
 UPDATE test_ids SET return_order_id=public.open_warranty_return_service_order(open_return_id);
-DO $$
-DECLARE t test_ids%ROWTYPE; o public.service_orders;
+DO $
+DECLARE t test_ids%ROWTYPE; o public.service_orders; n integer;
 BEGIN
  SELECT * INTO t FROM test_ids;
  IF t.return_order_id <> public.open_warranty_return_service_order(t.open_return_id) THEN RAISE EXCEPTION 'FAIL: open operation is not idempotent'; END IF;
  SELECT * INTO o FROM public.service_orders WHERE id=t.return_order_id;
  IF o.status <> 'recebido' OR o.parts_value <> 0 OR o.labor_value <> 0 THEN RAISE EXCEPTION 'FAIL: return OS status or financial values invalid'; END IF;
  IF NOT EXISTS (SELECT 1 FROM public.warranty_returns WHERE id=t.open_return_id AND return_service_order_id=o.id) THEN RAISE EXCEPTION 'FAIL: return/order link missing'; END IF;
-END $$;
+ SELECT count(*) INTO n FROM public.service_order_assignments
+ WHERE service_order_id=o.id AND mechanic_user_id='00000000-0000-4000-8000-000000000003' AND active=true;
+ IF n <> 1 THEN RAISE EXCEPTION 'FAIL: original mechanic was not inherited exactly once'; END IF;
+ -- Simula retorno legado já aberto sem atribuição: chamada repetida deve reparar.
+ UPDATE public.service_order_assignments SET active=false
+ WHERE service_order_id=o.id AND mechanic_user_id='00000000-0000-4000-8000-000000000003' AND active=true;
+ PERFORM public.open_warranty_return_service_order(t.open_return_id);
+ SELECT count(*) INTO n FROM public.service_order_assignments
+ WHERE service_order_id=o.id AND mechanic_user_id='00000000-0000-4000-8000-000000000003' AND active=true;
+ IF n <> 1 THEN RAISE EXCEPTION 'FAIL: repeated open did not restore exactly one active assignment'; END IF;
+END $;
 INSERT INTO public.technical_service_logs(service_order_id,procedure,description,result,observations)
 VALUES ('10000000-0000-4000-8000-000000000001','Teste','Inspeção sintética','OK','Sem dados reais');
-INSERT INTO public.service_order_assignments(service_order_id,mechanic_user_id)
-SELECT return_order_id,'00000000-0000-4000-8000-000000000003' FROM test_ids;
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000003',true);
 DO $$
