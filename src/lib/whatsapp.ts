@@ -33,7 +33,7 @@ export function appointmentShopLink(a: { name: string; date: string; time: strin
 export function approvalShopLink(o: { number: number; plate: string | null; vehicle: string }, name: string): string | null {
   return waLink(SHOP_PHONE, [
     `Olá, Cleidson Diesel! Sou ${name} e aprovei o orçamento da OS nº ${o.number} pelo site.`,
-    `Veículo: ${o.vehicle} (${formatPlate(o.plate)}).`,
+    `Veículo: ${o.vehicle}${o.plate ? " (" + formatPlate(o.plate) + ")" : ""}.`,
   ].join("\n"));
 }
 
@@ -62,7 +62,7 @@ export function statusMessage(o: OrderLike, siteUrl?: string): string {
   const lines = [
     `Olá, ${firstName(o.customer_name)}! Aqui é da ${SHOP}.`,
     ``,
-    `Atualização da OS nº ${o.number} — ${o.vehicle} (${formatPlate(o.plate)}):`,
+    `Atualização da OS nº ${o.number} — ${o.vehicle}${o.plate ? " (" + formatPlate(o.plate) + ")" : ""}:`,
     `*Status: ${info.label}*`,
   ];
   if (o.status === "pronto") lines.push(``, `Seu veículo já está pronto para retirada!`);
@@ -78,7 +78,7 @@ export function quoteMessage(o: OrderLike, approvalLink?: string, preparedBy?: s
     `Olá, ${firstName(o.customer_name)}! Aqui é da ${SHOP}.`,
     ``,
     `*Orçamento — OS nº ${o.number}*`,
-    `Veículo: ${o.vehicle} (${formatPlate(o.plate)})`,
+    `Veículo: ${o.vehicle}${o.plate ? " (" + formatPlate(o.plate) + ")" : ""}`,
     ...(preparedBy?.trim() ? [`Orçamento preparado por: ${preparedBy.trim()}`] : []),
   ];
   if (o.diagnosis) lines.push(``, `Diagnóstico: ${o.diagnosis}`);
