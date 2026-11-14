@@ -70,11 +70,13 @@ export function OrderForm({
   onSubmit,
   submitLabel,
   extraActions,
+  plateRequired = true,
 }: {
   initial: OrderFormValues;
   onSubmit: (v: OrderInput) => Promise<void>;
   submitLabel: string;
   extraActions?: ReactNode;
+  plateRequired?: boolean;
 }) {
   const [v, setV] = useState<OrderFormValues>(initial);
   const [saving, setSaving] = useState(false);
@@ -93,7 +95,8 @@ export function OrderForm({
 
   async function handle(e: FormEvent) {
     e.preventDefault();
-    if (!isValidPlate(v.plate)) { toast.error("Placa inválida. Ex: ABC1234 ou ABC1D23."); return; }
+    if (plateRequired && !isValidPlate(v.plate)) { toast.error("Placa inválida. Ex: ABC1234 ou ABC1D23."); return; }
+    if (!plateRequired && v.plate.trim() && !isValidPlate(v.plate)) { toast.error("Se informar uma placa, ela precisa ser válida."); return; }
     if (!v.customer_name.trim()) { toast.error("Informe o nome do cliente."); return; }
     if (!v.vehicle.trim()) { toast.error("Informe o veículo."); return; }
     if (!v.complaint.trim()) { toast.error("Descreva o serviço / reclamação."); return; }
