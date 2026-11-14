@@ -117,6 +117,10 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
     setSavingIntake(true);
     try {
       const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user?.id) {
+        toast.error("Sua sessão expirou. Entre novamente para registrar o recebimento.");
+        return;
+      }
       const receivedByName = String(auth.user?.user_metadata?.full_name ?? auth.user?.user_metadata?.name ?? auth.user?.email ?? "Administração").trim();
       const intakeVehicle = intakeType === "vehicle" ? vehicle.trim() : "Bomba/bicos injetores";
       const payload = {
@@ -126,11 +130,11 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
         plate: intakeType === "vehicle" ? plate.trim().toUpperCase() : null,
         arrived_on_tow_truck: intakeType === "vehicle" ? towTruck === "yes" : null,
         delivered_items: intakeType === "pump_injector" ? items.map(item => ({ description: item.description.trim(), quantity: Number(item.quantity) })) : [],
-        received_by: auth.user?.id,
+        received_by: auth.user.id,
         received_by_name: receivedByName.length >= 2 ? receivedByName : "Administração",
         notes: notes.trim() || null,
       };
-      const { data, error } = await (supabase as any).from("vehicle_intake_records").insert(payload)
+      const { data, error } = await supabase.from("vehicle_intake_records").insert(payload)
         .select("id,customer_name,vehicle,plate,intake_type,arrived_on_tow_truck,delivered_items,notes").single();
       if (error) throw error;
       setIntake(data as IntakeOption);
@@ -205,7 +209,7 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
             submitLabel="Abrir OS"
             onSubmit={async (input) => {
               const { data: auth } = await supabase.auth.getUser();
-              const { data, error } = await (supabase as any)
+              const { data, error } = await supabase
                 .from("service_orders")
                 .insert({ ...input, plate: intake.intake_type === "vehicle" ? input.plate : null, vehicle_intake_id: intake.id, appointment_id: appointmentId ?? null, created_by: auth.user?.id ?? null })
                 .select("id, number")
