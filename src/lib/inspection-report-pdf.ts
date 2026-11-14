@@ -97,7 +97,7 @@ export async function createInspectionReportPdf(order: InspectionReportOrder, re
     pdf.setFontSize(8);
     pdf.text(`${label}:`, left + 4 + col * 88, y + 7 + row * 10);
     pdf.setFont("helvetica", "normal");
-    pdf.text(pdf.splitTextToSize(value, 78)[0] || "—", left + 4 + col * 88, y + 11 + row * 10);
+    pdf.text(pdf.splitTextToSize(value ?? "", 78)[0] || "—", left + 4 + col * 88, y + 11 + row * 10);
   });
   y += 42;
   paragraph("Diagnóstico", report.diagnosis);

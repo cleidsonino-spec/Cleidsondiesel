@@ -12,7 +12,7 @@ describe("inspeção", () => {
     expect(readInspectionData(null)).toEqual({ failedItems: "", observations: "" });
   });
   it("exige achados ou observações para IA", () => {
-    const input = { vehicle: "Hilux", vehicle_year: "2015", complaint: "", failed_items: "", observations: "" };
+    const input = { order_id: "00000000-0000-4000-8000-000000000000", vehicle: "Hilux", vehicle_year: "2015", complaint: "", failed_items: "", observations: "" };
     expect(inspectionDiagnosisInput.safeParse(input).success).toBe(false);
     expect(inspectionDiagnosisInput.safeParse({ ...input, failed_items: "Vazamento" }).success).toBe(true);
   });
@@ -133,10 +133,11 @@ describe("WhatsApp", () => {
 
 
 describe("garantia", () => {
-  it("só permite emitir quando a OS está pronta para retirada", () => {
-    expect(canIssueWarranty("pronto")).toBe(true);
-    for (const status of ["recebido", "em_analise", "aguardando_aprovacao", "em_servico", "entregue", "cancelado"]) {
-      expect(canIssueWarranty(status)).toBe(false);
+  it("só permite emitir após a entrega do veículo", () => {
+    expect(canIssueWarranty("entregue", "2026-11-10T12:00:00Z")).toBe(true);
+    expect(canIssueWarranty("entregue", null)).toBe(false);
+    for (const status of ["recebido", "em_analise", "aguardando_aprovacao", "em_servico", "pronto", "cancelado"]) {
+      expect(canIssueWarranty(status, "2026-11-10T12:00:00Z")).toBe(false);
     }
   });
   it("calcula vencimento por mês-calendário, ajustando fim de mês e ano bissexto", () => {
