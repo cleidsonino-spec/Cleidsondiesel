@@ -181,9 +181,9 @@ RETURNS uuid
 LANGUAGE sql
 SECURITY DEFINER
 SET search_path = public
-AS $
+AS $function$
   SELECT public.open_warranty_return_service_order(_return_id, NULL::jsonb);
-$;
+$function$;
 
 REVOKE ALL ON FUNCTION public.open_warranty_return_service_order(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.open_warranty_return_service_order(uuid, jsonb) FROM PUBLIC;
