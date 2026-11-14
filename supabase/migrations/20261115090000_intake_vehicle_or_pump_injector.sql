@@ -155,6 +155,9 @@ BEGIN
        OR NEW.arrived_on_tow_truck IS NULL THEN
       RAISE EXCEPTION 'Recebimento de veículo exige placa e resposta sobre reboque';
     END IF;
+    IF jsonb_typeof(NEW.delivered_items) IS DISTINCT FROM 'array' THEN
+      RAISE EXCEPTION 'A lista de itens deve ser um array JSON';
+    END IF;
     IF jsonb_array_length(NEW.delivered_items) <> 0 THEN
       RAISE EXCEPTION 'Itens entregues em mãos só se aplicam à modalidade bomba/bicos';
     END IF;
