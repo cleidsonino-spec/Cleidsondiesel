@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { appointmentQuery } from "@/lib/queries";
 import { todayISO } from "@/lib/schedule";
+import { normalizePlate } from "@/lib/plate";
 import { customersQuery, vehiclesQuery } from "@/lib/registry";
 
 type Search = { agendamento?: string; cliente?: string; veiculo?: string };
@@ -79,6 +80,11 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
   const [items, setItems] = useState<DeliveredItem[]>([{ description: "", quantity: "1" }]);
   const [savingIntake, setSavingIntake] = useState(false);
   const [intake, setIntake] = useState<IntakeOption | null>(null);
+  const intakeMatchesSelectedCustomer = Boolean(intake && selectedCustomer &&
+    selectedCustomer.name.trim().toLocaleLowerCase("pt-BR") === intake.customer_name.trim().toLocaleLowerCase("pt-BR"));
+  const intakeMatchesSelectedVehicle = Boolean(intake?.intake_type === "vehicle" && selectedVehicle &&
+    normalizePlate(selectedVehicle.plate) === normalizePlate(intake.plate) &&
+    selectedVehicle.model.trim().toLocaleLowerCase("pt-BR") === intake.vehicle.trim().toLocaleLowerCase("pt-BR"));
 
   const initial: OrderFormValues = {
     plate: intake?.plate ?? "",
@@ -101,8 +107,16 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
     ...prefill,
     ...(selectedCustomer ? { customer_id: selectedCustomer.id, customer_name: selectedCustomer.name, phone: selectedCustomer.phone ?? "" } : {}),
     ...(selectedVehicle ? { vehicle_id: selectedVehicle.id, plate: selectedVehicle.plate, vehicle: selectedVehicle.model, vehicle_year: selectedVehicle.year ?? "", mileage: selectedVehicle.mileage ?? "" } : {}),
-    ...(intake ? { customer_name: intake.customer_name, vehicle: intake.vehicle, plate: intake.plate ?? "" } : {}),
-    ...(intake?.intake_type === "pump_injector" ? { vehicle_id: "", vehicle_year: "", mileage: "" } : {}),
+    ...(intake ? {
+      customer_id: intakeMatchesSelectedCustomer ? selectedCustomer?.id ?? "" : "",
+      customer_name: intake.customer_name,
+      phone: intakeMatchesSelectedCustomer ? selectedCustomer?.phone ?? "" : prefill?.phone ?? "",
+      vehicle_id: intakeMatchesSelectedVehicle ? selectedVehicle?.id ?? "" : "",
+      vehicle: intake.vehicle,
+      plate: intake.plate ?? "",
+      vehicle_year: intakeMatchesSelectedVehicle ? selectedVehicle?.year ?? "" : "",
+      mileage: intakeMatchesSelectedVehicle ? selectedVehicle?.mileage ?? "" : "",
+    } : {}),
   };
 
   async function registerIntake(event: FormEvent<HTMLFormElement>) {
