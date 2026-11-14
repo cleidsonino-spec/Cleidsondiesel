@@ -54,14 +54,13 @@ AS $$
 DECLARE
   v_intake public.vehicle_intake_records;
   v_item jsonb;
+  v_existing_link boolean := false;
 BEGIN
   IF TG_OP = 'UPDATE' AND OLD.vehicle_intake_id IS NOT NULL THEN
     IF NEW.vehicle_intake_id IS DISTINCT FROM OLD.vehicle_intake_id THEN
       RAISE EXCEPTION 'A ficha de recebimento vinculada à OS não pode ser alterada';
     END IF;
-    -- A ficha registra o estado do recebimento; edições posteriores da OS
-    -- não devem bloquear correções legítimas de cliente/equipamento/placa.
-    RETURN NEW;
+    v_existing_link := true;
   END IF;
 
   IF NEW.vehicle_intake_id IS NULL THEN
@@ -83,27 +82,34 @@ BEGIN
     RAISE EXCEPTION 'Ficha de recebimento não encontrada';
   END IF;
 
-  IF lower(trim(v_intake.customer_name)) <> lower(trim(NEW.customer_name)) THEN
-    RAISE EXCEPTION 'O cliente da OS deve corresponder à ficha de recebimento';
+  -- Na criação, OS e ficha precisam corresponder exatamente. Em edições
+  -- posteriores, a ficha permanece imutável como snapshot do recebimento,
+  -- mas os dados da OS podem ser corrigidos sem perder as regras da modalidade.
+  IF NOT v_existing_link THEN
+    IF lower(trim(v_intake.customer_name)) <> lower(trim(NEW.customer_name)) THEN
+      RAISE EXCEPTION 'O cliente da OS deve corresponder à ficha de recebimento';
+    END IF;
+    IF v_intake.intake_type = 'vehicle'
+       AND lower(trim(v_intake.vehicle)) <> lower(trim(NEW.vehicle)) THEN
+      RAISE EXCEPTION 'O veículo da OS deve corresponder à ficha de recebimento';
+    END IF;
   END IF;
 
   IF v_intake.intake_type = 'vehicle' THEN
-    IF lower(trim(v_intake.vehicle)) <> lower(trim(NEW.vehicle)) THEN
-      RAISE EXCEPTION 'O veículo da OS deve corresponder à ficha de recebimento';
+    IF NEW.plate IS NULL OR char_length(NEW.plate) NOT BETWEEN 7 AND 8 THEN
+      RAISE EXCEPTION 'OS de veículo exige uma placa válida';
     END IF;
-    IF NEW.plate IS NULL
-       OR regexp_replace(upper(trim(v_intake.plate)), '[^A-Z0-9]', '', 'g')
-          <> regexp_replace(upper(trim(NEW.plate)), '[^A-Z0-9]', '', 'g') THEN
+    IF NOT v_existing_link
+       AND regexp_replace(upper(trim(v_intake.plate)), '[^A-Z0-9]', '', 'g')
+           <> regexp_replace(upper(trim(NEW.plate)), '[^A-Z0-9]', '', 'g') THEN
       RAISE EXCEPTION 'A placa da OS deve corresponder à ficha de recebimento';
     END IF;
   ELSIF v_intake.intake_type = 'pump_injector' THEN
     IF NEW.plate IS NOT NULL AND trim(NEW.plate) <> '' THEN
       RAISE EXCEPTION 'OS de bomba/bicos não deve possuir placa de veículo';
     END IF;
-    IF jsonb_typeof(v_intake.delivered_items) IS DISTINCT FROM 'array' THEN
-      RAISE EXCEPTION 'Informe os itens e as quantidades entregues na ficha';
-    END IF;
-    IF jsonb_array_length(v_intake.delivered_items) = 0 THEN
+    IF jsonb_typeof(v_intake.delivered_items) IS DISTINCT FROM 'array'
+       OR jsonb_array_length(v_intake.delivered_items) = 0 THEN
       RAISE EXCEPTION 'Informe os itens e as quantidades entregues na ficha';
     END IF;
     FOR v_item IN SELECT value FROM jsonb_array_elements(v_intake.delivered_items)
