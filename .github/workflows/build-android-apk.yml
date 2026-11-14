@@ -68,6 +68,9 @@ jobs:
           npm init -y
           npm install --no-audit --no-fund typescript @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/assets @capacitor/app@7 @capacitor/browser@7 @capacitor/preferences@7 @capacitor/push-notifications@7 @capacitor/filesystem@7 @capacitor/share@7
           ln -s /tmp/capacitor-tools/node_modules "$GITHUB_WORKSPACE/node_modules"
+          cd "$GITHUB_WORKSPACE"
+          npm pkg set "dependencies.@capacitor/filesystem=^7.0.0" "dependencies.@capacitor/share=^7.0.0"
+          node -e "const p=require('./package.json'); for (const name of ['@capacitor/filesystem', '@capacitor/share']) { if (!p.dependencies?.[name]) process.exit(1); console.log(name + ' registered for Capacitor discovery'); }"
 
       - name: Add Android project
         run: npx cap add android
