@@ -84,3 +84,12 @@ GRANT USAGE ON SCHEMA public, auth TO authenticated;
 GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_mechanic_assigned(uuid, uuid) TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.service_order_assignments TO authenticated;
+ALTER TABLE public.service_order_assignments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY assignments_read_authorized ON public.service_order_assignments
+  FOR SELECT TO authenticated
+  USING (
+    public.has_role(auth.uid(),'admin'::public.app_role)
+    OR public.has_role(auth.uid(),'secretaria'::public.app_role)
+    OR (mechanic_user_id=auth.uid() AND active=true)
+  );
