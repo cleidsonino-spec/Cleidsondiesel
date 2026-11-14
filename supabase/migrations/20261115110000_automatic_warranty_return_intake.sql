@@ -1,6 +1,9 @@
 -- Cria automaticamente uma ficha independente ao abrir uma OS de retorno em garantia.
--- A ficha original é usada apenas como fonte dos dados de recebimento; nunca é reutilizada.
-CREATE OR REPLACE FUNCTION public.open_warranty_return_service_order(_return_id uuid, _legacy_intake jsonb DEFAULT NULL)
+-- Para OS antigas sem ficha, exige confirmação explícita dos dados de recebimento.
+CREATE OR REPLACE FUNCTION public.open_warranty_return_service_order(
+  _return_id uuid,
+  _legacy_intake jsonb DEFAULT NULL
+)
 RETURNS uuid
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -51,7 +54,26 @@ BEGIN
     v_has_source_intake := FOUND;
   END IF;
 
-  IF NOT v_has_source_intake THEN
+  IF v_has_source_intake THEN
+    INSERT INTO public.vehicle_intake_records (
+      customer_name, vehicle, plate, received_at, received_by,
+      received_by_name, notes, intake_type, arrived_on_tow_truck,
+      delivered_items
+    ) VALUES (
+      v_source_intake.customer_name,
+      v_source_intake.vehicle,
+      v_source_intake.plate,
+      now(),
+      auth.uid(),
+      'Equipe',
+      concat_ws(E'\\n', nullif(v_source_intake.notes, ''),
+        'Novo recebimento gerado automaticamente para retorno em garantia #' || v_return.id::text),
+      v_source_intake.intake_type,
+      v_source_intake.arrived_on_tow_truck,
+      v_source_intake.delivered_items
+    )
+    RETURNING id INTO v_new_intake_id;
+  ELSE
     IF _legacy_intake IS NULL OR jsonb_typeof(_legacy_intake) IS DISTINCT FROM 'object' THEN
       RAISE EXCEPTION 'CONFIRMAR_DADOS_RECEBIMENTO: A OS original não possui ficha. Confirme a modalidade e os dados de entrada para continuar.';
     END IF;
@@ -69,24 +91,38 @@ BEGIN
       v_source_intake.vehicle := v_original.vehicle;
     ELSIF v_intake_type = 'pump_injector' THEN
       IF length(trim(coalesce(_legacy_intake->>'item_description',''))) < 2
-         OR coalesce(_legacy_intake->>'item_quantity','') !~ '^[1-9][0-9]*
-    customer_name, vehicle, plate, received_at, received_by,
-    received_by_name, notes, intake_type, arrived_on_tow_truck,
-    delivered_items
-  ) VALUES (
-    v_source_intake.customer_name,
-    v_source_intake.vehicle,
-    v_source_intake.plate,
-    now(),
-    auth.uid(),
-    'Equipe',
-    concat_ws(E'\n', nullif(v_source_intake.notes, ''),
-      'Novo recebimento gerado automaticamente para retorno em garantia #' || v_return.id::text),
-    v_source_intake.intake_type,
-    v_source_intake.arrived_on_tow_truck,
-    v_source_intake.delivered_items
-  )
-  RETURNING id INTO v_new_intake_id;
+         OR coalesce(_legacy_intake->>'item_quantity','') !~ '^[1-9][0-9]*$' THEN
+        RAISE EXCEPTION 'Para bomba/bicos, informe a descrição e a quantidade entregue.';
+      END IF;
+      v_plate := NULL;
+      v_arrived_on_tow_truck := NULL;
+      v_delivered_items := jsonb_build_array(jsonb_build_object(
+        'description', trim(_legacy_intake->>'item_description'),
+        'quantity', (_legacy_intake->>'item_quantity')::integer
+      ));
+      v_source_intake.customer_name := v_original.customer_name;
+      v_source_intake.vehicle := 'Bomba/bicos injetores';
+    ELSE
+      RAISE EXCEPTION 'Selecione se o recebimento é de veículo ou de bomba/bicos.';
+    END IF;
+
+    INSERT INTO public.vehicle_intake_records (
+      customer_name, vehicle, plate, received_at, received_by,
+      received_by_name, notes, intake_type, arrived_on_tow_truck,
+      delivered_items
+    ) VALUES (
+      v_source_intake.customer_name,
+      v_source_intake.vehicle,
+      v_plate,
+      now(),
+      auth.uid(),
+      'Equipe',
+      'Recebimento confirmado manualmente ao abrir retorno em garantia #' || v_return.id::text,
+      v_intake_type,
+      v_arrived_on_tow_truck,
+      v_delivered_items
+    )
+    RETURNING id INTO v_new_intake_id;
   END IF;
 
   INSERT INTO public.service_orders (
@@ -136,100 +172,3 @@ $$;
 
 REVOKE ALL ON FUNCTION public.open_warranty_return_service_order(uuid, jsonb) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.open_warranty_return_service_order(uuid, jsonb) TO authenticated;
- THEN
-        RAISE EXCEPTION 'Para bomba/bicos, informe a descrição e a quantidade entregue.';
-      END IF;
-      v_plate := NULL;
-      v_arrived_on_tow_truck := NULL;
-      v_delivered_items := jsonb_build_array(jsonb_build_object(
-        'description', trim(_legacy_intake->>'item_description'),
-        'quantity', (_legacy_intake->>'item_quantity')::integer
-      ));
-      v_source_intake.customer_name := v_original.customer_name;
-      v_source_intake.vehicle := 'Bomba/bicos injetores';
-    ELSE
-      RAISE EXCEPTION 'Selecione se o recebimento é de veículo ou de bomba/bicos.';
-    END IF;
-
-    INSERT INTO public.vehicle_intake_records (
-      customer_name, vehicle, plate, received_at, received_by,
-      received_by_name, notes, intake_type, arrived_on_tow_truck,
-      delivered_items
-    ) VALUES (
-      v_source_intake.customer_name, v_source_intake.vehicle, v_plate,
-      now(), auth.uid(), 'Equipe',
-      'Recebimento confirmado manualmente ao abrir retorno em garantia #' || v_return.id::text,
-      v_intake_type, v_arrived_on_tow_truck, v_delivered_items
-    ) RETURNING id INTO v_new_intake_id;
-
-    v_source_intake.plate := v_plate;
-    v_source_intake.intake_type := v_intake_type;
-    v_source_intake.arrived_on_tow_truck := v_arrived_on_tow_truck;
-    v_source_intake.delivered_items := v_delivered_items;
-  ELSE
-    INSERT INTO public.vehicle_intake_records (
-    customer_name, vehicle, plate, received_at, received_by,
-    received_by_name, notes, intake_type, arrived_on_tow_truck,
-    delivered_items
-  ) VALUES (
-    v_source_intake.customer_name,
-    v_source_intake.vehicle,
-    v_source_intake.plate,
-    now(),
-    auth.uid(),
-    'Equipe',
-    concat_ws(E'\n', nullif(v_source_intake.notes, ''),
-      'Novo recebimento gerado automaticamente para retorno em garantia #' || v_return.id::text),
-    v_source_intake.intake_type,
-    v_source_intake.arrived_on_tow_truck,
-    v_source_intake.delivered_items
-  )
-  RETURNING id INTO v_new_intake_id;
-
-  INSERT INTO public.service_orders (
-    customer_id, vehicle_id, customer_name, phone, vehicle, vehicle_year,
-    plate, mileage, complaint, diagnosis, parts, part_items,
-    parts_value, labor_value, status, entry_date, due_date, notes,
-    inspection_checklist, created_by, vehicle_intake_id
-  ) VALUES (
-    v_original.customer_id, v_original.vehicle_id, v_source_intake.customer_name,
-    v_original.phone, v_source_intake.vehicle, v_original.vehicle_year,
-    v_source_intake.plate, v_original.mileage,
-    'RETORNO EM GARANTIA — ' || v_return.complaint,
-    NULL, NULL, '[]'::jsonb, 0, 0, 'recebido',
-    CURRENT_DATE, NULL,
-    'Retorno em garantia #' || v_return.id::text ||
-      '. OS original nº ' || v_original.number::text ||
-      '. Consulte o histórico da OS original antes de iniciar o serviço.',
-    '[]'::jsonb, auth.uid(), v_new_intake_id
-  )
-  RETURNING id INTO v_new_id;
-
-  UPDATE public.warranty_returns
-  SET return_service_order_id = v_new_id,
-      updated_by = auth.uid(),
-      updated_at = now()
-  WHERE id = _return_id;
-
-  INSERT INTO public.service_order_assignments (
-    service_order_id, mechanic_user_id, assigned_by, active
-  )
-  SELECT
-    v_new_id, source_assignment.mechanic_user_id, auth.uid(), true
-  FROM public.service_order_assignments AS source_assignment
-  WHERE source_assignment.service_order_id = v_original.id
-    AND source_assignment.active = true
-    AND NOT EXISTS (
-      SELECT 1
-      FROM public.service_order_assignments AS existing_assignment
-      WHERE existing_assignment.service_order_id = v_new_id
-        AND existing_assignment.mechanic_user_id = source_assignment.mechanic_user_id
-        AND existing_assignment.active = true
-    );
-
-  RETURN v_new_id;
-END;
-$$;
-
-REVOKE ALL ON FUNCTION public.open_warranty_return_service_order(uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.open_warranty_return_service_order(uuid) TO authenticated;
