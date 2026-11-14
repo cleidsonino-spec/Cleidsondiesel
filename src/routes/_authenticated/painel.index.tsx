@@ -43,7 +43,7 @@ export const Route = createFileRoute("/_authenticated/painel/")({
   component: PainelIndex,
 });
 
-type Filter = "abertas" | "todas" | OrderStatus;
+type Filter = "abertas" | "historico" | OrderStatus;
 type FinancialOrderStatus = { service_order_id: string; total: number; received: number; balance: number };
 
 function daysUntil(date: string, today: string) {
@@ -101,10 +101,15 @@ function PainelIndex() {
 
   const priorityIds = new Set(warrantyReturnOrders);
   const filtered = orders.filter((o) => {
-    if (q) return normalizePlate(o.plate).includes(q) || o.customer_name.toUpperCase().includes(search.trim().toUpperCase());
-    if (filter === "todas") return true;
-    if (filter === "abertas") return OPEN_ORDER_STATUSES.includes(o.status);
-    return o.status === filter;
+    const matchesView = filter === "abertas"
+      ? OPEN_ORDER_STATUSES.includes(o.status)
+      : filter === "historico"
+        ? o.status === "entregue" || o.status === "cancelado"
+        : o.status === filter;
+    const matchesSearch = !q
+      || normalizePlate(o.plate).includes(q)
+      || o.customer_name.toUpperCase().includes(search.trim().toUpperCase());
+    return matchesView && matchesSearch;
   }).sort((a, b) => Number(priorityIds.has(b.id)) - Number(priorityIds.has(a.id)) || b.number - a.number);
   const plateAppointments = q.length >= 3 ? appointments.filter((a) => normalizePlate(a.plate).includes(q)) : [];
 
@@ -196,15 +201,15 @@ function PainelIndex() {
           <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por placa ou nome do cliente" className="h-12 pl-12" aria-label="Buscar por placa ou cliente" />
         </div>
-        {!q && <div className="flex flex-wrap gap-2">
-          {([{ v: "abertas", l: "Abertas" }, { v: "todas", l: "Todas" }, ...ORDER_STATUSES.map((s) => ({ v: s.value, l: s.label }))] as { v: Filter; l: string }[]).map((f) => (
+        <div className="flex flex-wrap gap-2">
+          {([{ v: "abertas", l: "Abertas" }, { v: "historico", l: "Histórico" }, ...ORDER_STATUSES.filter((s) => s.value !== "entregue" && s.value !== "cancelado").map((s) => ({ v: s.value, l: s.label }))] as { v: Filter; l: string }[]).map((f) => (
             <button key={f.v} onClick={() => setFilter(f.v)} className={cn("shrink-0 rounded-sm border px-3 py-1.5 text-sm transition-colors", filter === f.v ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:text-foreground")}>{f.l}</button>
           ))}
-        </div>}
-        <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-medium text-muted-foreground">{q ? `Resultados para ${search}` : "Ordens recentes"} ({filtered.length})</h3>{search && <Button variant="ghost" size="sm" onClick={() => setSearch("")}>Limpar busca</Button>}</div>
+        </div>
+        <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-medium text-muted-foreground">{q ? `Resultados para ${search}` : filter === "historico" ? "Histórico de ordens" : "Ordens em andamento"} ({filtered.length})</h3>{search && <Button variant="ghost" size="sm" onClick={() => setSearch("")}>Limpar busca</Button>}</div>
         {filtered.length === 0 ? (
           <div className="rounded-md border border-dashed border-border p-10 text-center text-muted-foreground">
-            {q ? "Nenhuma ordem de serviço para essa busca." : "Nenhuma ordem de serviço aqui ainda."}{" "}
+            {q ? "Nenhuma ordem de serviço para essa busca neste filtro." : filter === "historico" ? "Nenhuma ordem finalizada ou cancelada no histórico." : "Nenhuma ordem em andamento no momento."}{" "}
             <Link to="/painel/ordens/nova" search={{}} className="text-primary hover:underline">Abrir nova OS</Link>
           </div>
         ) : (
