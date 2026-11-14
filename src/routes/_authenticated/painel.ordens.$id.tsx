@@ -127,7 +127,7 @@ function OrdemPage() {
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-widest text-muted-foreground">OS nº {order.number}</p>
-            <h1 className="plate text-3xl md:text-4xl">{formatPlate(order.plate ?? "")}</h1>
+            <h1 className="plate text-3xl md:text-4xl">{order.plate ? formatPlate(order.plate) : "Bomba/bicos injetores"}</h1>
           </div>
           <StatusBadge tone={info.tone} label={info.label} className="text-sm" />
         </div>
