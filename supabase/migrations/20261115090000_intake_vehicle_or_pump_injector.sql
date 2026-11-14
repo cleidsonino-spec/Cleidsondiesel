@@ -1,7 +1,9 @@
--- Suporta recebimento de veículos e de bombas/bicos sem placa.
+-- Modalidades de recebimento: veículo ou bomba/bicos entregues em mãos.
+-- A placa só pode ficar ausente quando a ficha vinculada for pump_injector.
 ALTER TABLE public.vehicle_intake_records
   ADD COLUMN IF NOT EXISTS intake_type text NOT NULL DEFAULT 'vehicle',
-  ADD COLUMN IF NOT EXISTS arrived_on_tow_truck boolean;
+  ADD COLUMN IF NOT EXISTS arrived_on_tow_truck boolean,
+  ADD COLUMN IF NOT EXISTS delivered_items jsonb NOT NULL DEFAULT '[]'::jsonb;
 
 ALTER TABLE public.vehicle_intake_records
   ALTER COLUMN plate DROP NOT NULL;
@@ -14,12 +16,19 @@ ALTER TABLE public.vehicle_intake_records
     CHECK (
       (intake_type = 'vehicle' AND plate IS NOT NULL
         AND char_length(trim(plate)) BETWEEN 5 AND 12
-        AND arrived_on_tow_truck IS NOT NULL)
+        AND arrived_on_tow_truck IS NOT NULL
+        AND delivered_items = '[]'::jsonb)
       OR
       (intake_type = 'pump_injector' AND plate IS NULL
-        AND arrived_on_tow_truck IS NULL)
-    );
+        AND arrived_on_tow_truck IS NULL
+        AND jsonb_typeof(delivered_items) = 'array'
+        AND jsonb_array_length(delivered_items) > 0)
+    ),
+  ADD CONSTRAINT vehicle_intake_records_delivered_items_array_check
+    CHECK (jsonb_typeof(delivered_items) = 'array');
 
+-- A coluna aceita NULL tecnicamente, mas a regra abaixo só libera NULL
+-- para OS ligada a ficha do tipo pump_injector.
 ALTER TABLE public.service_orders
   ALTER COLUMN plate DROP NOT NULL;
 
@@ -36,6 +45,7 @@ SET search_path = public
 AS $$
 DECLARE
   v_intake public.vehicle_intake_records;
+  v_item jsonb;
 BEGIN
   IF TG_OP = 'UPDATE'
      AND OLD.vehicle_intake_id IS NOT NULL
@@ -46,6 +56,9 @@ BEGIN
   IF NEW.vehicle_intake_id IS NULL THEN
     IF TG_OP = 'INSERT' THEN
       RAISE EXCEPTION 'Registre o recebimento antes de abrir a ordem de serviço';
+    END IF;
+    IF NEW.plate IS NULL OR char_length(NEW.plate) NOT BETWEEN 7 AND 8 THEN
+      RAISE EXCEPTION 'A placa é obrigatória fora da modalidade bomba/bicos';
     END IF;
     RETURN NEW;
   END IF;
@@ -65,15 +78,28 @@ BEGIN
   END IF;
 
   IF v_intake.intake_type = 'vehicle' THEN
-    IF v_intake.plate IS NULL OR NEW.plate IS NULL
+    IF NEW.plate IS NULL
        OR regexp_replace(upper(trim(v_intake.plate)), '[^A-Z0-9]', '', 'g')
           <> regexp_replace(upper(trim(NEW.plate)), '[^A-Z0-9]', '', 'g') THEN
       RAISE EXCEPTION 'A placa da OS deve corresponder à ficha de recebimento';
     END IF;
-  ELSE
+  ELSIF v_intake.intake_type = 'pump_injector' THEN
     IF NEW.plate IS NOT NULL AND trim(NEW.plate) <> '' THEN
       RAISE EXCEPTION 'OS de bomba/bicos não deve possuir placa de veículo';
     END IF;
+    IF jsonb_typeof(v_intake.delivered_items) <> 'array'
+       OR jsonb_array_length(v_intake.delivered_items) = 0 THEN
+      RAISE EXCEPTION 'Informe os itens e as quantidades entregues na ficha';
+    END IF;
+    FOR v_item IN SELECT value FROM jsonb_array_elements(v_intake.delivered_items)
+    LOOP
+      IF length(trim(coalesce(v_item->>'description',''))) < 2
+         OR coalesce(v_item->>'quantity','') !~ '^[1-9][0-9]*$' THEN
+        RAISE EXCEPTION 'Cada item entregue precisa de descrição e quantidade inteira maior que zero';
+      END IF;
+    END LOOP;
+  ELSE
+    RAISE EXCEPTION 'Modalidade de recebimento inválida';
   END IF;
 
   RETURN NEW;
@@ -81,6 +107,8 @@ END;
 $$;
 
 COMMENT ON COLUMN public.vehicle_intake_records.intake_type IS
-  'Tipo de recebimento: vehicle ou pump_injector.';
+  'Modalidade: vehicle (veículo) ou pump_injector (bomba/bicos em mãos).';
 COMMENT ON COLUMN public.vehicle_intake_records.arrived_on_tow_truck IS
-  'Informa se o veículo chegou no reboque; nulo para recebimento de bomba/bicos.';
+  'Informa se o veículo chegou no reboque; nulo para bomba/bicos.';
+COMMENT ON COLUMN public.vehicle_intake_records.delivered_items IS
+  'Itens entregues em mãos, cada objeto contendo description e quantity; obrigatório para pump_injector.';
