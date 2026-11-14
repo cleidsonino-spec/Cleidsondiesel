@@ -2,7 +2,7 @@
 -- Para OS antigas sem ficha, exige confirmação explícita dos dados de recebimento.
 CREATE OR REPLACE FUNCTION public.open_warranty_return_service_order(
   _return_id uuid,
-  _legacy_intake jsonb DEFAULT NULL
+  _legacy_intake jsonb
 )
 RETURNS uuid
 LANGUAGE plpgsql
@@ -175,5 +175,17 @@ BEGIN
 END;
 $$;
 
+-- Mantém a chamada sem dados extras para retornos cuja OS original já tem ficha.
+CREATE OR REPLACE FUNCTION public.open_warranty_return_service_order(_return_id uuid)
+RETURNS uuid
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $
+  SELECT public.open_warranty_return_service_order(_return_id, NULL::jsonb);
+$;
+
+REVOKE ALL ON FUNCTION public.open_warranty_return_service_order(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.open_warranty_return_service_order(uuid, jsonb) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.open_warranty_return_service_order(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.open_warranty_return_service_order(uuid, jsonb) TO authenticated;
