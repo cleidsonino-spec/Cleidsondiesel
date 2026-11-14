@@ -186,7 +186,8 @@ function OrdemPage() {
           plateRequired={Boolean(order.plate)}
           submitLabel="Salvar alterações"
           onSubmit={async (input) => {
-            const { error } = await supabase.from("service_orders").update(input).eq("id", id);
+            const updateInput = order.plate ? input : { ...input, plate: null };
+            const { error } = await supabase.from("service_orders").update(updateInput).eq("id", id);
             if (error) {
               console.error("Erro ao atualizar OS:", error);
               toast.error(`Falha ao salvar: ${error.message}`);
