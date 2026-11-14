@@ -118,7 +118,7 @@ function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; ca
     if (draft.complaint.trim().length < 5) { toast.error("Descreva o motivo do retorno."); return; }
     if (draft.status === "resolved" || draft.status === "not_covered") {
       if (draft.resolution.trim().length < 3) { toast.error("Informe a solução ou justificativa para encerrar."); return; }
-      if (!draft.diagnosis.trim()) { toast.error("Registre a avaliação técnica antes de encerrar."); return; }
+      if (draft.diagnosis.trim().length < 3) { toast.error("Informe o diagnóstico técnico com pelo menos 3 caracteres antes de encerrar."); return; }
     }
     setSaving(true);
     try {
@@ -175,7 +175,7 @@ function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; ca
   </div>;
 }
 
-function ReturnHistory({ item, onEdit, canManage }: { canManage: boolean; item: { id: string; status: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; received_at: string; closed_at: string | null }; onEdit: () => void }) {
+function ReturnHistory({ item, onEdit, canManage }: { canManage: boolean; item: { id: string; status: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; customer_update: string; received_at: string; closed_at: string | null }; onEdit: () => void }) {
   const { data: events = [] } = useQuery({
     queryKey: ["warranty-return-events", item.id],
     queryFn: async () => {
