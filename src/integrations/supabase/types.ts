@@ -307,7 +307,7 @@ export type Database = {
           parts: string | null
           parts_value: number
           phone: string | null
-          plate: string
+          plate: string | null
           status: Database["public"]["Enums"]["order_status"]
           system_cleaning: boolean | null
           updated_at: string
@@ -338,7 +338,7 @@ export type Database = {
           parts?: string | null
           parts_value?: number
           phone?: string | null
-          plate: string
+          plate: string | null
           status?: Database["public"]["Enums"]["order_status"]
           system_cleaning?: boolean | null
           updated_at?: string
@@ -369,7 +369,7 @@ export type Database = {
           parts?: string | null
           parts_value?: number
           phone?: string | null
-          plate?: string
+          plate?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           system_cleaning?: boolean | null
           updated_at?: string
