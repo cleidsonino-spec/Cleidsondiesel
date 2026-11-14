@@ -91,9 +91,11 @@ CREATE POLICY warranty_returns_staff_read ON public.warranty_returns
   );
 
 -- Contexto técnico da OS original, liberado apenas ao mecânico atribuído à OS de retorno.
-CREATE OR REPLACE FUNCTION public.get_warranty_return_context(_return_order_id uuid)
+DROP FUNCTION IF EXISTS public.get_warranty_return_context(uuid);
+CREATE FUNCTION public.get_warranty_return_context(_return_order_id uuid)
 RETURNS TABLE (
   return_id uuid,
+  original_order_id uuid,
   original_order_number bigint,
   original_complaint text,
   original_diagnosis text,
@@ -122,7 +124,7 @@ BEGIN
   END IF;
 
   RETURN QUERY
-  SELECT wr.id, original.number, original.complaint, original.diagnosis,
+  SELECT wr.id, original.id, original.number::bigint, original.complaint, original.diagnosis,
          original.parts, wr.complaint, wr.diagnosis, wr.parts_used,
          wr.labor_description, wr.resolution
   FROM public.warranty_returns wr
