@@ -1,6 +1,6 @@
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import { OrderForm, type OrderFormValues } from "@/components/painel/order-form";
@@ -104,7 +104,7 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
     ...(intake ? { customer_name: intake.customer_name, vehicle: intake.vehicle, plate: intake.plate ?? "" } : {}),
   };
 
-  async function registerIntake(event: React.FormEvent<HTMLFormElement>) {
+  async function registerIntake(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (customer.trim().length < 2) { toast.error("Informe o nome do cliente."); return; }
     if (intakeType === "vehicle" && (vehicle.trim().length < 2 || plate.trim().length < 5)) {
