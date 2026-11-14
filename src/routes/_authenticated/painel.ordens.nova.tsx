@@ -124,8 +124,8 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
   async function registerIntake(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (customer.trim().length < 2) { toast.error("Informe o nome do cliente."); return; }
-    if (intakeType === "vehicle" && (vehicle.trim().length < 2 || plate.trim().length < 5)) {
-      toast.error("Para recebimento de veículo, informe o modelo e a placa."); return;
+    if (intakeType === "vehicle" && (vehicle.trim().length < 2 || normalizePlate(plate).length < 7 || normalizePlate(plate).length > 8)) {
+      toast.error("Para recebimento de veículo, informe o modelo e uma placa válida de 7 ou 8 caracteres."); return;
     }
     if (intakeType === "pump_injector" && items.some(item => item.description.trim().length < 2 || !/^[1-9][0-9]*$/.test(item.quantity))) {
       toast.error("Descreva cada item entregue e informe uma quantidade inteira maior que zero."); return;
