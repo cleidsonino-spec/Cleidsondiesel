@@ -84,6 +84,9 @@ BEGIN
  SELECT count(*) INTO n FROM public.service_order_assignments
  WHERE service_order_id=o.id AND mechanic_user_id='00000000-0000-4000-8000-000000000003' AND active=true;
  IF n <> 1 THEN RAISE EXCEPTION 'FAIL: original mechanic was not inherited exactly once'; END IF;
+ SELECT count(*) INTO n FROM public.service_order_assignments
+ WHERE service_order_id=o.id AND active=true;
+ IF n <> 1 THEN RAISE EXCEPTION 'FAIL: return OS must have exactly one active mechanic'; END IF;
  -- Simula retorno legado já aberto sem atribuição: chamada repetida deve reparar.
  UPDATE public.service_order_assignments SET active=false
  WHERE service_order_id=o.id AND mechanic_user_id='00000000-0000-4000-8000-000000000003' AND active=true;
