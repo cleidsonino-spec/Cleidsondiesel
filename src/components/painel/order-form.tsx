@@ -44,7 +44,7 @@ export function toOrderInput(v: OrderFormValues): OrderInput {
   return {
     customer_id: v.customer_id || null,
     vehicle_id: v.vehicle_id || null,
-    plate: normalizePlate(v.plate),
+    plate: normalizePlate(v.plate) || null,
     customer_name: v.customer_name.trim(),
     phone: v.phone.trim() || null,
     vehicle: v.vehicle.trim(),
