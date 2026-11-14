@@ -170,7 +170,7 @@ function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; ca
       <div className="space-y-1"><Label htmlFor={`return-diagnosis-${warrantyId}`}>Avaliação / diagnóstico técnico</Label><Textarea id={`return-diagnosis-${warrantyId}`} value={draft.diagnosis} onChange={(e) => setDraft({ ...draft, diagnosis: e.target.value })} /></div>
       <div className="space-y-1"><Label htmlFor={`return-parts-${warrantyId}`}>Peças utilizadas</Label><Textarea id={`return-parts-${warrantyId}`} value={draft.parts_used} onChange={(e) => setDraft({ ...draft, parts_used: e.target.value })} /></div>
       <div className="space-y-1"><Label htmlFor={`return-labor-${warrantyId}`}>Serviço executado (interno)</Label><Textarea id={`return-labor-${warrantyId}`} value={draft.labor_description} onChange={(e) => setDraft({ ...draft, labor_description: e.target.value })} /></div>
-      <div className="space-y-1 sm:col-span-2"><Label htmlFor={`return-customer-update-${warrantyId}`}>Atualização para o cliente (opcional)</Label><Textarea id={`return-customer-update-${warrantyId}`} value={draft.customer_update} onChange={(e) => setDraft({ ...draft, customer_update: e.target.value })} placeholder="Escreva somente o que pode ser compartilhado com o cliente" /></div>
+      <div className="space-y-1 sm:col-span-2"><Label htmlFor={`return-customer-update-${warrantyId}`}>Observação para eventual comunicação ao cliente (não enviada automaticamente)</Label><Textarea id={`return-customer-update-${warrantyId}`} value={draft.customer_update} onChange={(e) => setDraft({ ...draft, customer_update: e.target.value })} placeholder="Escreva somente o que pode ser compartilhado com o cliente" /></div>
       <div className="space-y-1"><Label htmlFor={`return-status-${warrantyId}`}>Situação</Label><Select value={draft.status} onValueChange={(status) => setDraft({ ...draft, status })}><SelectTrigger id={`return-status-${warrantyId}`}><SelectValue /></SelectTrigger><SelectContent>
         <SelectItem value="received" disabled={Boolean(draft.id && draft.status !== "received")}>Recebido</SelectItem>
         <SelectItem value="in_review">Em análise</SelectItem>
@@ -203,7 +203,7 @@ function ReturnHistory({ item, onEdit, onOpen, canManage }: { canManage: boolean
     {item.diagnosis && <p className="text-sm"><strong>Diagnóstico:</strong> {item.diagnosis}</p>}
     {item.parts_used && <p className="text-sm"><strong>Peças:</strong> {item.parts_used}</p>}
     {item.labor_description && <p className="text-sm"><strong>Serviço (interno):</strong> {item.labor_description}</p>}
-    {item.customer_update && <p className="text-sm"><strong>Atualização ao cliente:</strong> {item.customer_update}</p>}
+    {item.customer_update && <p className="text-sm"><strong>Observação para comunicação ao cliente:</strong> {item.customer_update}</p>}
     {item.resolution && <p className="text-sm"><strong>Solução / justificativa:</strong> {item.resolution}</p>}
     <details className="text-xs">
       <summary className="flex cursor-pointer items-center gap-2 text-muted-foreground"><ClipboardList className="size-3" />Auditoria ({events.length} evento(s))</summary>
