@@ -20,7 +20,7 @@ ALTER TABLE public.vehicle_intake_records
   ADD CONSTRAINT vehicle_intake_records_plate_by_type_check
     CHECK (
       (intake_type = 'vehicle' AND plate IS NOT NULL
-        AND char_length(trim(plate)) BETWEEN 5 AND 12
+        AND char_length(regexp_replace(upper(trim(plate)), '[^A-Z0-9]', '', 'g')) BETWEEN 7 AND 8
         AND arrived_on_tow_truck IS NOT NULL
         AND delivered_items = '[]'::jsonb)
       OR
@@ -162,7 +162,8 @@ BEGIN
       END IF;
     END LOOP;
   ELSIF NEW.intake_type = 'vehicle' THEN
-    IF NEW.plate IS NULL OR length(trim(NEW.plate)) < 5
+    IF NEW.plate IS NULL
+       OR char_length(regexp_replace(upper(trim(NEW.plate)), '[^A-Z0-9]', '', 'g')) NOT BETWEEN 7 AND 8
        OR NEW.arrived_on_tow_truck IS NULL THEN
       RAISE EXCEPTION 'Recebimento de veículo exige placa e resposta sobre reboque';
     END IF;
