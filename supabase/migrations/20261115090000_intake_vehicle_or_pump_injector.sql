@@ -108,11 +108,11 @@ BEGIN
     IF NEW.plate IS NOT NULL AND trim(NEW.plate) <> '' THEN
       RAISE EXCEPTION 'OS de bomba/bicos não deve possuir placa de veículo';
     END IF;
-    IF CASE
-         WHEN jsonb_typeof(v_intake.delivered_items) = 'array'
-           THEN jsonb_array_length(v_intake.delivered_items) > 0
-         ELSE false
-       END IS NOT TRUE THEN
+    IF (CASE
+          WHEN jsonb_typeof(v_intake.delivered_items) = 'array'
+            THEN jsonb_array_length(v_intake.delivered_items) > 0
+          ELSE false
+        END) IS NOT TRUE THEN
       RAISE EXCEPTION 'Informe os itens e as quantidades entregues na ficha';
     END IF;
     FOR v_item IN SELECT value FROM jsonb_array_elements(v_intake.delivered_items)
