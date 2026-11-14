@@ -134,10 +134,12 @@ describe("WhatsApp", () => {
 
 
 describe("garantia", () => {
-  it("só permite emitir quando a OS está pronta para retirada", () => {
-    expect(canIssueWarranty("pronto")).toBe(true);
-    for (const status of ["recebido", "em_analise", "aguardando_aprovacao", "em_servico", "entregue", "cancelado"]) {
-      expect(canIssueWarranty(status)).toBe(false);
+  it("só permite emitir quando a OS está entregue e possui data efetiva de entrega", () => {
+    expect(canIssueWarranty("entregue", "2026-11-14T12:00:00.000Z")).toBe(true);
+    expect(canIssueWarranty("entregue", null)).toBe(false);
+    expect(canIssueWarranty("entregue", "")).toBe(false);
+    for (const status of ["recebido", "em_analise", "aguardando_aprovacao", "em_servico", "pronto", "cancelado"]) {
+      expect(canIssueWarranty(status, "2026-11-14T12:00:00.000Z")).toBe(false);
     }
   });
   it("calcula vencimento por mês-calendário, ajustando fim de mês e ano bissexto", () => {
