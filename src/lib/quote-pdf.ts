@@ -194,7 +194,21 @@ export async function createQuotePdf(o: Order, preparedBy = "", options: QuotePd
 
 export function downloadQuote(file: File) {
   const url = URL.createObjectURL(file);
-  const a = document.createElement("a"); a.href = url; a.download = file.name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 30_000);
+
+  // Em navegadores móveis, o atributo download pode ser ignorado.
+  // Abrir o PDF em uma aba permite visualizar, baixar ou compartilhar pelo próprio navegador.
+  const opened = window.open(url, "_blank");
+  if (!opened) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    a.target = "_blank";
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  // Mantém a URL viva enquanto o visualizador do navegador carrega o documento.
+  window.setTimeout(() => URL.revokeObjectURL(url), 5 * 60_000);
 }
