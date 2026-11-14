@@ -73,6 +73,8 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
   const qc = useQueryClient();
   const [intakeType, setIntakeType] = useState<IntakeType>("vehicle");
   const [customer, setCustomer] = useState(prefill?.customer_name ?? selectedCustomer?.name ?? "");
+  const [customerId, setCustomerId] = useState(selectedCustomer?.id ?? "");
+  const selectedCustomerRecord = customers.find((item) => item.id === customerId);
   const [vehicle, setVehicle] = useState(prefill?.vehicle ?? selectedVehicle?.model ?? "");
   const [plate, setPlate] = useState(prefill?.plate ?? selectedVehicle?.plate ?? "");
   const [towTruck, setTowTruck] = useState("no");
@@ -80,8 +82,9 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
   const [items, setItems] = useState<DeliveredItem[]>([{ description: "", quantity: "1" }]);
   const [savingIntake, setSavingIntake] = useState(false);
   const [intake, setIntake] = useState<IntakeOption | null>(null);
-  const intakeMatchesSelectedCustomer = Boolean(intake && selectedCustomer &&
-    selectedCustomer.name.trim().toLocaleLowerCase("pt-BR") === intake.customer_name.trim().toLocaleLowerCase("pt-BR"));
+  const intakeCustomerRecord = selectedCustomerRecord ?? selectedCustomer;
+  const intakeMatchesSelectedCustomer = Boolean(intake && intakeCustomerRecord &&
+    intakeCustomerRecord.name.trim().toLocaleLowerCase("pt-BR") === intake.customer_name.trim().toLocaleLowerCase("pt-BR"));
   const intakeMatchesPrefillCustomer = Boolean(intake && prefill?.customer_name &&
     prefill.customer_name.trim().toLocaleLowerCase("pt-BR") === intake.customer_name.trim().toLocaleLowerCase("pt-BR"));
   const intakeMatchesSelectedVehicle = Boolean(intake?.intake_type === "vehicle" && selectedVehicle &&
@@ -110,9 +113,9 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
     ...(selectedCustomer ? { customer_id: selectedCustomer.id, customer_name: selectedCustomer.name, phone: selectedCustomer.phone ?? "" } : {}),
     ...(selectedVehicle ? { vehicle_id: selectedVehicle.id, plate: selectedVehicle.plate, vehicle: selectedVehicle.model, vehicle_year: selectedVehicle.year ?? "", mileage: selectedVehicle.mileage ?? "" } : {}),
     ...(intake ? {
-      customer_id: intakeMatchesSelectedCustomer ? selectedCustomer?.id ?? "" : "",
+      customer_id: intakeMatchesSelectedCustomer ? intakeCustomerRecord?.id ?? "" : "",
       customer_name: intake.customer_name,
-      phone: intakeMatchesSelectedCustomer ? selectedCustomer?.phone ?? "" : intakeMatchesPrefillCustomer ? prefill?.phone ?? "" : "",
+      phone: intakeMatchesSelectedCustomer ? intakeCustomerRecord?.phone ?? "" : intakeMatchesPrefillCustomer ? prefill?.phone ?? "" : "",
       vehicle_id: intakeMatchesSelectedVehicle ? selectedVehicle?.id ?? "" : "",
       vehicle: intake.vehicle,
       plate: intake.plate ?? "",
@@ -182,7 +185,24 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2"><Label htmlFor="intake-customer">Cliente *</Label><Input id="intake-customer" required minLength={2} maxLength={160} value={customer} onChange={e => setCustomer(e.target.value)} /></div>
+          <div className="space-y-2">
+            <Label htmlFor="intake-customer-record">Selecionar cliente cadastrado</Label>
+            <Select value={customerId || "manual"} onValueChange={(id) => {
+              const record = customers.find((item) => item.id === id);
+              setCustomerId(record?.id ?? "");
+              if (record) setCustomer(record.name);
+            }}>
+              <SelectTrigger id="intake-customer-record"><SelectValue placeholder="Escolha um cliente ou informe manualmente" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="manual">Cliente não cadastrado / informar manualmente</SelectItem>
+                {customers.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2"><Label htmlFor="intake-customer">Cliente *</Label><Input id="intake-customer" required minLength={2} maxLength={160} value={customer} onChange={e => {
+            setCustomer(e.target.value);
+            if (selectedCustomerRecord && e.target.value.trim() !== selectedCustomerRecord.name) setCustomerId("");
+          }} /></div>
           {intakeType === "vehicle" ? (
             <>
               <div className="space-y-2"><Label htmlFor="intake-vehicle">Veículo *</Label><Input id="intake-vehicle" required minLength={2} maxLength={160} value={vehicle} onChange={e => setVehicle(e.target.value)} /></div>
