@@ -77,7 +77,9 @@
     "@capacitor/app": "^7.0.2",
     "@capacitor/browser": "^7.0.5",
     "@capacitor/push-notifications": "^7.0.2",
-    "@capacitor/preferences": "^7.0.3"
+    "@capacitor/preferences": "^7.0.3",
+    "@capacitor/filesystem": "^7.0.2",
+    "@capacitor/share": "^7.0.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
