@@ -206,6 +206,7 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
             key={intake.id}
             initial={initial}
             plateRequired={intake.intake_type === "vehicle"}
+            intakeLocked
             submitLabel="Abrir OS"
             onSubmit={async (input) => {
               const { data: auth } = await supabase.auth.getUser();
