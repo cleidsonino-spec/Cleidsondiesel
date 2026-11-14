@@ -51,7 +51,7 @@ BEGIN
 END $$;
 SELECT public.register_warranty_return('20000000-0000-4000-8000-000000000001','Cliente relata falha após entrega',(SELECT return_id FROM test_ids),'in_review','Falha confirmada','Em análise');
 SELECT public.register_warranty_return('20000000-0000-4000-8000-000000000001','Cliente relata falha após entrega',(SELECT return_id FROM test_ids),'resolved','Falha confirmada','Componente substituído');
-INSERT INTO test_ids(open_return_id) SELECT public.register_warranty_return('20000000-0000-4000-8000-000000000001','Retorno sintético para abertura de OS');
+UPDATE test_ids SET open_return_id = public.register_warranty_return('20000000-0000-4000-8000-000000000001','Retorno sintético para abertura de OS');
 UPDATE test_ids SET return_order_id=public.open_warranty_return_service_order(open_return_id);
 DO $$
 DECLARE t test_ids%ROWTYPE; o public.service_orders;
