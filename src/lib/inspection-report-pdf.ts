@@ -14,7 +14,7 @@ export type InspectionReportOrder = {
   phone: string | null;
   vehicle: string;
   vehicle_year: string | null;
-  plate: string;
+  plate: string | null;
   mileage: string | null;
   entry_date: string;
 };
