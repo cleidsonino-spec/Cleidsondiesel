@@ -17,16 +17,18 @@ AS $$
 DECLARE
   v_intake public.vehicle_intake_records;
 BEGIN
-  IF TG_OP = 'UPDATE' THEN
-    IF OLD.vehicle_intake_id IS NOT NULL
-       AND NEW.vehicle_intake_id IS DISTINCT FROM OLD.vehicle_intake_id THEN
-      RAISE EXCEPTION 'A ficha de recebimento vinculada à OS não pode ser alterada';
-    END IF;
-    RETURN NEW;
+  IF TG_OP = 'UPDATE'
+     AND OLD.vehicle_intake_id IS NOT NULL
+     AND NEW.vehicle_intake_id IS DISTINCT FROM OLD.vehicle_intake_id THEN
+    RAISE EXCEPTION 'A ficha de recebimento vinculada à OS não pode ser alterada';
   END IF;
 
+  -- Atualizações de OS antigas que não possuem ficha continuam permitidas.
   IF NEW.vehicle_intake_id IS NULL THEN
-    RAISE EXCEPTION 'Registre o recebimento do veículo antes de abrir a ordem de serviço';
+    IF TG_OP = 'INSERT' THEN
+      RAISE EXCEPTION 'Registre o recebimento do veículo antes de abrir a ordem de serviço';
+    END IF;
+    RETURN NEW;
   END IF;
 
   SELECT * INTO v_intake
@@ -55,7 +57,8 @@ CREATE TRIGGER service_orders_require_vehicle_intake
   FOR EACH ROW
   EXECUTE FUNCTION public.enforce_service_order_vehicle_intake();
 
--- A abertura de retorno em garantia também exige ficha própria.
+-- A abertura de retorno em garantia exige ficha própria e preserva a
+-- herança dos mecânicos ativos da OS original (implementada na migration 1830).
 DROP FUNCTION IF EXISTS public.open_warranty_return_service_order(uuid);
 
 CREATE FUNCTION public.open_warranty_return_service_order(
@@ -87,9 +90,6 @@ BEGIN
   IF v_return.status IN ('resolved', 'not_covered') THEN
     RAISE EXCEPTION 'Não é possível abrir OS para um retorno encerrado';
   END IF;
-  IF v_return.return_service_order_id IS NOT NULL THEN
-    RETURN v_return.return_service_order_id;
-  END IF;
 
   SELECT * INTO v_original
   FROM public.service_orders
@@ -97,30 +97,52 @@ BEGIN
   FOR SHARE;
   IF NOT FOUND THEN RAISE EXCEPTION 'OS original não encontrada'; END IF;
 
-  INSERT INTO public.service_orders (
-    customer_id, vehicle_id, customer_name, phone, vehicle, vehicle_year,
-    plate, mileage, complaint, diagnosis, parts, part_items,
-    parts_value, labor_value, status, entry_date, due_date, notes,
-    inspection_checklist, created_by, vehicle_intake_id
-  ) VALUES (
-    v_original.customer_id, v_original.vehicle_id, v_original.customer_name,
-    v_original.phone, v_original.vehicle, v_original.vehicle_year,
-    v_original.plate, v_original.mileage,
-    'RETORNO EM GARANTIA — ' || v_return.complaint,
-    NULL, NULL, '[]'::jsonb, 0, 0, 'recebido',
-    CURRENT_DATE, NULL,
-    'Retorno em garantia #' || v_return.id::text ||
-      '. OS original nº ' || v_original.number::text ||
-      '. Consulte o histórico da OS original antes de iniciar o serviço.',
-    '[]'::jsonb, auth.uid(), _intake_id
-  )
-  RETURNING id INTO v_new_id;
+  IF v_return.return_service_order_id IS NOT NULL THEN
+    v_new_id := v_return.return_service_order_id;
+  ELSE
+    INSERT INTO public.service_orders (
+      customer_id, vehicle_id, customer_name, phone, vehicle, vehicle_year,
+      plate, mileage, complaint, diagnosis, parts, part_items,
+      parts_value, labor_value, status, entry_date, due_date, notes,
+      inspection_checklist, created_by, vehicle_intake_id
+    ) VALUES (
+      v_original.customer_id, v_original.vehicle_id, v_original.customer_name,
+      v_original.phone, v_original.vehicle, v_original.vehicle_year,
+      v_original.plate, v_original.mileage,
+      'RETORNO EM GARANTIA — ' || v_return.complaint,
+      NULL, NULL, '[]'::jsonb, 0, 0, 'recebido',
+      CURRENT_DATE, NULL,
+      'Retorno em garantia #' || v_return.id::text ||
+        '. OS original nº ' || v_original.number::text ||
+        '. Consulte o histórico da OS original antes de iniciar o serviço.',
+      '[]'::jsonb, auth.uid(), _intake_id
+    )
+    RETURNING id INTO v_new_id;
 
-  UPDATE public.warranty_returns
-  SET return_service_order_id = v_new_id,
-      updated_by = auth.uid(),
-      updated_at = now()
-  WHERE id = _return_id;
+    UPDATE public.warranty_returns
+    SET return_service_order_id = v_new_id,
+        updated_by = auth.uid(),
+        updated_at = now()
+    WHERE id = _return_id;
+  END IF;
+
+  -- Mantém a mesma regra da migration de herança: copia atribuições ativas
+  -- e não duplica mecânicos que já estejam ativos na OS de retorno.
+  INSERT INTO public.service_order_assignments (
+    service_order_id, mechanic_user_id, assigned_by, active
+  )
+  SELECT
+    v_new_id, source_assignment.mechanic_user_id, auth.uid(), true
+  FROM public.service_order_assignments AS source_assignment
+  WHERE source_assignment.service_order_id = v_original.id
+    AND source_assignment.active = true
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.service_order_assignments AS existing_assignment
+      WHERE existing_assignment.service_order_id = v_new_id
+        AND existing_assignment.mechanic_user_id = source_assignment.mechanic_user_id
+        AND existing_assignment.active = true
+    );
 
   RETURN v_new_id;
 END;
