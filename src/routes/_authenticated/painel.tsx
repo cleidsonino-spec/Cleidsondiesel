@@ -97,6 +97,7 @@ function PainelLayout() {
                       <SheetClose asChild><PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" /></SheetClose>
                       <SheetClose asChild><PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" /></SheetClose>
                       <SheetClose asChild><PanelLink to="/painel/relatorios" icon={<ClipboardCheck />} label="Relatórios" /></SheetClose>
+                      <SheetClose asChild><PanelLink to="/painel/recebimento" icon={<ClipboardCheck />} label="Recebimento de veículos" /></SheetClose>
                       <p className="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cadastros</p>
                       <SheetClose asChild><PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" /></SheetClose>
                       {isAdmin && <SheetClose asChild><PanelLink to="/painel/funcionarios" icon={<UserCog />} label="Funcionário" /></SheetClose>}
@@ -124,6 +125,7 @@ function PainelLayout() {
             <PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" />
             {(isAdmin || isSecretary) && <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />}
             {(isAdmin || isSecretary) && <PanelLink to="/painel/relatorios" icon={<ClipboardCheck />} label="Relatórios" />}
+            {(isAdmin || isSecretary) && <PanelLink to="/painel/recebimento" icon={<ClipboardCheck />} label="Recebimento" />}
             <PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" />
             {isAdmin && <PanelLink to="/painel/funcionarios" icon={<UserCog />} label="Funcionário" />}
             {isAdmin && <PanelLink to="/painel/veiculos" icon={<Car />} label="Veículos" />}
@@ -149,7 +151,7 @@ function PainelLayout() {
 }
 
 function PanelLink({ to, icon, label, exact }: {
-  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias" | "/painel/financeiro" | "/painel/relatorios" | "/painel/cobrancas" | "/painel/funcionarios";
+  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias" | "/painel/financeiro" | "/painel/relatorios" | "/painel/recebimento" | "/painel/cobrancas" | "/painel/funcionarios";
   icon: React.ReactNode;
   label: string;
   exact?: boolean;
