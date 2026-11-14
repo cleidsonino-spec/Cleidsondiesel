@@ -65,10 +65,10 @@ export function statusMessage(o: OrderLike, siteUrl?: string): string {
     `Atualização da OS nº ${o.number} — ${o.vehicle}${o.plate ? " (" + formatPlate(o.plate) + ")" : ""}:`,
     `*Status: ${info.label}*`,
   ];
-  if (o.status === "pronto") lines.push(``, `Seu veículo já está pronto para retirada!`);
+  if (o.status === "pronto") lines.push(``, o.plate ? `Seu veículo já está pronto para retirada!` : `Seu serviço já está pronto para retirada!`);
   else if (o.due_date && o.status !== "entregue" && o.status !== "cancelado")
     lines.push(`Previsão de entrega: ${formatDateBR(o.due_date)}`);
-  if (siteUrl) lines.push(``, `Acompanhe pela placa: ${siteUrl}/consulta`);
+  if (siteUrl && o.plate) lines.push(``, `Acompanhe pela placa: ${siteUrl}/consulta`);
   return lines.join("\n");
 }
 
