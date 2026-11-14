@@ -58,7 +58,7 @@ BEGIN
     'Retorno em garantia #' || v_return.id::text ||
       '. OS original nº ' || v_original.number::text ||
       '. Consulte o histórico da OS original antes de iniciar o serviço.',
-    '{}'::jsonb, auth.uid()
+    '[]'::jsonb, auth.uid()
   )
   RETURNING id INTO v_new_id;
 
