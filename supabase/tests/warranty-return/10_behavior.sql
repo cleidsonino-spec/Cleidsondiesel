@@ -51,13 +51,13 @@ BEGIN
 END $$;
 SELECT public.register_warranty_return('20000000-0000-4000-8000-000000000001','Cliente relata falha após entrega',(SELECT return_id FROM test_ids),'in_review','Falha confirmada','Em análise');
 SELECT public.register_warranty_return('20000000-0000-4000-8000-000000000001','Cliente relata falha após entrega',(SELECT return_id FROM test_ids),'resolved','Falha confirmada','Componente substituído');
-DO $
+DO $audit$
 DECLARE n integer; rid uuid;
 BEGIN
  SELECT return_id INTO rid FROM test_ids;
  SELECT count(*) INTO n FROM public.warranty_return_events WHERE warranty_return_id=rid AND event_type='updated';
  IF n <> 2 THEN RAISE EXCEPTION 'FAIL: expected two update audit events, got %', n; END IF;
-END $;
+END $audit$;
 UPDATE test_ids SET open_return_id = public.register_warranty_return('20000000-0000-4000-8000-000000000001','Retorno sintético para abertura de OS');
 UPDATE test_ids SET return_order_id=public.open_warranty_return_service_order(open_return_id);
 DO $$
