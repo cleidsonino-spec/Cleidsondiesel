@@ -1,3 +1,4 @@
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { formatPlate } from "@/lib/plate";
 import { formatDateBR } from "@/lib/schedule";
 
@@ -123,6 +124,64 @@ export function downloadInspectionReport(file: File) {
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = file.name;
+  anchor.style.display = "none";
+  document.body.appendChild(anchor);
   anchor.click();
-  URL.revokeObjectURL(url);
+  anchor.remove();
+
+  // Android/Chrome pode iniciar o download de forma assíncrona.
+  // Revogar a URL imediatamente interrompe o acesso ao Blob antes
+  // de o navegador concluir a leitura do arquivo.
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+
+type NativeFilesystem = {
+  writeFile(options: { path: string; data: string; directory: "CACHE" | "DOCUMENTS"; recursive?: boolean }): Promise<{ uri: string }>;
+};
+type NativeShare = {
+  share(options: { title?: string; text?: string; url?: string; dialogTitle?: string }): Promise<void>;
+};
+const NativeFilesystem = registerPlugin<NativeFilesystem>("Filesystem");
+const NativeShare = registerPlugin<NativeShare>("Share");
+
+async function fileToBase64(file: File): Promise<string> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return btoa(binary);
+}
+
+export async function saveInspectionReport(file: File): Promise<void> {
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android") {
+    await NativeFilesystem.writeFile({
+      path: file.name,
+      data: await fileToBase64(file),
+      directory: "DOCUMENTS",
+      recursive: true,
+    });
+    return;
+  }
+  downloadInspectionReport(file);
+}
+
+export async function shareInspectionReport(file: File, title: string, text: string): Promise<void> {
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android") {
+    const saved = await NativeFilesystem.writeFile({
+      path: file.name,
+      data: await fileToBase64(file),
+      directory: "CACHE",
+      recursive: true,
+    });
+    await NativeShare.share({ title, text, url: saved.uri, dialogTitle: "Compartilhar relatório técnico" });
+    return;
+  }
+  if (navigator.share && navigator.canShare?.({ files: [file] })) {
+    await navigator.share({ files: [file], title, text });
+    return;
+  }
+  downloadInspectionReport(file);
 }

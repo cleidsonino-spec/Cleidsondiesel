@@ -11,6 +11,9 @@ on:
     paths:
       - "capacitor.config.ts"
       - ".github/workflows/build-android-apk.yml"
+      - "package.json"
+      - "src/lib/inspection-report-pdf.ts"
+      - "src/components/painel/inspection-report-editor.tsx"
 
 permissions:
   contents: read
@@ -63,7 +66,7 @@ jobs:
           mkdir -p /tmp/capacitor-tools
           cd /tmp/capacitor-tools
           npm init -y
-          npm install --no-audit --no-fund typescript @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/assets @capacitor/app@7 @capacitor/browser@7 @capacitor/preferences@7 @capacitor/push-notifications@7
+          npm install --no-audit --no-fund typescript @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor/assets @capacitor/app@7 @capacitor/browser@7 @capacitor/preferences@7 @capacitor/push-notifications@7 @capacitor/filesystem@7 @capacitor/share@7
           ln -s /tmp/capacitor-tools/node_modules "$GITHUB_WORKSPACE/node_modules"
 
       - name: Add Android project

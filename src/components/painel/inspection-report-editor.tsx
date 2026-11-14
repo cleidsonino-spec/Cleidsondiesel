@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { Download, FileText, Loader2, Save, Send, Share2, CheckCircle2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,8 @@ import { InspectionDiagnosisAction } from "@/components/painel/inspection-diagno
 import {
   createInspectionReportPdf,
   downloadInspectionReport,
+  saveInspectionReport,
+  shareInspectionReport,
   type InspectionReportData,
   type InspectionReportOrder,
 } from "@/lib/inspection-report-pdf";
@@ -151,17 +154,15 @@ export function InspectionReportEditor({ order, isAdmin, isSecretary }: Props) {
         throw new Error(authorizationError?.message ?? "Relatório aprovado não disponível para emissão.");
       }
       const file = await createInspectionReportPdf(order, approvedData as InspectionReportData);
-      if (!share) {
-        downloadInspectionReport(file);
-      } else if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: `Relatório técnico OS ${order.number} — Cleidson Diesel`,
-          text: `Olá, ${order.customer_name}! Segue o relatório técnico da sua ordem de serviço.`,
-        });
+      const title = `Relatório técnico OS ${order.number} — Cleidson Diesel`;
+      const message = `Olá, ${order.customer_name}! Segue o relatório técnico da sua ordem de serviço.`;
+      if (share) {
+        await shareInspectionReport(file, title, message);
       } else {
-        downloadInspectionReport(file);
-        toast.message("PDF baixado. Anexe o arquivo ao enviar pelo WhatsApp.");
+        await saveInspectionReport(file);
+        toast.success(Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android"
+          ? "PDF salvo na pasta Documentos do aparelho."
+          : "PDF baixado.");
       }
     } catch (error) {
       if (!(error instanceof Error && error.name === "AbortError")) {
