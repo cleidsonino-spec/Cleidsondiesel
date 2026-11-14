@@ -82,7 +82,7 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
   const [items, setItems] = useState<DeliveredItem[]>([{ description: "", quantity: "1" }]);
   const [savingIntake, setSavingIntake] = useState(false);
   const [intake, setIntake] = useState<IntakeOption | null>(null);
-  const intakeCustomerRecord = selectedCustomerRecord ?? selectedCustomer;
+  const intakeCustomerRecord = selectedCustomerRecord;
   const intakeMatchesSelectedCustomer = Boolean(intake && intakeCustomerRecord &&
     intakeCustomerRecord.name.trim().toLocaleLowerCase("pt-BR") === intake.customer_name.trim().toLocaleLowerCase("pt-BR"));
   const intakeMatchesPrefillCustomer = Boolean(intake && prefill?.customer_name &&
