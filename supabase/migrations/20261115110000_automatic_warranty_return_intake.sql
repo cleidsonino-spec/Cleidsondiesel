@@ -1,0 +1,196 @@
+-- Cria automaticamente uma ficha independente ao abrir uma OS de retorno em garantia.
+-- Para OS antigas sem ficha, exige confirmação explícita dos dados de recebimento.
+CREATE OR REPLACE FUNCTION public.open_warranty_return_service_order(
+  _return_id uuid,
+  _legacy_intake jsonb
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_return public.warranty_returns;
+  v_original public.service_orders;
+  v_source_intake public.vehicle_intake_records;
+  v_has_source_intake boolean := false;
+  v_new_intake_id uuid;
+  v_new_id uuid;
+  v_intake_type text;
+  v_plate text;
+  v_arrived_on_tow_truck boolean;
+  v_delivered_items jsonb;
+BEGIN
+  IF auth.uid() IS NULL OR NOT (
+    public.has_role(auth.uid(), 'admin'::public.app_role)
+    OR public.has_role(auth.uid(), 'secretaria'::public.app_role)
+  ) THEN
+    RAISE EXCEPTION 'Acesso não autorizado';
+  END IF;
+
+  SELECT * INTO v_return
+  FROM public.warranty_returns
+  WHERE id = _return_id
+  FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Retorno em garantia não encontrado'; END IF;
+  IF v_return.status IN ('resolved', 'not_covered') THEN
+    RAISE EXCEPTION 'Não é possível abrir OS para um retorno encerrado';
+  END IF;
+
+  SELECT * INTO v_original
+  FROM public.service_orders
+  WHERE id = v_return.service_order_id
+  FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'OS original não encontrada'; END IF;
+
+  IF v_return.return_service_order_id IS NOT NULL THEN
+    RETURN v_return.return_service_order_id;
+  END IF;
+
+  IF v_original.vehicle_intake_id IS NOT NULL THEN
+    SELECT * INTO v_source_intake
+    FROM public.vehicle_intake_records
+    WHERE id = v_original.vehicle_intake_id;
+    v_has_source_intake := FOUND;
+  END IF;
+
+  IF v_has_source_intake THEN
+    INSERT INTO public.vehicle_intake_records (
+      customer_name, vehicle, plate, received_at, received_by,
+      received_by_name, notes, intake_type, arrived_on_tow_truck,
+      delivered_items
+    ) VALUES (
+      v_source_intake.customer_name,
+      v_source_intake.vehicle,
+      v_source_intake.plate,
+      now(),
+      auth.uid(),
+      'Equipe',
+      concat_ws(E'\n', nullif(v_source_intake.notes, ''),
+        'Novo recebimento gerado automaticamente para retorno em garantia #' || v_return.id::text),
+      v_source_intake.intake_type,
+      v_source_intake.arrived_on_tow_truck,
+      v_source_intake.delivered_items
+    )
+    RETURNING id INTO v_new_intake_id;
+  ELSE
+    IF _legacy_intake IS NULL OR jsonb_typeof(_legacy_intake) IS DISTINCT FROM 'object' THEN
+      RAISE EXCEPTION 'CONFIRMAR_DADOS_RECEBIMENTO: A OS original não possui ficha. Confirme a modalidade e os dados de entrada para continuar.';
+    END IF;
+
+    v_intake_type := _legacy_intake->>'intake_type';
+    IF v_intake_type = 'vehicle' THEN
+      v_plate := nullif(upper(regexp_replace(trim(coalesce(_legacy_intake->>'plate','')), '[^A-Z0-9]', '', 'g')), '');
+      IF v_plate IS NULL OR char_length(v_plate) NOT BETWEEN 7 AND 8
+         OR coalesce(_legacy_intake->>'arrived_on_tow_truck','') NOT IN ('true','false') THEN
+        RAISE EXCEPTION 'Para recebimento de veículo, confirme uma placa válida e se chegou no reboque.';
+      END IF;
+      v_arrived_on_tow_truck := (_legacy_intake->>'arrived_on_tow_truck')::boolean;
+      v_delivered_items := '[]'::jsonb;
+      v_source_intake.customer_name := v_original.customer_name;
+      v_source_intake.vehicle := v_original.vehicle;
+    ELSIF v_intake_type = 'pump_injector' THEN
+      IF length(trim(coalesce(_legacy_intake->>'item_description',''))) < 2
+         OR coalesce(_legacy_intake->>'item_quantity','') !~ '^[1-9][0-9]*$' THEN
+        RAISE EXCEPTION 'Para bomba/bicos, informe a descrição e a quantidade entregue.';
+      END IF;
+      v_plate := NULL;
+      v_arrived_on_tow_truck := NULL;
+      v_delivered_items := jsonb_build_array(jsonb_build_object(
+        'description', trim(_legacy_intake->>'item_description'),
+        'quantity', (_legacy_intake->>'item_quantity')::integer
+      ));
+      v_source_intake.customer_name := v_original.customer_name;
+      v_source_intake.vehicle := 'Bomba/bicos injetores';
+    ELSE
+      RAISE EXCEPTION 'Selecione se o recebimento é de veículo ou de bomba/bicos.';
+    END IF;
+
+    v_source_intake.plate := v_plate;
+    v_source_intake.intake_type := v_intake_type;
+    v_source_intake.arrived_on_tow_truck := v_arrived_on_tow_truck;
+    v_source_intake.delivered_items := v_delivered_items;
+
+    INSERT INTO public.vehicle_intake_records (
+      customer_name, vehicle, plate, received_at, received_by,
+      received_by_name, notes, intake_type, arrived_on_tow_truck,
+      delivered_items
+    ) VALUES (
+      v_source_intake.customer_name,
+      v_source_intake.vehicle,
+      v_plate,
+      now(),
+      auth.uid(),
+      'Equipe',
+      'Recebimento confirmado manualmente ao abrir retorno em garantia #' || v_return.id::text,
+      v_intake_type,
+      v_arrived_on_tow_truck,
+      v_delivered_items
+    )
+    RETURNING id INTO v_new_intake_id;
+  END IF;
+
+  INSERT INTO public.service_orders (
+    customer_id, vehicle_id, customer_name, phone, vehicle, vehicle_year,
+    plate, mileage, complaint, diagnosis, parts, part_items,
+    parts_value, labor_value, status, entry_date, due_date, notes,
+    inspection_checklist, created_by, vehicle_intake_id
+  ) VALUES (
+    v_original.customer_id,
+    CASE WHEN v_source_intake.intake_type = 'pump_injector' THEN NULL ELSE v_original.vehicle_id END,
+    v_source_intake.customer_name,
+    v_original.phone,
+    v_source_intake.vehicle,
+    CASE WHEN v_source_intake.intake_type = 'pump_injector' THEN NULL ELSE v_original.vehicle_year END,
+    v_source_intake.plate,
+    CASE WHEN v_source_intake.intake_type = 'pump_injector' THEN NULL ELSE v_original.mileage END,
+    'RETORNO EM GARANTIA — ' || v_return.complaint,
+    NULL, NULL, '[]'::jsonb, 0, 0, 'recebido',
+    CURRENT_DATE, NULL,
+    'Retorno em garantia #' || v_return.id::text ||
+      '. OS original nº ' || v_original.number::text ||
+      '. Consulte o histórico da OS original antes de iniciar o serviço.',
+    '[]'::jsonb, auth.uid(), v_new_intake_id
+  )
+  RETURNING id INTO v_new_id;
+
+  UPDATE public.warranty_returns
+  SET return_service_order_id = v_new_id,
+      updated_by = auth.uid(),
+      updated_at = now()
+  WHERE id = _return_id;
+
+  INSERT INTO public.service_order_assignments (
+    service_order_id, mechanic_user_id, assigned_by, active
+  )
+  SELECT
+    v_new_id, source_assignment.mechanic_user_id, auth.uid(), true
+  FROM public.service_order_assignments AS source_assignment
+  WHERE source_assignment.service_order_id = v_original.id
+    AND source_assignment.active = true
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.service_order_assignments AS existing_assignment
+      WHERE existing_assignment.service_order_id = v_new_id
+        AND existing_assignment.mechanic_user_id = source_assignment.mechanic_user_id
+        AND existing_assignment.active = true
+    );
+
+  RETURN v_new_id;
+END;
+$$;
+
+-- Mantém a chamada sem dados extras para retornos cuja OS original já tem ficha.
+CREATE OR REPLACE FUNCTION public.open_warranty_return_service_order(_return_id uuid)
+RETURNS uuid
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $function$
+  SELECT public.open_warranty_return_service_order(_return_id, NULL::jsonb);
+$function$;
+
+REVOKE ALL ON FUNCTION public.open_warranty_return_service_order(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.open_warranty_return_service_order(uuid, jsonb) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.open_warranty_return_service_order(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.open_warranty_return_service_order(uuid, jsonb) TO authenticated;

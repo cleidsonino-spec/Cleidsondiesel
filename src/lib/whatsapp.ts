@@ -30,16 +30,16 @@ export function appointmentShopLink(a: { name: string; date: string; time: strin
   ].join("\n"));
 }
 
-export function approvalShopLink(o: { number: number; plate: string; vehicle: string }, name: string): string | null {
+export function approvalShopLink(o: { number: number; plate: string | null; vehicle: string }, name: string): string | null {
   return waLink(SHOP_PHONE, [
     `Olá, Cleidson Diesel! Sou ${name} e aprovei o orçamento da OS nº ${o.number} pelo site.`,
-    `Veículo: ${o.vehicle} (${formatPlate(o.plate)}).`,
+    `Veículo: ${o.vehicle}${o.plate ? " (" + formatPlate(o.plate) + ")" : ""}.`,
   ].join("\n"));
 }
 
 type OrderLike = {
   number: number;
-  plate: string;
+  plate: string | null;
   customer_name: string;
   vehicle: string;
   status: OrderStatus;
@@ -62,13 +62,13 @@ export function statusMessage(o: OrderLike, siteUrl?: string): string {
   const lines = [
     `Olá, ${firstName(o.customer_name)}! Aqui é da ${SHOP}.`,
     ``,
-    `Atualização da OS nº ${o.number} — ${o.vehicle} (${formatPlate(o.plate)}):`,
+    `Atualização da OS nº ${o.number} — ${o.vehicle}${o.plate ? " (" + formatPlate(o.plate) + ")" : ""}:`,
     `*Status: ${info.label}*`,
   ];
-  if (o.status === "pronto") lines.push(``, `Seu veículo já está pronto para retirada!`);
+  if (o.status === "pronto") lines.push(``, o.plate ? `Seu veículo já está pronto para retirada!` : `Seu serviço já está pronto para retirada!`);
   else if (o.due_date && o.status !== "entregue" && o.status !== "cancelado")
     lines.push(`Previsão de entrega: ${formatDateBR(o.due_date)}`);
-  if (siteUrl) lines.push(``, `Acompanhe pela placa: ${siteUrl}/consulta`);
+  if (siteUrl && o.plate) lines.push(``, `Acompanhe pela placa: ${siteUrl}/consulta`);
   return lines.join("\n");
 }
 
@@ -78,7 +78,7 @@ export function quoteMessage(o: OrderLike, approvalLink?: string, preparedBy?: s
     `Olá, ${firstName(o.customer_name)}! Aqui é da ${SHOP}.`,
     ``,
     `*Orçamento — OS nº ${o.number}*`,
-    `Veículo: ${o.vehicle} (${formatPlate(o.plate)})`,
+    `Veículo: ${o.vehicle}${o.plate ? " (" + formatPlate(o.plate) + ")" : ""}`,
     ...(preparedBy?.trim() ? [`Orçamento preparado por: ${preparedBy.trim()}`] : []),
   ];
   if (o.diagnosis) lines.push(``, `Diagnóstico: ${o.diagnosis}`);

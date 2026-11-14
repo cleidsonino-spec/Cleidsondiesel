@@ -14,6 +14,7 @@ import { formatDateBR, todayISO } from "@/lib/schedule";
 
 type WarrantyDraft = { id?: string; start: string; months: string; coverage: string; terms: string };
 type ReturnDraft = { id?: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; customer_update: string; status: string };
+type LegacyIntakeDraft = { returnId: string; customerName: string; vehicle: string; plate: string; intakeType: "" | "vehicle" | "pump_injector"; arrivedOnTowTruck: "" | "true" | "false"; itemDescription: string; itemQuantity: string };
 const returnLabels: Record<string, string> = { received: "Recebido", in_review: "Em análise", resolved: "Resolvido", not_covered: "Fora da cobertura" };
 export function WarrantyEditor({ orderId, orderStatus, deliveredAt, canManage }: { orderId: string; orderStatus: string; deliveredAt: string | null; canManage: boolean }) {
   const { data } = useSuspenseQuery(warrantiesQuery());
@@ -112,20 +113,7 @@ function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; ca
   const qc = useQueryClient();
   const [draft, setDraft] = useState<ReturnDraft | null>(null);
   const [saving, setSaving] = useState(false);
-  const [selectedIntakeId, setSelectedIntakeId] = useState("");
-  const intakes = useQuery({
-    queryKey: ["available-vehicle-intakes"],
-    queryFn: async () => {
-      const [{ data: records, error: intakeError }, { data: linked, error: orderError }] = await Promise.all([
-        (supabase as any).from("vehicle_intake_records").select("id,customer_name,vehicle,plate,received_at").order("received_at", { ascending: false }),
-        (supabase as any).from("service_orders").select("vehicle_intake_id").not("vehicle_intake_id", "is", null),
-      ]);
-      if (intakeError) throw intakeError;
-      if (orderError) throw orderError;
-      const used = new Set((linked ?? []).map((row: { vehicle_intake_id: string }) => row.vehicle_intake_id));
-      return (records ?? []).filter((row: { id: string }) => !used.has(row.id)) as { id: string; customer_name: string; vehicle: string; plate: string; received_at: string }[];
-    },
-  });
+  const [legacyIntake, setLegacyIntake] = useState<LegacyIntakeDraft | null>(null);
   const { data = [], isLoading, error } = useQuery({
     queryKey: ["warranty-returns", warrantyId],
     queryFn: async () => {
@@ -134,6 +122,80 @@ function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; ca
       return data as { id: string; warranty_id: string; service_order_id: string; return_service_order_id: string | null; status: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; customer_update: string; received_at: string; updated_at: string; closed_at: string | null }[];
     },
   });
+
+  async function openReturnOrder(item: { id: string; service_order_id: string }) {
+    const { data: original, error: originalError } = await (supabase as any)
+      .from("service_orders")
+      .select("vehicle_intake_id,customer_name,vehicle,plate")
+      .eq("id", item.service_order_id)
+      .single();
+    if (originalError || !original) {
+      toast.error(originalError?.message || "Não foi possível consultar a OS original.");
+      return;
+    }
+    if (!original.vehicle_intake_id) {
+      setLegacyIntake({
+        returnId: item.id,
+        customerName: original.customer_name ?? "",
+        vehicle: original.vehicle ?? "",
+        plate: original.plate ?? "",
+        intakeType: "",
+        arrivedOnTowTruck: "",
+        itemDescription: "",
+        itemQuantity: "1",
+      });
+      return;
+    }
+    await createReturnOrder(item.id);
+  }
+
+  async function createReturnOrder(returnId: string, legacy?: LegacyIntakeDraft) {
+    const payload = legacy
+      ? legacy.intakeType === "vehicle"
+        ? { intake_type: "vehicle", plate: legacy.plate, arrived_on_tow_truck: legacy.arrivedOnTowTruck }
+        : { intake_type: "pump_injector", item_description: legacy.itemDescription, item_quantity: legacy.itemQuantity }
+      : undefined;
+    const { data: newOrderId, error } = await (supabase as any).rpc("open_warranty_return_service_order", {
+      _return_id: returnId,
+      ...(payload ? { _legacy_intake: payload } : {}),
+    });
+    if (error) {
+      toast.error(error.message || "Não foi possível abrir a OS do retorno.");
+      return;
+    }
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["warranty-returns", warrantyId] }),
+      qc.invalidateQueries({ queryKey: ["orders"] }),
+      qc.invalidateQueries({ queryKey: ["warranty-return-order-priority"] }),
+    ]);
+    setLegacyIntake(null);
+    if (newOrderId) window.location.assign(`/painel/ordens/${newOrderId}`);
+  }
+
+  async function confirmLegacyIntake(e: FormEvent) {
+    e.preventDefault();
+    if (!legacyIntake) return;
+    setSaving(true);
+    try {
+    if (!legacyIntake.intakeType) {
+      toast.error("Selecione se o recebimento é de veículo ou de bomba/bicos.");
+      return;
+    }
+    if (legacyIntake.intakeType === "vehicle") {
+      const normalizedPlate = legacyIntake.plate.replace(/[^a-z0-9]/gi, "");
+      if (normalizedPlate.length < 7 || normalizedPlate.length > 8 || !legacyIntake.arrivedOnTowTruck) {
+        toast.error("Confirme uma placa válida e se o veículo chegou no reboque.");
+        return;
+      }
+    } else if (legacyIntake.itemDescription.trim().length < 2 || !/^[1-9][0-9]*$/.test(legacyIntake.itemQuantity)) {
+      toast.error("Informe a descrição e a quantidade dos itens entregues.");
+      return;
+    }
+    await createReturnOrder(legacyIntake.returnId, legacyIntake);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function save(e: FormEvent) {
     e.preventDefault();
@@ -174,11 +236,27 @@ function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; ca
     {isLoading && <p className="text-sm text-muted-foreground">Carregando retornos…</p>}
     {error && <p className="text-sm text-destructive">Não foi possível carregar os retornos. Verifique a migration e as permissões do banco.</p>}
     {!isLoading && !error && data.length === 0 && <p className="text-sm text-muted-foreground">Nenhum retorno registrado para esta garantia.</p>}
-    {data.some((item) => !item.return_service_order_id && item.status !== "resolved" && item.status !== "not_covered") && <div className="space-y-2 rounded-md border border-border p-3"><Label htmlFor={`warranty-return-intake-${warrantyId}`}>Ficha de recebimento do retorno *</Label><Select value={selectedIntakeId} onValueChange={setSelectedIntakeId} disabled={intakes.isLoading || intakes.isError || !intakes.data?.length}><SelectTrigger id={`warranty-return-intake-${warrantyId}`}><SelectValue placeholder="Selecione a ficha do veículo recebido" /></SelectTrigger><SelectContent>{(intakes.data ?? []).map((item) => <SelectItem key={item.id} value={item.id}>{item.customer_name} · {item.vehicle} · {item.plate} · {new Date(item.received_at).toLocaleDateString("pt-BR")}</SelectItem>)}</SelectContent></Select>{intakes.data?.length === 0 && <p className="text-xs text-muted-foreground">Registre uma nova ficha em Recebimento de veículos antes de abrir a OS de retorno.</p>}{intakes.isError && <p className="text-xs text-destructive">Não foi possível carregar as fichas disponíveis.</p>}</div>}
-    {data.map((item) => <ReturnHistory key={item.id} item={item} canManage={canManage} selectedIntakeId={selectedIntakeId} onOpen={async (intakeId) => { if (!intakeId) { toast.error("Selecione a ficha de recebimento do retorno."); return; } const { data: newOrderId, error } = await (supabase as any).rpc("open_warranty_return_service_order", { _return_id: item.id, _intake_id: intakeId }); if (error) { toast.error(error.message || "Não foi possível abrir a OS do retorno."); return; } await Promise.all([qc.invalidateQueries({ queryKey: ["warranty-returns", warrantyId] }), qc.invalidateQueries({ queryKey: ["orders"] }), qc.invalidateQueries({ queryKey: ["warranty-return-order-priority"] }), qc.invalidateQueries({ queryKey: ["available-vehicle-intakes"] })]); if (newOrderId) window.location.assign(`/painel/ordens/${newOrderId}`); }} onEdit={() => setDraft({
+    {data.map((item) => <ReturnHistory key={item.id} item={item} canManage={canManage} onOpen={() => openReturnOrder(item)} onEdit={() => setDraft({
       id: item.id, complaint: item.complaint, diagnosis: item.diagnosis, resolution: item.resolution,
       parts_used: item.parts_used, labor_description: item.labor_description, customer_update: item.customer_update, status: item.status,
     })} />)}
+    {legacyIntake && <form onSubmit={confirmLegacyIntake} className="grid gap-3 rounded-md border border-primary/40 bg-muted/40 p-3">
+      <div><p className="font-semibold">Confirmar recebimento do retorno antigo</p><p className="text-sm text-muted-foreground">A OS original não tem ficha de recebimento. Confirme os dados reais antes de criar a nova OS.</p></div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <div className="space-y-1"><Label>Cliente</Label><Input value={legacyIntake.customerName} readOnly /></div>
+        <div className="space-y-1"><Label>Equipamento registrado na OS original</Label><Input value={legacyIntake.vehicle} readOnly /></div>
+      </div>
+      <div className="space-y-1"><Label>O que foi recebido?</Label><Select value={legacyIntake.intakeType} onValueChange={(value: "vehicle" | "pump_injector") => setLegacyIntake({ ...legacyIntake, intakeType: value })}><SelectTrigger><SelectValue placeholder="Selecione a modalidade" /></SelectTrigger><SelectContent><SelectItem value="vehicle">Veículo</SelectItem><SelectItem value="pump_injector">Bomba/bicos entregues em mãos</SelectItem></SelectContent></Select></div>
+      {legacyIntake.intakeType === "vehicle" && <>
+        <div className="space-y-1"><Label htmlFor={`legacy-plate-${legacyIntake.returnId}`}>Confirme a placa</Label><Input id={`legacy-plate-${legacyIntake.returnId}`} value={legacyIntake.plate} onChange={(e) => setLegacyIntake({ ...legacyIntake, plate: e.target.value.toUpperCase() })} required /></div>
+        <div className="space-y-1"><Label>O veículo chegou no reboque?</Label><Select value={legacyIntake.arrivedOnTowTruck} onValueChange={(value: "true" | "false") => setLegacyIntake({ ...legacyIntake, arrivedOnTowTruck: value })}><SelectTrigger><SelectValue placeholder="Confirme a chegada" /></SelectTrigger><SelectContent><SelectItem value="true">Sim</SelectItem><SelectItem value="false">Não</SelectItem></SelectContent></Select></div>
+      </>}
+      {legacyIntake.intakeType === "pump_injector" && <div className="grid gap-2 sm:grid-cols-2">
+        <div className="space-y-1"><Label htmlFor={`legacy-item-${legacyIntake.returnId}`}>O que foi entregue?</Label><Input id={`legacy-item-${legacyIntake.returnId}`} value={legacyIntake.itemDescription} onChange={(e) => setLegacyIntake({ ...legacyIntake, itemDescription: e.target.value })} placeholder="Ex.: bomba injetora" required /></div>
+        <div className="space-y-1"><Label htmlFor={`legacy-qty-${legacyIntake.returnId}`}>Quantidade</Label><Input id={`legacy-qty-${legacyIntake.returnId}`} type="number" min="1" step="1" value={legacyIntake.itemQuantity} onChange={(e) => setLegacyIntake({ ...legacyIntake, itemQuantity: e.target.value })} required /></div>
+      </div>}
+      <div className="flex gap-2"><Button type="submit" disabled={saving || !legacyIntake.intakeType}>{saving ? "Abrindo OS…" : "Confirmar recebimento e abrir OS"}</Button><Button type="button" variant="ghost" onClick={() => setLegacyIntake(null)}>Cancelar</Button></div>
+    </form>}
     {draft && <form onSubmit={save} className="grid gap-3 rounded-md bg-muted/40 p-3">
       <p className="text-sm font-semibold">{draft.id ? "Atualizar retorno" : "Novo retorno"} · vinculado à garantia e à OS original</p>
       <div className="space-y-1"><Label htmlFor={`return-complaint-${warrantyId}`}>Reclamação / motivo do retorno</Label><Textarea id={`return-complaint-${warrantyId}`} required value={draft.complaint} onChange={(e) => setDraft({ ...draft, complaint: e.target.value })} /></div>
@@ -199,7 +277,7 @@ function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; ca
   </div>;
 }
 
-function ReturnHistory({ item, onEdit, onOpen, canManage, selectedIntakeId }: { canManage: boolean; selectedIntakeId: string; onOpen: (intakeId: string) => Promise<void>; item: { id: string; return_service_order_id: string | null; status: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; customer_update: string; received_at: string; closed_at: string | null }; onEdit: () => void }) {
+function ReturnHistory({ item, onEdit, onOpen, canManage }: { canManage: boolean; onOpen: () => Promise<void>; item: { id: string; return_service_order_id: string | null; status: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; customer_update: string; received_at: string; closed_at: string | null }; onEdit: () => void }) {
   const { data: events = [] } = useQuery({
     queryKey: ["warranty-return-events", item.id],
     queryFn: async () => {
@@ -212,7 +290,7 @@ function ReturnHistory({ item, onEdit, onOpen, canManage, selectedIntakeId }: { 
   return <article className="space-y-2 rounded-md border border-border p-3">
     <div className="flex flex-wrap items-center justify-between gap-2">
       <div><p className="font-medium">{returnLabels[item.status] ?? item.status}</p><p className="text-xs text-muted-foreground">Recebido em {new Date(item.received_at).toLocaleString("pt-BR")}{item.closed_at ? ` · Encerrado em ${new Date(item.closed_at).toLocaleString("pt-BR")}` : ""}</p></div>
-      <div className="flex gap-2">{item.return_service_order_id ? <Button asChild size="sm" variant="outline"><Link to="/painel/ordens/$id" params={{ id: item.return_service_order_id }}>Abrir OS de retorno</Link></Button> : !closed && canManage ? <Button type="button" size="sm" variant="outline" onClick={() => void onOpen(selectedIntakeId)} disabled={!selectedIntakeId}><Plus />Abrir OS de garantia</Button> : null}{!closed && canManage && <Button type="button" size="sm" variant="outline" onClick={onEdit}><Pencil />Atualizar</Button>}</div>
+      <div className="flex gap-2">{item.return_service_order_id ? <Button asChild size="sm" variant="outline"><Link to="/painel/ordens/$id" params={{ id: item.return_service_order_id }}>Abrir OS de retorno</Link></Button> : !closed && canManage ? <Button type="button" size="sm" variant="outline" onClick={() => void onOpen()}><Plus />Abrir OS de garantia</Button> : null}{!closed && canManage && <Button type="button" size="sm" variant="outline" onClick={onEdit}><Pencil />Atualizar</Button>}</div>
     </div>
     <p className="text-sm"><strong>Motivo:</strong> {item.complaint}</p>
     {item.diagnosis && <p className="text-sm"><strong>Diagnóstico:</strong> {item.diagnosis}</p>}

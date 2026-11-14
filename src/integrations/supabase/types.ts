@@ -307,10 +307,11 @@ export type Database = {
           parts: string | null
           parts_value: number
           phone: string | null
-          plate: string
+          plate: string | null
           status: Database["public"]["Enums"]["order_status"]
           system_cleaning: boolean | null
           updated_at: string
+          vehicle_intake_id: string | null
           vehicle: string
           vehicle_id: string | null
           vehicle_year: string | null
@@ -338,10 +339,11 @@ export type Database = {
           parts?: string | null
           parts_value?: number
           phone?: string | null
-          plate: string
+          plate: string | null
           status?: Database["public"]["Enums"]["order_status"]
           system_cleaning?: boolean | null
           updated_at?: string
+          vehicle_intake_id?: string | null
           vehicle: string
           vehicle_id?: string | null
           vehicle_year?: string | null
@@ -369,15 +371,23 @@ export type Database = {
           parts?: string | null
           parts_value?: number
           phone?: string | null
-          plate?: string
+          plate?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           system_cleaning?: boolean | null
           updated_at?: string
+          vehicle_intake_id?: string | null
           vehicle?: string
           vehicle_id?: string | null
           vehicle_year?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "service_orders_vehicle_intake_id_fkey"
+            columns: ["vehicle_intake_id"]
+            isOneToOne: true
+            referencedRelation: "vehicle_intake_records"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "service_orders_appointment_id_fkey"
             columns: ["appointment_id"]
@@ -526,6 +536,51 @@ export type Database = {
           is_active?: boolean
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      vehicle_intake_records: {
+        Row: {
+          arrived_on_tow_truck: boolean | null
+          created_at: string
+          customer_name: string
+          delivered_items: Json
+          id: string
+          intake_type: "vehicle" | "pump_injector"
+          notes: string | null
+          plate: string | null
+          received_at: string
+          received_by: string
+          received_by_name: string
+          vehicle: string
+        }
+        Insert: {
+          arrived_on_tow_truck?: boolean | null
+          created_at?: string
+          customer_name: string
+          delivered_items?: Json
+          id?: string
+          intake_type?: "vehicle" | "pump_injector"
+          notes?: string | null
+          plate: string | null
+          received_at?: string
+          received_by: string
+          received_by_name: string
+          vehicle: string
+        }
+        Update: {
+          arrived_on_tow_truck?: boolean | null
+          created_at?: string
+          customer_name?: string
+          delivered_items?: Json
+          id?: string
+          intake_type?: "vehicle" | "pump_injector"
+          notes?: string | null
+          plate?: string | null
+          received_at?: string
+          received_by?: string
+          received_by_name?: string
+          vehicle?: string
         }
         Relationships: []
       }

@@ -50,7 +50,7 @@ function useNotifications() {
     for (const order of orders) {
       const orderHref = { href: "/painel/ordens/$id" as const, params: { id: order.id } };
       if (order.status === "aguardando_aprovacao") {
-        items.push({ id: `approval-${order.id}`, title: `OS nº ${order.number} aguardando autorização`, detail: `${order.customer_name} · ${formatPlate(order.plate)}`, date: order.updated_at.slice(0, 10), priority: "urgent", ...orderHref, icon: "order" });
+        items.push({ id: `approval-${order.id}`, title: `OS nº ${order.number} aguardando autorização`, detail: `${order.customer_name} · ${order.plate ? formatPlate(order.plate) : "Sem placa"}`, date: order.updated_at.slice(0, 10), priority: "urgent", ...orderHref, icon: "order" });
       }
       if (order.status === "pronto") {
         items.push({ id: `ready-${order.id}`, title: `OS nº ${order.number} pronta para retirada`, detail: `${order.customer_name} · ${formatPlate(order.plate)}`, date: order.updated_at.slice(0, 10), priority: "info", ...orderHref, icon: "ready" });
@@ -98,7 +98,7 @@ function useNotifications() {
       items.push({
         id: `quote-${q.id}-${q.state}`,
         title: `${approved ? "Orçamento aprovado" : "Orçamento recusado"} pelo cliente · OS nº ${o?.number ?? "—"}`,
-        detail: `${o?.vehicle ?? "Veículo"} · ${formatPlate(o?.plate ?? "")} · ${o?.customer_name ?? "Cliente"}`,
+        detail: `${o?.vehicle ?? "Veículo"} · ${o?.plate ? formatPlate(o.plate) : "Sem placa"} · ${o?.customer_name ?? "Cliente"}`,
         date: at.slice(0, 10),
         priority: approved ? "info" : "warning",
         href: "/painel/ordens/$id",

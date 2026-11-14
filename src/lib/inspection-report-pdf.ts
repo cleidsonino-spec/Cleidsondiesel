@@ -14,7 +14,7 @@ export type InspectionReportOrder = {
   phone: string | null;
   vehicle: string;
   vehicle_year: string | null;
-  plate: string;
+  plate: string | null;
   mileage: string | null;
   entry_date: string;
 };
@@ -84,7 +84,7 @@ export async function createInspectionReportPdf(order: InspectionReportOrder, re
     ["Cliente", order.customer_name],
     ["Telefone", order.phone || "—"],
     ["Veículo/equipamento", [order.vehicle, order.vehicle_year].filter(Boolean).join(" • ") || "—"],
-    ["Placa", formatPlate(order.plate)],
+    ["Placa", formatPlate(order.plate) || "Não se aplica"],
     ["Quilometragem", order.mileage || "—"],
     ["Entrada na oficina", formatDateBR(order.entry_date)],
   ];

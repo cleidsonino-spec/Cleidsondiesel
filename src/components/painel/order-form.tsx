@@ -44,7 +44,7 @@ export function toOrderInput(v: OrderFormValues): OrderInput {
   return {
     customer_id: v.customer_id || null,
     vehicle_id: v.vehicle_id || null,
-    plate: normalizePlate(v.plate),
+    plate: normalizePlate(v.plate) || null,
     customer_name: v.customer_name.trim(),
     phone: v.phone.trim() || null,
     vehicle: v.vehicle.trim(),
@@ -70,11 +70,15 @@ export function OrderForm({
   onSubmit,
   submitLabel,
   extraActions,
+  plateRequired = true,
+  intakeLocked = false,
 }: {
   initial: OrderFormValues;
   onSubmit: (v: OrderInput) => Promise<void>;
   submitLabel: string;
   extraActions?: ReactNode;
+  plateRequired?: boolean;
+  intakeLocked?: boolean;
 }) {
   const [v, setV] = useState<OrderFormValues>(initial);
   const [saving, setSaving] = useState(false);
@@ -93,7 +97,8 @@ export function OrderForm({
 
   async function handle(e: FormEvent) {
     e.preventDefault();
-    if (!isValidPlate(v.plate)) { toast.error("Placa inválida. Ex: ABC1234 ou ABC1D23."); return; }
+    if (plateRequired && !isValidPlate(v.plate)) { toast.error("Placa inválida. Ex: ABC1234 ou ABC1D23."); return; }
+    if (!plateRequired && v.plate.trim() && !isValidPlate(v.plate)) { toast.error("Se informar uma placa, ela precisa ser válida."); return; }
     if (!v.customer_name.trim()) { toast.error("Informe o nome do cliente."); return; }
     if (!v.vehicle.trim()) { toast.error("Informe o veículo."); return; }
     if (!v.complaint.trim()) { toast.error("Descreva o serviço / reclamação."); return; }
@@ -114,12 +119,12 @@ export function OrderForm({
   return (
     <form onSubmit={handle} className="space-y-6">
       <Section title="Cliente e veículo">
-        <F label="Cliente cadastrado"><Select value={v.customer_id || "manual"} onValueChange={(id) => chooseCustomer(id === "manual" ? "" : id)}><SelectTrigger aria-label="Cliente cadastrado"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual">Sem vínculo ao cadastro</SelectItem>{customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></F>
-        <F label="Veículo cadastrado"><Select value={v.vehicle_id || "manual"} onValueChange={(id) => chooseVehicle(id === "manual" ? "" : id)}><SelectTrigger aria-label="Veículo cadastrado"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual">Sem vínculo ao cadastro</SelectItem>{vehicles.filter((vehicle) => !v.customer_id || vehicle.customer_id === v.customer_id).map((vehicle) => <SelectItem key={vehicle.id} value={vehicle.id}>{vehicle.plate} · {vehicle.model}</SelectItem>)}</SelectContent></Select></F>
-        <F label="Placa"><Input value={v.plate} onChange={(e) => { const plate = e.target.value.toUpperCase(); const found = vehicles.find((vehicle) => vehicle.plate === normalizePlate(plate)); if (found) chooseVehicle(found.id); else setV((p) => ({ ...p, plate, vehicle_id: "" })); }} maxLength={8} className="plate" placeholder="ABC1D23" /></F>
-        <F label="Cliente"><Input value={v.customer_name} onChange={(e) => set("customer_name", e.target.value)} /></F>
+        <F label="Cliente cadastrado"><Select disabled={intakeLocked} value={v.customer_id || "manual"} onValueChange={(id) => chooseCustomer(id === "manual" ? "" : id)}><SelectTrigger aria-label="Cliente cadastrado"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual">Sem vínculo ao cadastro</SelectItem>{customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></F>
+        <F label="Veículo cadastrado"><Select disabled={intakeLocked || !plateRequired} value={v.vehicle_id || "manual"} onValueChange={(id) => chooseVehicle(id === "manual" ? "" : id)}><SelectTrigger aria-label="Veículo cadastrado"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual">Sem vínculo ao cadastro</SelectItem>{vehicles.filter((vehicle) => !v.customer_id || vehicle.customer_id === v.customer_id).map((vehicle) => <SelectItem key={vehicle.id} value={vehicle.id}>{vehicle.plate} · {vehicle.model}</SelectItem>)}</SelectContent></Select></F>
+        <F label="Placa"><Input value={v.plate} disabled={intakeLocked || !plateRequired} onChange={(e) => { const plate = e.target.value.toUpperCase(); const found = vehicles.find((vehicle) => vehicle.plate === normalizePlate(plate)); if (found) chooseVehicle(found.id); else setV((p) => ({ ...p, plate, vehicle_id: "" })); }} maxLength={8} className="plate" placeholder={plateRequired ? "ABC1D23" : "Não se aplica a bomba/bicos"} /></F>
+        <F label="Cliente"><Input value={v.customer_name} disabled={intakeLocked} onChange={(e) => set("customer_name", e.target.value)} /></F>
         <F label="WhatsApp / telefone"><Input value={v.phone} onChange={(e) => set("phone", e.target.value)} type="tel" placeholder="(00) 00000-0000" /></F>
-        <F label="Veículo"><Input value={v.vehicle} onChange={(e) => set("vehicle", e.target.value)} placeholder="Ex: Hilux 3.0" /></F>
+        <F label="Veículo"><Input value={v.vehicle} disabled={intakeLocked} onChange={(e) => set("vehicle", e.target.value)} placeholder="Ex: Hilux 3.0" /></F>
         <F label="Ano"><Input value={v.vehicle_year} onChange={(e) => set("vehicle_year", e.target.value)} /></F>
         <F label="Km"><Input value={v.mileage} onChange={(e) => set("mileage", e.target.value)} inputMode="numeric" /></F>
       </Section>

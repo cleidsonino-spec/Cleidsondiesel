@@ -53,7 +53,7 @@ function toForm(o: Order): OrderFormValues {
   return {
     customer_id: o.customer_id ?? "",
     vehicle_id: o.vehicle_id ?? "",
-    plate: o.plate,
+    plate: o.plate ?? "",
     customer_name: o.customer_name,
     phone: o.phone ?? "",
     vehicle: o.vehicle,
@@ -79,6 +79,18 @@ function OrdemPage() {
   const { isAdmin, isSecretary } = Route.useRouteContext();
   const { id } = Route.useParams();
   const { data: order } = useSuspenseQuery(orderQuery(id));
+  const intakeId = order?.vehicle_intake_id;
+  const intake = useQuery({
+    queryKey: ["vehicle-intake", intakeId],
+    enabled: Boolean(intakeId),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vehicle_intake_records")
+        .select("intake_type,arrived_on_tow_truck,delivered_items,plate,vehicle,customer_name")
+        .eq("id", intakeId).single();
+      if (error) throw error;
+      return data as { intake_type: "vehicle" | "pump_injector"; arrived_on_tow_truck: boolean | null; delivered_items: {description:string;quantity:number}[]; plate:string|null; vehicle:string; customer_name:string };
+    },
+  });
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -115,7 +127,7 @@ function OrdemPage() {
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-widest text-muted-foreground">OS nº {order.number}</p>
-            <h1 className="plate text-3xl md:text-4xl">{formatPlate(order.plate)}</h1>
+            <h1 className="plate text-3xl md:text-4xl">{order.plate ? formatPlate(order.plate) : "Bomba/bicos injetores"}</h1>
           </div>
           <StatusBadge tone={info.tone} label={info.label} className="text-sm" />
         </div>
@@ -131,6 +143,17 @@ function OrdemPage() {
           <div><p className="text-sm text-muted-foreground">Troca dos filtros de combustível</p><p className="font-semibold">{(order as any).fuel_filter_replacement === null ? "Não informado" : (order as any).fuel_filter_replacement ? "Sim — incluir no orçamento" : "Não"}</p></div>
           <div><p className="text-sm text-muted-foreground">Limpeza do sistema</p><p className="font-semibold">{(order as any).system_cleaning === null ? "Não informado" : (order as any).system_cleaning ? "Sim — incluir no orçamento" : "Não"}</p></div>
         </div>
+      </section>}
+      {intake.data && <section className="rounded-md border p-4">
+        <h2 className="font-semibold">Ficha de recebimento vinculada</h2>
+        {intake.data.intake_type === "vehicle" ? (
+          <p className="mt-2 text-sm">Recebimento de veículo · Placa {intake.data.plate} · Chegou no reboque: {intake.data.arrived_on_tow_truck ? "Sim" : "Não"}</p>
+        ) : (
+          <div className="mt-2 space-y-2">
+            <p className="text-sm font-medium">Bomba/bicos entregues em mãos — sem placa</p>
+            <ul className="list-disc pl-5 text-sm">{intake.data.delivered_items.map((item,index)=><li key={index}>{item.description} — quantidade: {item.quantity}</li>)}</ul>
+          </div>
+        )}
       </section>}
       {(isAdmin || isSecretary) && order.status === "recebido" && <MechanicAssignment serviceOrderId={id} stage="diagnostico" />}
       {(isAdmin || isSecretary) && String(order.status) === "aprovado_aguardando_encaminhamento" && <MechanicAssignment serviceOrderId={id} stage="servico" />}
@@ -160,9 +183,11 @@ function OrdemPage() {
         <OrderForm
           key={order.updated_at}
           initial={toForm(order)}
+          plateRequired={Boolean(order.plate)}
           submitLabel="Salvar alterações"
           onSubmit={async (input) => {
-            const { error } = await supabase.from("service_orders").update(input).eq("id", id);
+            const updateInput = order.plate ? input : { ...input, plate: null };
+            const { error } = await supabase.from("service_orders").update(updateInput).eq("id", id);
             if (error) {
               console.error("Erro ao atualizar OS:", error);
               toast.error(`Falha ao salvar: ${error.message}`);
@@ -211,7 +236,7 @@ function PrintSheet({ order: o }: { order: Order }) {
     ["Cliente", o.customer_name],
     ["Telefone", o.phone],
     ["Veículo", [o.vehicle, o.vehicle_year].filter(Boolean).join(" · ")],
-    ["Placa", formatPlate(o.plate)],
+    ["Placa", formatPlate(o.plate ?? "")],
     ["Km", o.mileage],
     ["Entrada", formatDateBR(o.entry_date)],
     ["Previsão", formatDateBR(o.due_date)],

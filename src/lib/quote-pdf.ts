@@ -39,24 +39,34 @@ function datePlusDays(days: number) {
 /** Generates a private quote PDF on the owner's device. */
 export async function createQuotePdf(o: Order, preparedBy = "", options: QuotePdfOptions = defaultQuotePdfOptions): Promise<File> {
   const { jsPDF } = await import("jspdf");
-  const image = new Image();
-  image.crossOrigin = "anonymous";
-  await new Promise<void>((resolve, reject) => {
-    image.onload = () => resolve();
-    image.onerror = () => reject(new Error("Não foi possível carregar a logo."));
-    image.src = logoAsset.url;
-  });
-  const canvas = document.createElement("canvas");
-  canvas.width = 600; canvas.height = Math.round(600 * image.naturalHeight / image.naturalWidth);
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Não foi possível preparar a logo.");
-  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-  const logo = canvas.toDataURL("image/png");
-  ctx.fillStyle = "white"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.globalAlpha = 0.055;
-  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-  const watermark = canvas.toDataURL("image/png");
-  const ratio = canvas.height / canvas.width;
+  // A indisponibilidade da imagem da marca não pode impedir a emissão do orçamento.
+  let logo: string | null = null;
+  let watermark: string | null = null;
+  let ratio = 0.22;
+  try {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("Não foi possível carregar a logo."));
+      image.src = new URL(logoAsset.url, window.location.origin).href;
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = 600;
+    canvas.height = Math.max(1, Math.round(600 * image.naturalHeight / image.naturalWidth));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Não foi possível preparar a logo.");
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    logo = canvas.toDataURL("image/png");
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalAlpha = 0.055;
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    watermark = canvas.toDataURL("image/png");
+    ratio = canvas.height / canvas.width;
+  } catch (error) {
+    console.warn("PDF do orçamento será emitido sem a imagem da logo:", error);
+  }
   const pdf = new jsPDF({ unit: "mm", format: "a4" });
   const left = 16, right = 194, contentWidth = 178;
   let y = 20;
@@ -68,11 +78,11 @@ export async function createQuotePdf(o: Order, preparedBy = "", options: QuotePd
   const line = (top: number) => { pdf.setDrawColor(205); pdf.setLineWidth(0.25); pdf.line(left, top, right, top); };
   function header(continued = false) {
     const markWidth = Math.min(118, 118 / ratio);
-    pdf.addImage(watermark, "PNG", (210 - markWidth) / 2, (297 - markWidth * ratio) / 2, markWidth, markWidth * ratio, "watermark", "FAST");
+    if (watermark) pdf.addImage(watermark, "PNG", (210 - markWidth) / 2, (297 - markWidth * ratio) / 2, markWidth, markWidth * ratio, "watermark", "FAST");
     pdf.setDrawColor(220); pdf.setLineWidth(0.35);
     pdf.roundedRect(10, 10, 190, 277, 3, 3, "S");
     const logoWidth = Math.min(29, 29 / ratio);
-    pdf.addImage(logo, "PNG", left, 14, logoWidth, logoWidth * ratio, "shop-logo", "FAST");
+    if (logo) pdf.addImage(logo, "PNG", left, 14, logoWidth, logoWidth * ratio, "shop-logo", "FAST");
     pdf.setTextColor(25, 35, 45);
     text("CLEIDSON DIESEL", 52, 22, 18, true);
     text("Bomba injetora e injeção diesel", 52, 29, 9);
@@ -110,7 +120,7 @@ export async function createQuotePdf(o: Order, preparedBy = "", options: QuotePd
   text(`Validade: ${validDays} dias`, left + 4, y + 10, 7);
   y += 18;
   section("Dados do cliente", `${o.customer_name}\nTelefone: ${o.phone || "—"}`);
-  section("Veículo / equipamento", `${o.vehicle}${o.vehicle_year ? ` • ${o.vehicle_year}` : ""} • Placa: ${formatPlate(o.plate)}\nQuilometragem: ${o.mileage || "—"}`);
+  section("Veículo / equipamento", `${o.vehicle}${o.vehicle_year ? ` • ${o.vehicle_year}` : ""} • Placa: ${formatPlate(o.plate) || "Não se aplica"}\nQuilometragem: ${o.mileage || "—"}`);
   section("Prazos", `Entrada: ${formatDateBR(o.entry_date)} • Previsão de entrega: ${o.due_date ? formatDateBR(o.due_date) : "A combinar"}`);
   section("Serviço solicitado", o.complaint);
   if (preparedBy.trim()) section("Responsável pelo orçamento", preparedBy.trim());
@@ -184,7 +194,21 @@ export async function createQuotePdf(o: Order, preparedBy = "", options: QuotePd
 
 export function downloadQuote(file: File) {
   const url = URL.createObjectURL(file);
-  const a = document.createElement("a"); a.href = url; a.download = file.name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 30_000);
+
+  // Em navegadores móveis, o atributo download pode ser ignorado.
+  // Abrir o PDF em uma aba permite visualizar, baixar ou compartilhar pelo próprio navegador.
+  const opened = window.open(url, "_blank");
+  if (!opened) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    a.target = "_blank";
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  // Mantém a URL viva enquanto o visualizador do navegador carrega o documento.
+  window.setTimeout(() => URL.revokeObjectURL(url), 5 * 60_000);
 }

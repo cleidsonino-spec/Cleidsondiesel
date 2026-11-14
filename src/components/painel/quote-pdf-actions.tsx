@@ -15,6 +15,8 @@ type Order = Database["public"]["Tables"]["service_orders"]["Row"];
 export function QuotePdfActions({ order, message }: { order: Order; message?: string }) {
   const [file, setFile] = useState<File | null>(null);
   const [failed, setFailed] = useState(false);
+  const [generating, setGenerating] = useState(true);
+  const [retryToken, setRetryToken] = useState(0);
   const [preparedBy, setPreparedBy] = useState("");
   const [options, setOptions] = useState<QuotePdfOptions>(defaultQuotePdfOptions);
   const [showDetails, setShowDetails] = useState(false);
@@ -36,13 +38,20 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
     let active = true;
     setFile(null);
     setFailed(false);
+    setGenerating(true);
     createQuotePdf(order, preparedBy, options).then((pdf) => {
       if (active) setFile(pdf);
-    }).catch(() => {
-      if (active) { setFailed(true); toast.error("Não foi possível gerar o PDF. Reabra a ordem e tente novamente."); }
+    }).catch((error: unknown) => {
+      if (active) {
+        setFailed(true);
+        console.error("Falha ao gerar PDF do orçamento:", error);
+        toast.error(error instanceof Error ? `Falha ao gerar PDF: ${error.message}` : "Não foi possível gerar o PDF. Tente novamente.");
+      }
+    }).finally(() => {
+      if (active) setGenerating(false);
     });
     return () => { active = false; };
-  }, [order, preparedBy, options]);
+  }, [order, preparedBy, options, retryToken]);
 
   function updateOption<K extends keyof QuotePdfOptions>(key: K, value: QuotePdfOptions[K]) {
     setOptions((current) => ({ ...current, [key]: value }));
@@ -50,16 +59,20 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
 
   async function shareWithCustomer() {
     if (!file) return;
-    if (!navigator.share || !navigator.canShare?.({ files: [file] })) {
-      downloadQuote(file);
-      toast.message("PDF baixado. Anexe o arquivo ao enviar pelo WhatsApp ou outro aplicativo.");
+    const shareData = { files: [file], title: `Orçamento OS ${order.number} — Cleidson Diesel`, text: `Olá, ${order.customer_name}! Segue o orçamento da sua ordem de serviço.` };
+    const canShareFiles = typeof navigator.canShare !== "function" || navigator.canShare({ files: [file] });
+    if (typeof navigator.share !== "function" || !canShareFiles) {
+      // Sem compartilhamento nativo de arquivos, encaminha para o fluxo do WhatsApp:
+      // baixa o PDF e abre a conversa do cliente para que o arquivo seja anexado.
+      sendQuote();
       return;
     }
     try {
-      await navigator.share({ files: [file], title: `Orçamento OS ${order.number} — Cleidson Diesel`, text: `Olá, ${order.customer_name}! Segue o orçamento da sua ordem de serviço.` });
+      await navigator.share(shareData);
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") return;
-      toast.error("Não foi possível compartilhar o PDF. Tente baixá-lo.");
+      console.error("Falha ao compartilhar PDF:", error);
+      sendQuote();
     }
   }
 
@@ -68,8 +81,8 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
     downloadQuote(file);
     const text = [message ?? "", preparedBy ? `Orçamento preparado por: ${preparedBy}` : ""].filter(Boolean).join("\n\n");
     const href = waLink(order.phone, text);
-    if (href) { window.open(href, "_blank", "noopener,noreferrer"); toast.success("PDF baixado e WhatsApp do cliente aberto. Anexe o PDF na conversa."); }
-    else toast.error("PDF baixado, mas falta um telefone válido com DDD na ordem de serviço.");
+    if (href) { window.open(href, "_blank", "noopener,noreferrer"); toast.success("PDF aberto em outra aba e WhatsApp do cliente aberto. Anexe o arquivo na conversa."); }
+    else toast.error("PDF aberto em outra aba, mas falta um telefone válido com DDD na ordem de serviço.");
   }
 
   return <>
@@ -108,8 +121,12 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
     </div>
     {message != null && <Button type="button" className="h-11" disabled={!file} onClick={sendQuote}>{!file && !failed ? <Loader2 className="animate-spin" /> : <FileText />} Enviar orçamento pelo WhatsApp</Button>}
     <Button type="button" variant="outline" className="h-11" disabled={!file} onClick={shareWithCustomer}><Share2 /> Compartilhar PDF com o cliente</Button>
-    <Button type="button" variant="outline" className="h-11" disabled={!file} onClick={() => { if (file) downloadQuote(file); }}>
-      <Download /> {failed ? "PDF indisponível" : "Gerar novamente / baixar PDF atualizado"}
+    <Button type="button" variant="outline" className="h-11" disabled={generating} onClick={() => {
+      if (file) downloadQuote(file);
+      else setRetryToken((value) => value + 1);
+    }}>
+      {generating ? <Loader2 className="animate-spin" /> : <Download />}
+      {generating ? "Preparando PDF..." : file ? "Baixar PDF atualizado" : failed ? "Tentar gerar PDF novamente" : "Gerar PDF"}
     </Button>
   </>;
 }
