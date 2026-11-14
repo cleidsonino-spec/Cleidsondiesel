@@ -137,7 +137,7 @@ export function downloadInspectionReport(file: File) {
 
 
 type NativeFilesystem = {
-  writeFile(options: { path: string; data: string; directory: "CACHE" | "DOCUMENTS"; recursive?: boolean }): Promise<{ uri: string }>;
+  writeFile(options: { path: string; data: string; directory: "CACHE" | "DOCUMENTS"; encoding?: "utf8" | "base64"; recursive?: boolean }): Promise<{ uri: string }>;
 };
 type NativeShare = {
   share(options: { title?: string; text?: string; url?: string; dialogTitle?: string }): Promise<void>;
