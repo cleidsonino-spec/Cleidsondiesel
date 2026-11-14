@@ -92,7 +92,6 @@ function PainelIndex() {
     if (filter === "todas") return true;
     if (filter === "abertas") return OPEN_ORDER_STATUSES.includes(o.status);
     return o.status === filter;
-  });
   }).sort((a, b) => Number(priorityIds.has(b.id)) - Number(priorityIds.has(a.id)) || b.number - a.number);
   const plateAppointments = q.length >= 3 ? appointments.filter((a) => normalizePlate(a.plate).includes(q)) : [];
 
