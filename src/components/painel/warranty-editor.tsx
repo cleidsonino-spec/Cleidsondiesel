@@ -175,6 +175,8 @@ function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; ca
   async function confirmLegacyIntake(e: FormEvent) {
     e.preventDefault();
     if (!legacyIntake) return;
+    setSaving(true);
+    try {
     if (!legacyIntake.intakeType) {
       toast.error("Selecione se o recebimento é de veículo ou de bomba/bicos.");
       return;
@@ -190,6 +192,9 @@ function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; ca
       return;
     }
     await createReturnOrder(legacyIntake.returnId, legacyIntake);
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function save(e: FormEvent) {
