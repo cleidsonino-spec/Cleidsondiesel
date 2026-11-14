@@ -142,7 +142,7 @@ function PainelIndex() {
         </div>
         <div className="divide-y divide-border">
           {stats.waitingOrders.slice(0, 8).map((o) => <Link key={o.id} to="/painel/ordens/$id" params={{ id: o.id }} className="flex flex-wrap items-center justify-between gap-3 py-3 hover:text-primary">
-            <div className="min-w-0"><p className="font-medium">OS nº {o.number} · {o.customer_name}</p><p className="text-sm text-muted-foreground">{formatPlate(o.plate)} · {o.vehicle}</p></div>
+            <div className="min-w-0"><p className="font-medium">OS nº {o.number} · {o.customer_name}</p><p className="text-sm text-muted-foreground">{o.plate ? formatPlate(o.plate) + " · " : ""}{o.vehicle}</p></div>
             <div className="flex items-center gap-3"><span className="text-sm font-medium">{formatBRL(orderTotal(o.parts_value, o.labor_value))}</span><StatusBadge tone="warning" label="Aguardando autorização" /></div>
           </Link>)}
         </div>
@@ -223,7 +223,7 @@ function PainelIndex() {
               const financeLabel = financialError ? "Indisponível" : financialLoading ? "Carregando..." : orderBudget <= 0 ? "Sem orçamento" : pending <= 0 ? "Quitada" : received > 0 ? "Parcialmente paga" : "Em aberto";
               return <Link key={o.id} to="/painel/ordens/$id" params={{ id: o.id }} className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1 px-4 py-4 transition-colors hover:bg-secondary md:grid-cols-[90px_140px_1fr_auto_auto]">
                 <span className="font-display text-sm text-muted-foreground">#{o.number}{priorityIds.has(o.id) && <span className="mt-1 block text-xs font-bold text-amber-700">RETORNO EM GARANTIA</span>}</span>
-                <span className="plate text-lg">{formatPlate(o.plate)}</span>
+                <span className="plate text-lg">{o.plate ? formatPlate(o.plate) : "Sem placa"}</span>
                 <span className="col-span-2 min-w-0 md:col-span-1"><span className="block truncate font-medium">{o.customer_name}</span><span className="block truncate text-sm text-muted-foreground">{o.vehicle} · {o.complaint}</span></span>
                 <span className="text-sm text-muted-foreground">
                   {formatDateBR(o.entry_date)} · {formatBRL(orderBudget)}
