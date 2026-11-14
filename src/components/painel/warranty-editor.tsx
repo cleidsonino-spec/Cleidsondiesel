@@ -106,9 +106,9 @@ function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; ca
   const { data = [], isLoading, error } = useQuery({
     queryKey: ["warranty-returns", warrantyId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("warranty_returns").select("id,warranty_id,service_order_id,status,complaint,diagnosis,resolution,parts_used,labor_description,customer_update,received_at,updated_at,closed_at").eq("warranty_id", warrantyId).order("received_at", { ascending: false });
+      const { data, error } = await (supabase as any).from("warranty_returns").select("id,warranty_id,service_order_id,return_service_order_id,status,complaint,diagnosis,resolution,parts_used,labor_description,customer_update,received_at,updated_at,closed_at").eq("warranty_id", warrantyId).order("received_at", { ascending: false });
       if (error) throw error;
-      return data as { id: string; warranty_id: string; service_order_id: string; status: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; customer_update: string; received_at: string; updated_at: string; closed_at: string | null }[];
+      return data as { id: string; warranty_id: string; service_order_id: string; return_service_order_id: string | null; status: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; customer_update: string; received_at: string; updated_at: string; closed_at: string | null }[];
     },
   });
 
@@ -151,7 +151,7 @@ function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; ca
     {isLoading && <p className="text-sm text-muted-foreground">Carregando retornos…</p>}
     {error && <p className="text-sm text-destructive">Não foi possível carregar os retornos. Verifique a migration e as permissões do banco.</p>}
     {!isLoading && !error && data.length === 0 && <p className="text-sm text-muted-foreground">Nenhum retorno registrado para esta garantia.</p>}
-    {data.map((item) => <ReturnHistory key={item.id} item={item} canManage={canManage} onEdit={() => setDraft({
+    {data.map((item) => <ReturnHistory key={item.id} item={item} canManage={canManage} onOpen={async () => { const { data: orderId, error } = await (supabase as any).rpc("open_warranty_return_service_order", { _return_id: item.id }); if (error) { toast.error(error.message || "Não foi possível abrir a OS do retorno."); return; } await qc.invalidateQueries({ queryKey: ["warranty-returns", warrantyId] }); await qc.invalidateQueries({ queryKey: ["orders"] }); toast.success("OS de retorno em garantia aberta."); }} onEdit={() => setDraft({
       id: item.id, complaint: item.complaint, diagnosis: item.diagnosis, resolution: item.resolution,
       parts_used: item.parts_used, labor_description: item.labor_description, customer_update: item.customer_update, status: item.status,
     })} />)}
@@ -175,7 +175,7 @@ function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; ca
   </div>;
 }
 
-function ReturnHistory({ item, onEdit, canManage }: { canManage: boolean; item: { id: string; status: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; received_at: string; closed_at: string | null }; onEdit: () => void }) {
+function ReturnHistory({ item, onEdit, onOpen, canManage }: { canManage: boolean; onOpen: () => Promise<void>; item: { id: string; return_service_order_id: string | null; status: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; received_at: string; closed_at: string | null }; onEdit: () => void }) {
   const { data: events = [] } = useQuery({
     queryKey: ["warranty-return-events", item.id],
     queryFn: async () => {
@@ -188,7 +188,7 @@ function ReturnHistory({ item, onEdit, canManage }: { canManage: boolean; item: 
   return <article className="space-y-2 rounded-md border border-border p-3">
     <div className="flex flex-wrap items-center justify-between gap-2">
       <div><p className="font-medium">{returnLabels[item.status] ?? item.status}</p><p className="text-xs text-muted-foreground">Recebido em {new Date(item.received_at).toLocaleString("pt-BR")}{item.closed_at ? ` · Encerrado em ${new Date(item.closed_at).toLocaleString("pt-BR")}` : ""}</p></div>
-      {!closed && canManage && <Button type="button" size="sm" variant="outline" onClick={onEdit}><Pencil />Atualizar</Button>}
+      <div className="flex gap-2">{item.return_service_order_id ? <Button asChild size="sm" variant="outline"><Link to="/painel/ordens/$id" params={{ id: item.return_service_order_id }}>Abrir OS #{item.return_service_order_id.slice(0, 8)}</Link></Button> : !closed && canManage ? <Button type="button" size="sm" variant="outline" onClick={() => void onOpen()}><Plus />Abrir OS de garantia</Button> : null}{!closed && canManage && <Button type="button" size="sm" variant="outline" onClick={onEdit}><Pencil />Atualizar</Button>}</div>
     </div>
     <p className="text-sm"><strong>Motivo:</strong> {item.complaint}</p>
     {item.diagnosis && <p className="text-sm"><strong>Diagnóstico:</strong> {item.diagnosis}</p>}
