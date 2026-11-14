@@ -1,0 +1,50 @@
+name: Warranty return isolated PostgreSQL tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/2026111417*.sql"
+      - "supabase/migrations/20261114183000_warranty_return_inherit_mechanic.sql"
+      - ".github/workflows/test-warranty-return.yml"
+      - "supabase/tests/warranty-return/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  warranty-return:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: warranty_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d warranty_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: warranty_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare isolated synthetic schema
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/warranty-return/00_fixture.sql
+      - name: Apply the three PR #82 migrations in order
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114170000_warranty_returns_and_audit.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114171000_harden_warranty_database_rules.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114172000_warranty_return_service_orders.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114183000_warranty_return_inherit_mechanic.sql
+      - name: Run warranty return behavior and access tests
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/warranty-return/10_behavior.sql
