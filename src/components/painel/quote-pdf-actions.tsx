@@ -38,7 +38,7 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
     setFailed(false);
     createQuotePdf(order, preparedBy, options).then((pdf) => {
       if (active) setFile(pdf);
-    }).catch(() => {
+    }).catch((error: unknown) => {
       if (active) {
         setFailed(true);
         console.error("Falha ao gerar PDF do orçamento:", error);
@@ -76,8 +76,8 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
     downloadQuote(file);
     const text = [message ?? "", preparedBy ? `Orçamento preparado por: ${preparedBy}` : ""].filter(Boolean).join("\n\n");
     const href = waLink(order.phone, text);
-    if (href) { window.open(href, "_blank", "noopener,noreferrer"); toast.success("PDF baixado e WhatsApp do cliente aberto. Anexe o PDF na conversa."); }
-    else toast.error("PDF baixado, mas falta um telefone válido com DDD na ordem de serviço.");
+    if (href) { window.open(href, "_blank", "noopener,noreferrer"); toast.success("PDF aberto em outra aba e WhatsApp do cliente aberto. Anexe o arquivo na conversa."); }
+    else toast.error("PDF aberto em outra aba, mas falta um telefone válido com DDD na ordem de serviço.");
   }
 
   return <>
