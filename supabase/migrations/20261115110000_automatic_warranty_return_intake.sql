@@ -10,6 +10,7 @@ DECLARE
   v_return public.warranty_returns;
   v_original public.service_orders;
   v_source_intake public.vehicle_intake_records;
+  v_has_source_intake boolean := false;
   v_new_intake_id uuid;
   v_new_id uuid;
 BEGIN
@@ -43,45 +44,31 @@ BEGIN
     SELECT * INTO v_source_intake
     FROM public.vehicle_intake_records
     WHERE id = v_original.vehicle_intake_id;
+    v_has_source_intake := FOUND;
   END IF;
 
-  IF FOUND AND v_source_intake.id IS NOT NULL THEN
-    INSERT INTO public.vehicle_intake_records (
-      customer_name, vehicle, plate, received_at, received_by,
-      received_by_name, notes, intake_type, arrived_on_tow_truck,
-      delivered_items
-    ) VALUES (
-      v_source_intake.customer_name,
-      v_source_intake.vehicle,
-      v_source_intake.plate,
-      now(),
-      auth.uid(),
-      coalesce(v_source_intake.received_by_name, 'Equipe'),
-      concat_ws(E'\n', nullif(v_source_intake.notes, ''),
-        'Novo recebimento gerado automaticamente para retorno em garantia #' || v_return.id::text),
-      v_source_intake.intake_type,
-      v_source_intake.arrived_on_tow_truck,
-      v_source_intake.delivered_items
-    )
-    RETURNING id INTO v_new_intake_id;
-  ELSE
-    -- Compatibilidade para OS antigas, anteriores à ficha obrigatória.
-    IF v_original.plate IS NULL OR char_length(v_original.plate) NOT BETWEEN 7 AND 8 THEN
-      RAISE EXCEPTION 'A OS original não possui ficha de recebimento nem placa válida para gerar o recebimento do retorno';
-    END IF;
-
-    INSERT INTO public.vehicle_intake_records (
-      customer_name, vehicle, plate, received_at, received_by,
-      received_by_name, notes, intake_type, arrived_on_tow_truck,
-      delivered_items
-    ) VALUES (
-      v_original.customer_name, v_original.vehicle, v_original.plate,
-      now(), auth.uid(), 'Equipe',
-      'Recebimento gerado automaticamente para retorno em garantia #' || v_return.id::text,
-      'vehicle', false, '[]'::jsonb
-    )
-    RETURNING id INTO v_new_intake_id;
+  IF NOT v_has_source_intake THEN
+    RAISE EXCEPTION 'A OS original não possui uma ficha de recebimento válida. Não é possível criar o recebimento do retorno sem confirmar os dados de entrada.';
   END IF;
+
+  INSERT INTO public.vehicle_intake_records (
+    customer_name, vehicle, plate, received_at, received_by,
+    received_by_name, notes, intake_type, arrived_on_tow_truck,
+    delivered_items
+  ) VALUES (
+    v_source_intake.customer_name,
+    v_source_intake.vehicle,
+    v_source_intake.plate,
+    now(),
+    auth.uid(),
+    'Equipe',
+    concat_ws(E'\n', nullif(v_source_intake.notes, ''),
+      'Novo recebimento gerado automaticamente para retorno em garantia #' || v_return.id::text),
+    v_source_intake.intake_type,
+    v_source_intake.arrived_on_tow_truck,
+    v_source_intake.delivered_items
+  )
+  RETURNING id INTO v_new_intake_id;
 
   INSERT INTO public.service_orders (
     customer_id, vehicle_id, customer_name, phone, vehicle, vehicle_year,
