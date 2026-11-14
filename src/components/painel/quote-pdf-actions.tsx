@@ -15,6 +15,8 @@ type Order = Database["public"]["Tables"]["service_orders"]["Row"];
 export function QuotePdfActions({ order, message }: { order: Order; message?: string }) {
   const [file, setFile] = useState<File | null>(null);
   const [failed, setFailed] = useState(false);
+  const [generating, setGenerating] = useState(true);
+  const [retryToken, setRetryToken] = useState(0);
   const [preparedBy, setPreparedBy] = useState("");
   const [options, setOptions] = useState<QuotePdfOptions>(defaultQuotePdfOptions);
   const [showDetails, setShowDetails] = useState(false);
@@ -36,6 +38,7 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
     let active = true;
     setFile(null);
     setFailed(false);
+    setGenerating(true);
     createQuotePdf(order, preparedBy, options).then((pdf) => {
       if (active) setFile(pdf);
     }).catch((error: unknown) => {
@@ -44,9 +47,11 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
         console.error("Falha ao gerar PDF do orçamento:", error);
         toast.error(error instanceof Error ? `Falha ao gerar PDF: ${error.message}` : "Não foi possível gerar o PDF. Tente novamente.");
       }
+    }).finally(() => {
+      if (active) setGenerating(false);
     });
     return () => { active = false; };
-  }, [order, preparedBy, options]);
+  }, [order, preparedBy, options, retryToken]);
 
   function updateOption<K extends keyof QuotePdfOptions>(key: K, value: QuotePdfOptions[K]) {
     setOptions((current) => ({ ...current, [key]: value }));
@@ -116,8 +121,12 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
     </div>
     {message != null && <Button type="button" className="h-11" disabled={!file} onClick={sendQuote}>{!file && !failed ? <Loader2 className="animate-spin" /> : <FileText />} Enviar orçamento pelo WhatsApp</Button>}
     <Button type="button" variant="outline" className="h-11" disabled={!file} onClick={shareWithCustomer}><Share2 /> Compartilhar PDF com o cliente</Button>
-    <Button type="button" variant="outline" className="h-11" disabled={!file} onClick={() => { if (file) downloadQuote(file); }}>
-      <Download /> {failed ? "PDF indisponível" : "Gerar novamente / baixar PDF atualizado"}
+    <Button type="button" variant="outline" className="h-11" disabled={generating} onClick={() => {
+      if (file) downloadQuote(file);
+      else setRetryToken((value) => value + 1);
+    }}>
+      {generating ? <Loader2 className="animate-spin" /> : <Download />}
+      {generating ? "Preparando PDF..." : file ? "Baixar PDF atualizado" : failed ? "Tentar gerar PDF novamente" : "Gerar PDF"}
     </Button>
   </>;
 }
