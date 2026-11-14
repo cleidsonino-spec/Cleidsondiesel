@@ -1,4 +1,4 @@
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, BellRing, MessageCircle, Printer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -199,7 +199,8 @@ function OrdemPage() {
       </div>
 
       <div className="print:hidden"><InspectionReportEditor order={order} isAdmin={isAdmin} isSecretary={isSecretary} /></div>
-      <WarrantyEditor orderId={id} orderStatus={order.status} deliveredAt={order.delivered_at} />
+      <WarrantyEditor orderId={id} orderStatus={order.status} deliveredAt={order.delivered_at} canManage={isAdmin || isSecretary} />
+      <WarrantyOriginalHistory orderId={id} />
       <PrintSheet order={order} />
     </div>
   );
@@ -258,4 +259,32 @@ function PrintSheet({ order: o }: { order: Order }) {
       </div>
     </div>
   );
+}
+
+
+function WarrantyOriginalHistory({ orderId }: { orderId: string }) {
+  const { data: context } = useQuery({
+    queryKey: ["warranty-return-context", orderId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("get_warranty_return_context", { _return_order_id: orderId });
+      if (error) throw error;
+      return data?.[0] ?? null;
+    },
+  });
+  const logs = context?.original_technical_history ?? [];
+  if (!context) return null;
+  return <section className="space-y-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4">
+    <div><p className="text-xs font-bold uppercase tracking-wide text-amber-700">Retorno em garantia · prioridade</p><h2 className="font-semibold">Histórico da OS original nº {context.original_order_number}</h2></div>
+    <div className="space-y-2 text-sm">
+      <p><strong>Reclamação original:</strong> {context.original_complaint || "—"}</p>
+      <p><strong>Diagnóstico original:</strong> {context.original_diagnosis || "Não registrado"}</p>
+      <p><strong>Peças/serviços registrados:</strong> {context.original_parts || "Não registrados"}</p>
+      <p><strong>Motivo do retorno:</strong> {context.return_complaint}</p>
+      {context.return_diagnosis && <p><strong>Avaliação do retorno:</strong> {context.return_diagnosis}</p>}
+    </div>
+    <div className="border-t pt-3">
+      <h3 className="mb-2 font-semibold">Registros técnicos do serviço original</h3>
+      {logs.length === 0 ? <p className="text-sm text-muted-foreground">Não há registros técnicos adicionais na OS original.</p> : <ol className="space-y-2">{logs.map((log: any) => <li key={log.id} className="rounded-md bg-background p-3 text-sm"><p className="font-medium">{log.procedure || "Procedimento técnico"}</p>{log.description && <p>{log.description}</p>}{log.result && <p><strong>Resultado:</strong> {log.result}</p>}{log.observations && <p><strong>Observações:</strong> {log.observations}</p>}<p className="text-xs text-muted-foreground">{new Date(log.created_at).toLocaleString("pt-BR")}</p></li>)}</ol>}
+    </div>
+  </section>;
 }
