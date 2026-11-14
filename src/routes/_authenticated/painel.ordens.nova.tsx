@@ -102,6 +102,7 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
     ...(selectedCustomer ? { customer_id: selectedCustomer.id, customer_name: selectedCustomer.name, phone: selectedCustomer.phone ?? "" } : {}),
     ...(selectedVehicle ? { vehicle_id: selectedVehicle.id, plate: selectedVehicle.plate, vehicle: selectedVehicle.model, vehicle_year: selectedVehicle.year ?? "", mileage: selectedVehicle.mileage ?? "" } : {}),
     ...(intake ? { customer_name: intake.customer_name, vehicle: intake.vehicle, plate: intake.plate ?? "" } : {}),
+    ...(intake?.intake_type === "pump_injector" ? { vehicle_id: "", vehicle_year: "", mileage: "" } : {}),
   };
 
   async function registerIntake(event: FormEvent<HTMLFormElement>) {
