@@ -136,9 +136,14 @@ BEGIN
     parts_value, labor_value, status, entry_date, due_date, notes,
     inspection_checklist, created_by, vehicle_intake_id
   ) VALUES (
-    v_original.customer_id, v_original.vehicle_id, v_source_intake.customer_name,
-    v_original.phone, v_source_intake.vehicle, v_original.vehicle_year,
-    v_source_intake.plate, v_original.mileage,
+    v_original.customer_id,
+    CASE WHEN v_source_intake.intake_type = 'pump_injector' THEN NULL ELSE v_original.vehicle_id END,
+    v_source_intake.customer_name,
+    v_original.phone,
+    v_source_intake.vehicle,
+    CASE WHEN v_source_intake.intake_type = 'pump_injector' THEN NULL ELSE v_original.vehicle_year END,
+    v_source_intake.plate,
+    CASE WHEN v_source_intake.intake_type = 'pump_injector' THEN NULL ELSE v_original.mileage END,
     'RETORNO EM GARANTIA — ' || v_return.complaint,
     NULL, NULL, '[]'::jsonb, 0, 0, 'recebido',
     CURRENT_DATE, NULL,
