@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "supabase/migrations/2026111417*.sql"
+      - "supabase/migrations/20261114183000_warranty_return_inherit_mechanic.sql"
       - ".github/workflows/test-warranty-return.yml"
       - "supabase/tests/warranty-return/**"
   workflow_dispatch:
@@ -44,5 +45,6 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114170000_warranty_returns_and_audit.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114171000_harden_warranty_database_rules.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114172000_warranty_return_service_orders.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114183000_warranty_return_inherit_mechanic.sql
       - name: Run warranty return behavior and access tests
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/warranty-return/10_behavior.sql
