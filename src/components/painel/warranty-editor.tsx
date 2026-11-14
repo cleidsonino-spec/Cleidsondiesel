@@ -175,7 +175,7 @@ function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; ca
   </div>;
 }
 
-function ReturnHistory({ item, onEdit, onOpen, canManage }: { canManage: boolean; onOpen: () => Promise<void>; item: { id: string; return_service_order_id: string | null; status: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; received_at: string; closed_at: string | null }; onEdit: () => void }) {
+function ReturnHistory({ item, onEdit, onOpen, canManage }: { canManage: boolean; onOpen: () => Promise<void>; item: { id: string; return_service_order_id: string | null; status: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; customer_update: string; received_at: string; closed_at: string | null }; onEdit: () => void }) {
   const { data: events = [] } = useQuery({
     queryKey: ["warranty-return-events", item.id],
     queryFn: async () => {
