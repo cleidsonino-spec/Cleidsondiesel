@@ -161,7 +161,7 @@ function OrcamentosPage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-semibold">{order ? `OS nº ${order.number} · ${order.customer_name}` : "Ordem de serviço indisponível"}</p>
-                {order && <p className="mt-1 text-sm text-muted-foreground">{order.vehicle} · {formatPlate(order.plate)}</p>}
+                {order && <p className="mt-1 text-sm text-muted-foreground">{order.vehicle}{order.plate ? " · " + formatPlate(order.plate) : ""}</p>}
                 {order && <p className="mt-1 text-sm font-medium">{formatBRL(orderTotal(order.parts_value, order.labor_value))}</p>}
               </div>
               <StatusBadge tone={status.tone} label={status.label} />
