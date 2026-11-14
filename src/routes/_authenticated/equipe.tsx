@@ -52,7 +52,7 @@ function StaffDashboard() {
         .eq("mechanic_user_id", user.id).eq("active", true).order("assigned_at", { ascending: false });
       if (error) toast.error("Não foi possível carregar suas ordens.");
       const orderIds = (data ?? []).map((row: any) => row.service_order_id);
-      const contexts = await Promise.all(orderIds.map(async (orderId: string) => {
+      const contexts: [string, any | null][] = await Promise.all(orderIds.map(async (orderId: string): Promise<[string, any | null]> => {
         const { data: contextRows, error: contextError } = await (supabase as any).rpc("get_warranty_return_context", { _return_order_id: orderId });
         if (contextError) return [orderId, null];
         return [orderId, contextRows?.[0] ?? null];
