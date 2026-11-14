@@ -95,7 +95,7 @@ BEGIN
  EXCEPTION WHEN raise_exception THEN
   IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
  END;
-END $;
+END $$;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000004',true);
 DO $$
 DECLARE oid uuid;
