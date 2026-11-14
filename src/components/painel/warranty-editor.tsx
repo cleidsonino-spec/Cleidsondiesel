@@ -36,75 +36,6 @@ export function WarrantyEditor({ orderId, orderStatus, deliveredAt, canManage }:
   const [saving, setSaving] = useState(false);
   const qc = useQueryClient();
 
-  async function openReturnOrder(item: { id: string; service_order_id: string }) {
-    const { data: original, error: originalError } = await (supabase as any)
-      .from("service_orders")
-      .select("vehicle_intake_id,customer_name,vehicle,plate")
-      .eq("id", item.service_order_id)
-      .single();
-    if (originalError || !original) {
-      toast.error(originalError?.message || "Não foi possível consultar a OS original.");
-      return;
-    }
-    if (!original.vehicle_intake_id) {
-      setLegacyIntake({
-        returnId: item.id,
-        customerName: original.customer_name ?? "",
-        vehicle: original.vehicle ?? "",
-        plate: original.plate ?? "",
-        intakeType: "",
-        arrivedOnTowTruck: "",
-        itemDescription: "",
-        itemQuantity: "1",
-      });
-      return;
-    }
-    await createReturnOrder(item.id);
-  }
-
-  async function createReturnOrder(returnId: string, legacy?: LegacyIntakeDraft) {
-    const payload = legacy
-      ? legacy.intakeType === "vehicle"
-        ? { intake_type: "vehicle", plate: legacy.plate, arrived_on_tow_truck: legacy.arrivedOnTowTruck }
-        : { intake_type: "pump_injector", item_description: legacy.itemDescription, item_quantity: legacy.itemQuantity }
-      : undefined;
-    const { data: newOrderId, error } = await (supabase as any).rpc("open_warranty_return_service_order", {
-      _return_id: returnId,
-      ...(payload ? { _legacy_intake: payload } : {}),
-    });
-    if (error) {
-      toast.error(error.message || "Não foi possível abrir a OS do retorno.");
-      return;
-    }
-    await Promise.all([
-      qc.invalidateQueries({ queryKey: ["warranty-returns", warrantyId] }),
-      qc.invalidateQueries({ queryKey: ["orders"] }),
-      qc.invalidateQueries({ queryKey: ["warranty-return-order-priority"] }),
-    ]);
-    setLegacyIntake(null);
-    if (newOrderId) window.location.assign(`/painel/ordens/${newOrderId}`);
-  }
-
-  async function confirmLegacyIntake(e: FormEvent) {
-    e.preventDefault();
-    if (!legacyIntake) return;
-    if (!legacyIntake.intakeType) {
-      toast.error("Selecione se o recebimento é de veículo ou de bomba/bicos.");
-      return;
-    }
-    if (legacyIntake.intakeType === "vehicle") {
-      const normalizedPlate = legacyIntake.plate.replace(/[^a-z0-9]/gi, "");
-      if (normalizedPlate.length < 7 || normalizedPlate.length > 8 || !legacyIntake.arrivedOnTowTruck) {
-        toast.error("Confirme uma placa válida e se o veículo chegou no reboque.");
-        return;
-      }
-    } else if (legacyIntake.itemDescription.trim().length < 2 || !/^[1-9][0-9]*$/.test(legacyIntake.itemQuantity)) {
-      toast.error("Informe a descrição e a quantidade dos itens entregues.");
-      return;
-    }
-    await createReturnOrder(legacyIntake.returnId, legacyIntake);
-  }
-
   async function save(e: FormEvent) {
     e.preventDefault();
     if (!draft) return;
@@ -182,6 +113,7 @@ function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; ca
   const qc = useQueryClient();
   const [draft, setDraft] = useState<ReturnDraft | null>(null);
   const [saving, setSaving] = useState(false);
+  const [legacyIntake, setLegacyIntake] = useState<LegacyIntakeDraft | null>(null);
   const { data = [], isLoading, error } = useQuery({
     queryKey: ["warranty-returns", warrantyId],
     queryFn: async () => {
@@ -190,6 +122,75 @@ function WarrantyReturnPanel({ warrantyId, canManage }: { warrantyId: string; ca
       return data as { id: string; warranty_id: string; service_order_id: string; return_service_order_id: string | null; status: string; complaint: string; diagnosis: string; resolution: string; parts_used: string; labor_description: string; customer_update: string; received_at: string; updated_at: string; closed_at: string | null }[];
     },
   });
+
+  async function openReturnOrder(item: { id: string; service_order_id: string }) {
+    const { data: original, error: originalError } = await (supabase as any)
+      .from("service_orders")
+      .select("vehicle_intake_id,customer_name,vehicle,plate")
+      .eq("id", item.service_order_id)
+      .single();
+    if (originalError || !original) {
+      toast.error(originalError?.message || "Não foi possível consultar a OS original.");
+      return;
+    }
+    if (!original.vehicle_intake_id) {
+      setLegacyIntake({
+        returnId: item.id,
+        customerName: original.customer_name ?? "",
+        vehicle: original.vehicle ?? "",
+        plate: original.plate ?? "",
+        intakeType: "",
+        arrivedOnTowTruck: "",
+        itemDescription: "",
+        itemQuantity: "1",
+      });
+      return;
+    }
+    await createReturnOrder(item.id);
+  }
+
+  async function createReturnOrder(returnId: string, legacy?: LegacyIntakeDraft) {
+    const payload = legacy
+      ? legacy.intakeType === "vehicle"
+        ? { intake_type: "vehicle", plate: legacy.plate, arrived_on_tow_truck: legacy.arrivedOnTowTruck }
+        : { intake_type: "pump_injector", item_description: legacy.itemDescription, item_quantity: legacy.itemQuantity }
+      : undefined;
+    const { data: newOrderId, error } = await (supabase as any).rpc("open_warranty_return_service_order", {
+      _return_id: returnId,
+      ...(payload ? { _legacy_intake: payload } : {}),
+    });
+    if (error) {
+      toast.error(error.message || "Não foi possível abrir a OS do retorno.");
+      return;
+    }
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["warranty-returns", warrantyId] }),
+      qc.invalidateQueries({ queryKey: ["orders"] }),
+      qc.invalidateQueries({ queryKey: ["warranty-return-order-priority"] }),
+    ]);
+    setLegacyIntake(null);
+    if (newOrderId) window.location.assign(`/painel/ordens/${newOrderId}`);
+  }
+
+  async function confirmLegacyIntake(e: FormEvent) {
+    e.preventDefault();
+    if (!legacyIntake) return;
+    if (!legacyIntake.intakeType) {
+      toast.error("Selecione se o recebimento é de veículo ou de bomba/bicos.");
+      return;
+    }
+    if (legacyIntake.intakeType === "vehicle") {
+      const normalizedPlate = legacyIntake.plate.replace(/[^a-z0-9]/gi, "");
+      if (normalizedPlate.length < 7 || normalizedPlate.length > 8 || !legacyIntake.arrivedOnTowTruck) {
+        toast.error("Confirme uma placa válida e se o veículo chegou no reboque.");
+        return;
+      }
+    } else if (legacyIntake.itemDescription.trim().length < 2 || !/^[1-9][0-9]*$/.test(legacyIntake.itemQuantity)) {
+      toast.error("Informe a descrição e a quantidade dos itens entregues.");
+      return;
+    }
+    await createReturnOrder(legacyIntake.returnId, legacyIntake);
+  }
 
   async function save(e: FormEvent) {
     e.preventDefault();
