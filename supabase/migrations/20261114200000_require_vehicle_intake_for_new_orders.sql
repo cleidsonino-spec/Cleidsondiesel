@@ -53,7 +53,7 @@ $$;
 
 DROP TRIGGER IF EXISTS service_orders_require_vehicle_intake ON public.service_orders;
 CREATE TRIGGER service_orders_require_vehicle_intake
-  BEFORE INSERT OR UPDATE OF vehicle_intake_id ON public.service_orders
+  BEFORE INSERT OR UPDATE ON public.service_orders
   FOR EACH ROW
   EXECUTE FUNCTION public.enforce_service_order_vehicle_intake();
 
