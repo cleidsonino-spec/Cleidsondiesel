@@ -202,7 +202,6 @@ export interface FileRoutesByFullPath {
   '/painel/orcamentos': typeof AuthenticatedPainelOrcamentosRoute
   '/painel/relatorios': typeof AuthenticatedPainelRelatoriosRoute
   '/painel/recebimento': typeof AuthenticatedPainelRecebimentoRoute
-  '/painel/recebimento': typeof AuthenticatedPainelRecebimentoRoute
   '/painel/veiculos': typeof AuthenticatedPainelVeiculosRoute
   '/painel/': typeof AuthenticatedPainelIndexRoute
   '/painel/garantias/$id': typeof AuthenticatedPainelGarantiasIdRoute
@@ -284,7 +283,6 @@ export interface FileRouteTypes {
     | '/painel/garantias'
     | '/painel/orcamentos'
     | '/painel/relatorios'
-    | '/painel/recebimento'
     | '/painel/recebimento'
     | '/painel/veiculos'
     | '/painel/'
