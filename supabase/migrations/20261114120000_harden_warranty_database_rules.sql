@@ -8,17 +8,18 @@ SET search_path = public
 AS $$
 DECLARE
   v_order_status text;
+  v_delivered_at timestamptz;
 BEGIN
   IF TG_OP = 'INSERT' THEN
     -- Serializa com alterações concorrentes da OS e só emite garantia
     -- quando a OS já foi registrada como entregue.
-    SELECT status INTO v_order_status
+    SELECT status, delivered_at INTO v_order_status, v_delivered_at
       FROM public.service_orders
      WHERE id = NEW.service_order_id
      FOR UPDATE;
 
-    IF NOT FOUND OR v_order_status IS DISTINCT FROM 'entregue' THEN
-      RAISE EXCEPTION 'A garantia só pode ser emitida quando a OS estiver entregue';
+    IF NOT FOUND OR v_order_status IS DISTINCT FROM 'entregue' OR v_delivered_at IS NULL THEN
+      RAISE EXCEPTION 'A garantia só pode ser emitida após registrar a entrega do veículo';
     END IF;
   ELSE
     IF NEW.service_order_id IS DISTINCT FROM OLD.service_order_id
