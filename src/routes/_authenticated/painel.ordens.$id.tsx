@@ -79,12 +79,12 @@ function OrdemPage() {
   const { isAdmin, isSecretary } = Route.useRouteContext();
   const { id } = Route.useParams();
   const { data: order } = useSuspenseQuery(orderQuery(id));
-  const intakeId = (order as any)?.vehicle_intake_id as string | null | undefined;
+  const intakeId = order?.vehicle_intake_id;
   const intake = useQuery({
     queryKey: ["vehicle-intake", intakeId],
     enabled: Boolean(intakeId),
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("vehicle_intake_records")
+      const { data, error } = await supabase.from("vehicle_intake_records")
         .select("intake_type,arrived_on_tow_truck,delivered_items,plate,vehicle,customer_name")
         .eq("id", intakeId).single();
       if (error) throw error;
