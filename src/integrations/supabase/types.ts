@@ -186,17 +186,114 @@ export type Database = {
           },
         ]
       }
+      service_order_inspection_reports: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          diagnosis: string
+          executed_parts: string
+          id: string
+          inspection_observations: string
+          rejected_items: string
+          review_note: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          service_order_id: string
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          diagnosis?: string
+          executed_parts?: string
+          id?: string
+          inspection_observations?: string
+          rejected_items?: string
+          review_note?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          service_order_id: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          diagnosis?: string
+          executed_parts?: string
+          id?: string
+          inspection_observations?: string
+          rejected_items?: string
+          review_note?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          service_order_id?: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_order_inspection_reports_service_order_id_fkey"
+            columns: ["service_order_id"]
+            isOneToOne: true
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_order_payments: {
+        Row: {
+          amount: number
+          confirmed_at: string
+          confirmed_by: string
+          id: string
+          note: string | null
+          service_order_id: string
+        }
+        Insert: {
+          amount: number
+          confirmed_at?: string
+          confirmed_by: string
+          id?: string
+          note?: string | null
+          service_order_id: string
+        }
+        Update: {
+          amount?: number
+          confirmed_at?: string
+          confirmed_by?: string
+          id?: string
+          note?: string | null
+          service_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_order_payments_service_order_id_fkey"
+            columns: ["service_order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_orders: {
         Row: {
           appointment_id: string | null
           complaint: string
           created_at: string
           created_by: string | null
-          delivered_at: string | null
-          discount_percent: number
           customer_id: string | null
           customer_name: string
+          delivered_at: string | null
           diagnosis: string | null
+          discount_percent: number
           due_date: string | null
           entry_date: string
           fuel_filter_replacement: boolean | null
@@ -223,11 +320,11 @@ export type Database = {
           complaint: string
           created_at?: string
           created_by?: string | null
-          delivered_at?: string | null
-          discount_percent?: number
           customer_id?: string | null
           customer_name: string
+          delivered_at?: string | null
           diagnosis?: string | null
+          discount_percent?: number
           due_date?: string | null
           entry_date?: string
           fuel_filter_replacement?: boolean | null
@@ -254,11 +351,11 @@ export type Database = {
           complaint?: string
           created_at?: string
           created_by?: string | null
-          delivered_at?: string | null
-          discount_percent?: number
           customer_id?: string | null
           customer_name?: string
+          delivered_at?: string | null
           diagnosis?: string | null
+          discount_percent?: number
           due_date?: string | null
           entry_date?: string
           fuel_filter_replacement?: boolean | null
@@ -410,17 +507,23 @@ export type Database = {
       }
       user_roles: {
         Row: {
+          deactivated_at: string | null
           id: string
+          is_active: boolean
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
+          deactivated_at?: string | null
           id?: string
+          is_active?: boolean
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
+          deactivated_at?: string | null
           id?: string
+          is_active?: boolean
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
@@ -577,6 +680,37 @@ export type Database = {
         Args: { p_token: string }
         Returns: undefined
       }
+      admin_get_financial_overview: {
+        Args: never
+        Returns: {
+          balance: number
+          customer_name: string
+          last_payment_at: string
+          order_number: number
+          order_status: string
+          paid_percent: number
+          plate: string
+          received: number
+          service_order_id: string
+          total: number
+        }[]
+      }
+      admin_list_staff_accounts: {
+        Args: never
+        Returns: {
+          created_at: string
+          deactivated_at: string
+          email: string
+          full_name: string
+          is_active: boolean
+          role: string
+          user_id: string
+        }[]
+      }
+      admin_set_staff_active: {
+        Args: { _active: boolean; _staff_user_id: string }
+        Returns: undefined
+      }
       approve_quote: { Args: { _name: string; _token: string }; Returns: Json }
       approve_quote_identified: {
         Args: { _cpf: string; _name: string; _token: string }
@@ -587,7 +721,51 @@ export type Database = {
         Returns: undefined
       }
       booked_slots: { Args: { _date: string }; Returns: string[] }
+      confirm_service_order_payment: {
+        Args: { _amount: number; _note?: string; _order_id: string }
+        Returns: Json
+      }
+      get_approved_inspection_report_for_pdf: {
+        Args: { _service_order_id: string }
+        Returns: Json
+      }
+      get_collection_queue: {
+        Args: never
+        Returns: {
+          balance: number
+          customer_name: string
+          last_payment_at: string
+          order_number: number
+          order_status: string
+          paid_percent: number
+          plate: string
+          received: number
+          service_order_id: string
+          total: number
+        }[]
+      }
+      get_mechanic_appointment_agenda: {
+        Args: never
+        Returns: {
+          appointment_id: string
+          customer_name: string
+          mechanic_name: string
+          scheduled_date: string
+          scheduled_time: string
+        }[]
+      }
       get_quote_approval: { Args: { _token: string }; Returns: Json }
+      get_service_order_payment_history: {
+        Args: { _order_id: string }
+        Returns: {
+          amount: number
+          confirmed_at: string
+          confirmed_by: string
+          confirmed_by_name: string
+          note: string
+          payment_id: string
+        }[]
+      }
       get_staff_appointment_agenda: {
         Args: never
         Returns: {
