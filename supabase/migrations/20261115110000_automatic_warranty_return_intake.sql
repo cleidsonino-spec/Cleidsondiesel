@@ -66,7 +66,7 @@ BEGIN
       now(),
       auth.uid(),
       'Equipe',
-      concat_ws(E'\\n', nullif(v_source_intake.notes, ''),
+      concat_ws(E'\n', nullif(v_source_intake.notes, ''),
         'Novo recebimento gerado automaticamente para retorno em garantia #' || v_return.id::text),
       v_source_intake.intake_type,
       v_source_intake.arrived_on_tow_truck,
