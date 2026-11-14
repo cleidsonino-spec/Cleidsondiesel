@@ -262,18 +262,7 @@ function WarrantyOriginalHistory({ orderId }: { orderId: string }) {
       return data?.[0] ?? null;
     },
   });
-  const { data: logs = [] } = useQuery({
-    queryKey: ["warranty-original-service-logs", context?.original_order_id],
-    enabled: Boolean(context?.original_order_id),
-    queryFn: async () => {
-      const { data, error } = await (supabase as any).from("technical_service_logs")
-        .select("procedure,description,result,observations,created_at")
-        .eq("service_order_id", context.original_order_id)
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  const logs = context?.original_technical_history ?? [];
   if (!context) return null;
   return <section className="space-y-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4">
     <div><p className="text-xs font-bold uppercase tracking-wide text-amber-700">Retorno em garantia · prioridade</p><h2 className="font-semibold">Histórico da OS original nº {context.original_order_number}</h2></div>
