@@ -56,6 +56,7 @@ export function InspectionReportEditor({ order, isAdmin, isSecretary }: Props) {
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [reviewNote, setReviewNote] = useState("");
+  const [pdfFeedback, setPdfFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -145,7 +146,9 @@ export function InspectionReportEditor({ order, isAdmin, isSecretary }: Props) {
 
   async function emitPdf(share: boolean) {
     if (!canEmit) return;
+    let stage = "autorização do relatório";
     setBusy(true);
+    setPdfFeedback("Etapa 1/3: verificando autorização do relatório...");
     try {
       // O banco valida o perfil e devolve apenas o conteúdo do relatório aprovado.
       const { data: approvedData, error: authorizationError } = await (supabase as any)
@@ -153,21 +156,37 @@ export function InspectionReportEditor({ order, isAdmin, isSecretary }: Props) {
       if (authorizationError || !approvedData) {
         throw new Error(authorizationError?.message ?? "Relatório aprovado não disponível para emissão.");
       }
+
+      stage = "montagem do PDF";
+      setPdfFeedback("Etapa 2/3: montando o arquivo PDF...");
       const file = await createInspectionReportPdf(order, approvedData as InspectionReportData);
       const title = `Relatório técnico OS ${order.number} — Cleidson Diesel`;
       const message = `Olá, ${order.customer_name}! Segue o relatório técnico da sua ordem de serviço.`;
+
+      stage = share ? "preparação do compartilhamento no Android" : "gravação do PDF no Android";
+      setPdfFeedback(share
+        ? "Etapa 3/3: preparando o compartilhamento..."
+        : "Etapa 3/3: salvando o PDF na pasta Documentos...");
       if (share) {
         await shareInspectionReport(file, title, message);
+        setPdfFeedback("Compartilhamento concluído. Selecione o aplicativo para enviar o PDF.");
+        toast.success("PDF preparado para compartilhamento.");
       } else {
         await saveInspectionReport(file);
-        toast.success(Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android"
+        const success = Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android"
           ? "PDF salvo na pasta Documentos do aparelho."
-          : "PDF baixado.");
+          : "PDF baixado.";
+        setPdfFeedback(success);
+        toast.success(success);
       }
     } catch (error) {
-      if (!(error instanceof Error && error.name === "AbortError")) {
-        toast.error(error instanceof Error ? error.message : "Não foi possível gerar o PDF.");
-      }
+      const detail = error instanceof Error ? error.message : String(error);
+      const message = error instanceof Error && error.name === "AbortError"
+        ? "Compartilhamento cancelado pelo usuário."
+        : `Falha na etapa: ${stage}. Detalhe: ${detail}`;
+      console.error("[InspectionReport PDF] Falha na emissão", { stage, error });
+      setPdfFeedback(message);
+      if (!(error instanceof Error && error.name === "AbortError")) toast.error(message);
     } finally {
       setBusy(false);
     }
@@ -250,13 +269,20 @@ export function InspectionReportEditor({ order, isAdmin, isSecretary }: Props) {
       )}
 
       {canEmit && (
-        <div className="flex flex-wrap gap-2 border-t pt-4">
-          <Button type="button" onClick={() => emitPdf(false)} disabled={busy}>
-            {busy ? <Loader2 className="animate-spin" /> : <Download />} Gerar / baixar PDF
-          </Button>
-          <Button type="button" variant="outline" onClick={() => emitPdf(true)} disabled={busy}>
-            <Share2 /> Compartilhar PDF
-          </Button>
+        <div className="space-y-3 border-t pt-4">
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" onClick={() => emitPdf(false)} disabled={busy}>
+              {busy ? <Loader2 className="animate-spin" /> : <Download />} Gerar / baixar PDF
+            </Button>
+            <Button type="button" variant="outline" onClick={() => emitPdf(true)} disabled={busy}>
+              <Share2 /> Compartilhar PDF
+            </Button>
+          </div>
+          {pdfFeedback && (
+            <p role="status" aria-live="polite" className="rounded-md border p-3 text-sm break-words">
+              {pdfFeedback}
+            </p>
+          )}
         </div>
       )}
 
