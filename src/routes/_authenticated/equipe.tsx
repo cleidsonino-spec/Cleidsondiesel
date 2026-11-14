@@ -33,6 +33,7 @@ function StaffDashboard() {
   const [maintenanceChecks, setMaintenanceChecks] = useState<Record<string, { fuelFilter: boolean | null; systemCleaning: boolean | null }>>({});
   const [unread, setUnread] = useState(0);
   const [history, setHistory] = useState<Record<string, any[]>>({});
+  const [warrantyContexts, setWarrantyContexts] = useState<Record<string, any>>({});
 
   async function load() {
     setLoading(true);
@@ -41,8 +42,19 @@ function StaffDashboard() {
         .select("id, service_order_id, assigned_at, service_orders(id, number, customer_name, vehicle, plate, complaint, diagnosis, due_date, status, fuel_filter_replacement, system_cleaning)")
         .eq("mechanic_user_id", user.id).eq("active", true).order("assigned_at", { ascending: false });
       if (error) toast.error("Não foi possível carregar suas ordens.");
-      setItems(data ?? []);
       const orderIds = (data ?? []).map((row: any) => row.service_order_id);
+      const contexts = await Promise.all(orderIds.map(async (orderId: string) => {
+        const { data: contextRows, error: contextError } = await (supabase as any).rpc("get_warranty_return_context", { _return_order_id: orderId });
+        if (contextError) return [orderId, null];
+        return [orderId, contextRows?.[0] ?? null];
+      }));
+      const contextMap = Object.fromEntries(contexts.filter(([, value]) => value));
+      setWarrantyContexts(contextMap);
+      setItems([...(data ?? [])].sort((a: any, b: any) => {
+        const aPriority = contextMap[a.service_order_id] ? 1 : 0;
+        const bPriority = contextMap[b.service_order_id] ? 1 : 0;
+        return bPriority - aPriority || new Date(b.assigned_at).getTime() - new Date(a.assigned_at).getTime();
+      }));
       if (orderIds.length) {
         const { data: logs, error: logsError } = await (supabase as any).from("technical_service_logs").select("id, service_order_id, procedure, description, result, observations, created_at").in("service_order_id", orderIds).order("created_at", { ascending: false });
         if (logsError) {
@@ -133,6 +145,7 @@ function StaffDashboard() {
         return <article key={item.id} className="space-y-3 rounded-lg border bg-card p-4">
           {staffRole === "mecanico" ? <>
             <div className="flex flex-wrap justify-between gap-2"><h3 className="font-semibold">OS nº {order?.number ?? "—"} · {order?.vehicle ?? "Veículo"}</h3><span className="text-sm font-medium text-primary">{({ recebido: "Aguardando diagnóstico", em_analise: "Em diagnóstico", aguardando_aprovacao: "Aguardando orçamento/aprovação", em_servico: "Em serviço", pronto: "Serviço concluído", entregue: "Entregue", cancelado: "Cancelado" } as Record<string,string>)[order?.status] ?? order?.status ?? "—"}</span></div>
+            {warrantyContexts[id] && <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3"><p className="font-bold text-amber-700">RETORNO EM GARANTIA · PRIORIDADE</p><p className="mt-1 text-sm">OS original nº {warrantyContexts[id].original_order_number}</p><p className="mt-2 text-sm"><strong>Reclamação original:</strong> {warrantyContexts[id].original_complaint || "—"}</p>{warrantyContexts[id].original_diagnosis && <p className="mt-1 text-sm"><strong>Diagnóstico original:</strong> {warrantyContexts[id].original_diagnosis}</p>}{warrantyContexts[id].original_parts && <p className="mt-1 text-sm"><strong>Peças/serviços anteriores:</strong> {warrantyContexts[id].original_parts}</p><p className="mt-2 text-sm"><strong>Motivo deste retorno:</strong> {warrantyContexts[id].return_complaint}</p>{warrantyContexts[id].return_diagnosis && <p className="mt-1 text-sm"><strong>Avaliação do retorno:</strong> {warrantyContexts[id].return_diagnosis}</p>}<div className="mt-2 border-t border-amber-500/20 pt-2"><p className="text-sm font-semibold">Histórico técnico da OS original</p>{(warrantyContexts[id].original_technical_history ?? []).length ? warrantyContexts[id].original_technical_history.map((log: any) => <div key={log.id} className="mt-2 rounded bg-background/70 p-2 text-sm"><p className="font-medium">{log.procedure} · {log.result}</p><p>{log.description}</p>{log.observations && <p>{log.observations}</p>}<p className="text-xs text-muted-foreground">{new Date(log.created_at).toLocaleString("pt-BR")}</p></div>) : <p className="mt-1 text-xs">Não há registros técnicos adicionais na OS original.</p>}</div></div>}
             <p className="text-sm">Placa: {order?.plate ?? "—"} · Prazo: {order?.due_date ?? "Não informado"}</p>
             <p className="text-sm"><strong>Cliente:</strong> {order?.customer_name ?? "—"}</p>
             <p className="text-sm"><strong>Reclamação:</strong> {order?.complaint ?? "—"}</p>
