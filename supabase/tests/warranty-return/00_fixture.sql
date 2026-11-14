@@ -73,6 +73,7 @@ CREATE TABLE public.technical_service_logs (
   observations text,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+CREATE ROLE anon NOLOGIN;
 CREATE ROLE authenticated NOLOGIN;
 GRANT USAGE ON SCHEMA public, auth TO authenticated;
 GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated;
