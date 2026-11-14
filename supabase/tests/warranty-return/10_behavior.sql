@@ -99,7 +99,7 @@ INSERT INTO public.technical_service_logs(service_order_id,procedure,description
 VALUES ('10000000-0000-4000-8000-000000000001','Teste','Inspeção sintética','OK','Sem dados reais');
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000003',true);
-DO $
+DO $$
 DECLARE c record; oid uuid; n integer;
 BEGIN
  SELECT return_order_id INTO oid FROM test_ids;
@@ -125,7 +125,7 @@ BEGIN
  END;
 END $$;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000004',true);
-DO $
+DO $$
 DECLARE oid uuid; n integer;
 BEGIN
  SELECT return_order_id INTO oid FROM test_ids;
