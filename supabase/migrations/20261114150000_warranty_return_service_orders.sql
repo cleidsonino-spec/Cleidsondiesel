@@ -89,3 +89,46 @@ CREATE POLICY warranty_returns_staff_read ON public.warranty_returns
       AND public.is_mechanic_assigned(return_service_order_id, auth.uid())
     )
   );
+
+-- Contexto técnico da OS original, liberado apenas ao mecânico atribuído à OS de retorno.
+CREATE OR REPLACE FUNCTION public.get_warranty_return_context(_return_order_id uuid)
+RETURNS TABLE (
+  return_id uuid,
+  original_order_number bigint,
+  original_complaint text,
+  original_diagnosis text,
+  original_parts text,
+  return_complaint text,
+  return_diagnosis text,
+  return_parts_used text,
+  return_labor_description text,
+  return_resolution text
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT (
+    public.has_role(auth.uid(), 'admin'::public.app_role)
+    OR public.has_role(auth.uid(), 'secretaria'::public.app_role)
+    OR (
+      public.has_role(auth.uid(), 'mecanico'::public.app_role)
+      AND public.is_mechanic_assigned(_return_order_id, auth.uid())
+    )
+  ) THEN
+    RAISE EXCEPTION 'Acesso não autorizado ao histórico do retorno';
+  END IF;
+
+  RETURN QUERY
+  SELECT wr.id, original.number, original.complaint, original.diagnosis,
+         original.parts, wr.complaint, wr.diagnosis, wr.parts_used,
+         wr.labor_description, wr.resolution
+  FROM public.warranty_returns wr
+  JOIN public.service_orders original ON original.id = wr.service_order_id
+  WHERE wr.return_service_order_id = _return_order_id;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.get_warranty_return_context(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_warranty_return_context(uuid) TO authenticated;
