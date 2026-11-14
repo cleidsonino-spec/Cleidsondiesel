@@ -64,6 +64,20 @@
       "when": 1794430800000,
       "tag": "0008_staff_appointment_agenda",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794536100000,
+      "tag": "0010_warranty_starts_on_delivery",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794614400000,
+      "tag": "0011_immutable_delivered_at",
+      "breakpoints": true
     }
   ]
 }

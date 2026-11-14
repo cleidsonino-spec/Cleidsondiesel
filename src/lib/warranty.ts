@@ -12,8 +12,8 @@ export function warrantyEndDate(start: string, months: number): string {
   target.setUTCDate(Math.min(day, last));
   return target.toISOString().slice(0, 10);
 }
-export function canIssueWarranty(orderStatus: string): boolean {
-  return orderStatus === "pronto";
+export function canIssueWarranty(orderStatus: string, deliveredAt: string | null): boolean {
+  return orderStatus === "entregue" && Boolean(deliveredAt);
 }
 
 export function warrantyState(start: string, end: string, today: string) {

@@ -175,7 +175,7 @@ function OrdemPage() {
       </div>
 
       {(isAdmin || isSecretary) && <ServiceOrderStatusHistory orderId={id} />}
-      <WarrantyEditor orderId={id} orderStatus={order.status} canManage={isAdmin || isSecretary} />
+      <WarrantyEditor orderId={id} orderStatus={order.status} deliveredAt={order.delivered_at} canManage={isAdmin || isSecretary} />
       <PrintSheet order={order} />
     </div>
   );
