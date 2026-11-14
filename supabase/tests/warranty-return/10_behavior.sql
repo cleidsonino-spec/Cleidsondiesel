@@ -15,7 +15,8 @@ INSERT INTO public.user_roles(user_id, role) VALUES
 INSERT INTO public.service_orders(id,status,delivered_at,created_by,customer_name,vehicle,complaint)
 VALUES
  ('10000000-0000-4000-8000-000000000001','entregue',now(),'00000000-0000-4000-8000-000000000001','Cliente sintético','Hilux teste','Revisão concluída'),
- ('10000000-0000-4000-8000-000000000002','em_servico',NULL,'00000000-0000-4000-8000-000000000001','Cliente sintético 2','Van teste','Falha de teste');
+ ('10000000-0000-4000-8000-000000000002','em_servico',NULL,'00000000-0000-4000-8000-000000000001','Cliente sintético 2','Van teste','Falha de teste'),
+ ('10000000-0000-4000-8000-000000000003','entregue',NULL,'00000000-0000-4000-8000-000000000001','Cliente sintético 3','Caminhão teste','Entrega sem timestamp');
 INSERT INTO public.warranties(id,service_order_id,duration_months,start_date,end_date,created_by)
 VALUES ('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001',3,CURRENT_DATE,CURRENT_DATE+90,'00000000-0000-4000-8000-000000000001');
 DO $$
@@ -27,7 +28,14 @@ BEGIN
   EXCEPTION WHEN raise_exception THEN
     IF SQLERRM = 'FAIL: warranty on non-delivered order was accepted' THEN RAISE; END IF;
   END;
-END $$;
+  BEGIN
+    INSERT INTO public.warranties(service_order_id,duration_months,start_date,end_date,created_by)
+    VALUES ('10000000-0000-4000-8000-000000000003',3,CURRENT_DATE,CURRENT_DATE+90,'00000000-0000-4000-8000-000000000001');
+    RAISE EXCEPTION 'FAIL: warranty on delivered order without delivered_at was accepted';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'FAIL: warranty on delivered order without delivered_at was accepted' THEN RAISE; END IF;
+  END;
+END $;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',true);
 INSERT INTO test_ids(return_id)
 SELECT public.register_warranty_return('20000000-0000-4000-8000-000000000001','Cliente relata falha após entrega');
