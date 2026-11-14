@@ -57,6 +57,7 @@ function PainelIndex() {
   const { data: orders } = useSuspenseQuery(ordersQuery());
   const { data: appointments } = useSuspenseQuery(appointmentsQuery());
   const { data: warranties } = useSuspenseQuery(warrantiesQuery());
+  const { data: warrantyReturnOrders = [] } = useQuery({ queryKey: ["warranty-return-order-priority"], queryFn: async () => { const { data, error } = await (supabase as any).from("warranty_returns").select("return_service_order_id").not("return_service_order_id", "is", null); if (error) throw error; return (data ?? []).map((row: any) => row.return_service_order_id as string); } });
   const { data: financialRows = [], isError: financialError, isLoading: financialLoading } = useQuery<FinancialOrderStatus[]>({
     queryKey: ["financial-overview"],
     enabled: isAdmin,
@@ -98,12 +99,13 @@ function PainelIndex() {
     };
   }, [orders, appointments, warranties, today]);
 
+  const priorityIds = new Set(warrantyReturnOrders);
   const filtered = orders.filter((o) => {
     if (q) return normalizePlate(o.plate).includes(q) || o.customer_name.toUpperCase().includes(search.trim().toUpperCase());
     if (filter === "todas") return true;
     if (filter === "abertas") return OPEN_ORDER_STATUSES.includes(o.status);
     return o.status === filter;
-  });
+  }).sort((a, b) => Number(priorityIds.has(b.id)) - Number(priorityIds.has(a.id)) || b.number - a.number);
   const plateAppointments = q.length >= 3 ? appointments.filter((a) => normalizePlate(a.plate).includes(q)) : [];
 
   return (
@@ -215,7 +217,7 @@ function PainelIndex() {
               const pending = Number(finance?.balance ?? orderBudget);
               const financeLabel = financialError ? "Indisponível" : financialLoading ? "Carregando..." : orderBudget <= 0 ? "Sem orçamento" : pending <= 0 ? "Quitada" : received > 0 ? "Parcialmente paga" : "Em aberto";
               return <Link key={o.id} to="/painel/ordens/$id" params={{ id: o.id }} className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1 px-4 py-4 transition-colors hover:bg-secondary md:grid-cols-[90px_140px_1fr_auto_auto]">
-                <span className="font-display text-sm text-muted-foreground">#{o.number}</span>
+                <span className="font-display text-sm text-muted-foreground">#{o.number}{priorityIds.has(o.id) && <span className="mt-1 block text-xs font-bold text-amber-700">RETORNO EM GARANTIA</span>}</span>
                 <span className="plate text-lg">{formatPlate(o.plate)}</span>
                 <span className="col-span-2 min-w-0 md:col-span-1"><span className="block truncate font-medium">{o.customer_name}</span><span className="block truncate text-sm text-muted-foreground">{o.vehicle} · {o.complaint}</span></span>
                 <span className="text-sm text-muted-foreground">
