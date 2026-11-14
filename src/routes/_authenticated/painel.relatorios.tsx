@@ -36,7 +36,7 @@ type ReportRow = {
     number: number;
     customer_name: string;
     vehicle: string;
-    plate: string;
+    plate: string | null;
     status: string;
   } | null;
 };
