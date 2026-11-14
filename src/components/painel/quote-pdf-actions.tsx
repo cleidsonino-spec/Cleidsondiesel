@@ -39,7 +39,11 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
     createQuotePdf(order, preparedBy, options).then((pdf) => {
       if (active) setFile(pdf);
     }).catch(() => {
-      if (active) { setFailed(true); toast.error("Não foi possível gerar o PDF. Reabra a ordem e tente novamente."); }
+      if (active) {
+        setFailed(true);
+        console.error("Falha ao gerar PDF do orçamento:", error);
+        toast.error(error instanceof Error ? `Falha ao gerar PDF: ${error.message}` : "Não foi possível gerar o PDF. Tente novamente.");
+      }
     });
     return () => { active = false; };
   }, [order, preparedBy, options]);
@@ -50,16 +54,30 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
 
   async function shareWithCustomer() {
     if (!file) return;
-    if (!navigator.share || !navigator.canShare?.({ files: [file] })) {
-      downloadQuote(file);
-      toast.message("PDF baixado. Anexe o arquivo ao enviar pelo WhatsApp ou outro aplicativo.");
+    const shareData = { files: [file], title: `Orçamento OS ${order.number} — Cleidson Diesel`, text: `Olá, ${order.customer_name}! Segue o orçamento da sua ordem de serviço.` };
+    const canShareFiles = typeof navigator.canShare !== "function" || navigator.canShare({ files: [file] });
+    if (typeof navigator.share !== "function" || !canShareFiles) {
+      try {
+        downloadQuote(file);
+        toast.message("Este navegador não permite compartilhar o PDF diretamente. O arquivo foi baixado para você anexar no WhatsApp.");
+      } catch (error) {
+        console.error("Falha ao baixar PDF para compartilhamento:", error);
+        toast.error("Não foi possível baixar o PDF. Verifique a permissão de downloads do navegador.");
+      }
       return;
     }
     try {
-      await navigator.share({ files: [file], title: `Orçamento OS ${order.number} — Cleidson Diesel`, text: `Olá, ${order.customer_name}! Segue o orçamento da sua ordem de serviço.` });
+      await navigator.share(shareData);
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") return;
-      toast.error("Não foi possível compartilhar o PDF. Tente baixá-lo.");
+      console.error("Falha ao compartilhar PDF:", error);
+      try {
+        downloadQuote(file);
+        toast.message("O compartilhamento não foi concluído. O PDF foi baixado para envio manual.");
+      } catch (downloadError) {
+        console.error("Falha no download alternativo do PDF:", downloadError);
+        toast.error("Não foi possível compartilhar nem baixar o PDF. Tente novamente pelo navegador.");
+      }
     }
   }
 
