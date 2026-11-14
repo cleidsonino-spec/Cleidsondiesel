@@ -30,7 +30,7 @@ export function appointmentShopLink(a: { name: string; date: string; time: strin
   ].join("\n"));
 }
 
-export function approvalShopLink(o: { number: number; plate: string; vehicle: string }, name: string): string | null {
+export function approvalShopLink(o: { number: number; plate: string | null; vehicle: string }, name: string): string | null {
   return waLink(SHOP_PHONE, [
     `Olá, Cleidson Diesel! Sou ${name} e aprovei o orçamento da OS nº ${o.number} pelo site.`,
     `Veículo: ${o.vehicle} (${formatPlate(o.plate)}).`,
@@ -39,7 +39,7 @@ export function approvalShopLink(o: { number: number; plate: string; vehicle: st
 
 type OrderLike = {
   number: number;
-  plate: string;
+  plate: string | null;
   customer_name: string;
   vehicle: string;
   status: OrderStatus;
