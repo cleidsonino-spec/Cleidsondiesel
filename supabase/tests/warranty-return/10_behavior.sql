@@ -35,7 +35,7 @@ BEGIN
   EXCEPTION WHEN raise_exception THEN
     IF SQLERRM = 'FAIL: warranty on delivered order without delivered_at was accepted' THEN RAISE; END IF;
   END;
-END $;
+END $$;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',true);
 INSERT INTO test_ids(return_id)
 SELECT public.register_warranty_return('20000000-0000-4000-8000-000000000001','Cliente relata falha após entrega');
