@@ -82,6 +82,8 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
   const [intake, setIntake] = useState<IntakeOption | null>(null);
   const intakeMatchesSelectedCustomer = Boolean(intake && selectedCustomer &&
     selectedCustomer.name.trim().toLocaleLowerCase("pt-BR") === intake.customer_name.trim().toLocaleLowerCase("pt-BR"));
+  const intakeMatchesPrefillCustomer = Boolean(intake && prefill?.customer_name &&
+    prefill.customer_name.trim().toLocaleLowerCase("pt-BR") === intake.customer_name.trim().toLocaleLowerCase("pt-BR"));
   const intakeMatchesSelectedVehicle = Boolean(intake?.intake_type === "vehicle" && selectedVehicle &&
     normalizePlate(selectedVehicle.plate) === normalizePlate(intake.plate) &&
     selectedVehicle.model.trim().toLocaleLowerCase("pt-BR") === intake.vehicle.trim().toLocaleLowerCase("pt-BR"));
@@ -110,7 +112,7 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
     ...(intake ? {
       customer_id: intakeMatchesSelectedCustomer ? selectedCustomer?.id ?? "" : "",
       customer_name: intake.customer_name,
-      phone: intakeMatchesSelectedCustomer ? selectedCustomer?.phone ?? "" : prefill?.phone ?? "",
+      phone: intakeMatchesSelectedCustomer ? selectedCustomer?.phone ?? "" : intakeMatchesPrefillCustomer ? prefill?.phone ?? "" : "",
       vehicle_id: intakeMatchesSelectedVehicle ? selectedVehicle?.id ?? "" : "",
       vehicle: intake.vehicle,
       plate: intake.plate ?? "",
