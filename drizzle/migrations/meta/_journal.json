@@ -2,82 +2,17 @@
   "version": "7",
   "dialect": "postgresql",
   "entries": [
-    {
-      "idx": 0,
-      "version": "7",
-      "when": 1794019027429,
-      "tag": "0000_oficina_schema",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1794020558990,
-      "tag": "0001_order_parts_and_shop_hours",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1794022122184,
-      "tag": "0002_customer_quote_approval",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1794022714939,
-      "tag": "0003_approval_identity_and_auto_status",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1794024638740,
-      "tag": "0004_lookup_vehicle_by_plate",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1794109499642,
-      "tag": "0005_order_inspection_checklist",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1794272807818,
-      "tag": "0006_customers_vehicles_and_warranty_module",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1794356325414,
-      "tag": "0007_push_extra_events",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1794430800000,
-      "tag": "0008_staff_appointment_agenda",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "7",
-      "when": 1794499611010,
-      "tag": "0009_push_quote_icons",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1794536100000,
-      "tag": "0010_warranty_starts_on_delivery",
-      "breakpoints": true
-    }
+    { "idx": 0, "version": "7", "when": 1794019027429, "tag": "0000_oficina_schema", "breakpoints": true },
+    { "idx": 1, "version": "7", "when": 1794020558990, "tag": "0001_order_parts_and_shop_hours", "breakpoints": true },
+    { "idx": 2, "version": "7", "when": 1794022122184, "tag": "0002_customer_quote_approval", "breakpoints": true },
+    { "idx": 3, "version": "7", "when": 1794022714939, "tag": "0003_approval_identity_and_auto_status", "breakpoints": true },
+    { "idx": 4, "version": "7", "when": 1794024638740, "tag": "0004_lookup_vehicle_by_plate", "breakpoints": true },
+    { "idx": 5, "version": "7", "when": 1794109499642, "tag": "0005_order_inspection_checklist", "breakpoints": true },
+    { "idx": 6, "version": "7", "when": 1794272807818, "tag": "0006_customers_vehicles_and_warranty_module", "breakpoints": true },
+    { "idx": 7, "version": "7", "when": 1794356325414, "tag": "0007_push_extra_events", "breakpoints": true },
+    { "idx": 8, "version": "7", "when": 1794430800000, "tag": "0008_staff_appointment_agenda", "breakpoints": true },
+    { "idx": 9, "version": "7", "when": 1794499611010, "tag": "0009_push_quote_icons", "breakpoints": true },
+    { "idx": 10, "version": "7", "when": 1794536100000, "tag": "0010_warranty_starts_on_delivery", "breakpoints": true },
+    { "idx": 11, "version": "7", "when": 1794614400000, "tag": "0011_immutable_delivered_at", "breakpoints": true }
   ]
 }
