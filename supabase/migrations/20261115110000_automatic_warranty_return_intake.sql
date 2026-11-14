@@ -76,9 +76,9 @@ BEGIN
     parts_value, labor_value, status, entry_date, due_date, notes,
     inspection_checklist, created_by, vehicle_intake_id
   ) VALUES (
-    v_original.customer_id, v_original.vehicle_id, v_original.customer_name,
-    v_original.phone, v_original.vehicle, v_original.vehicle_year,
-    v_original.plate, v_original.mileage,
+    v_original.customer_id, v_original.vehicle_id, v_source_intake.customer_name,
+    v_original.phone, v_source_intake.vehicle, v_original.vehicle_year,
+    v_source_intake.plate, v_original.mileage,
     'RETORNO EM GARANTIA — ' || v_return.complaint,
     NULL, NULL, '[]'::jsonb, 0, 0, 'recebido',
     CURRENT_DATE, NULL,
