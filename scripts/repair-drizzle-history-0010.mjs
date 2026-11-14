@@ -11,7 +11,7 @@ const migrationPath = "drizzle/migrations/0010_warranty_starts_on_delivery.sql";
 const migration = await readFile(migrationPath);
 const migrationHash = createHash("sha256").update(migration).digest("hex");
 const migrationTimestamp = 1794536100000;
-const expectedPreviousHash = "407b118f04a5ee55d14c0b8da25e584d63e94857a3debabfb094c2c4a09d6f45";
+const expectedPreviousHash = "d19004f720d24e912b4945d48ce716b56b2709b1624d9682988da39025042398";
 const expectedPreviousTimestamp = 1794499611010;
 
 const sql = postgres(connectionString, { ssl: "require", max: 1, connect_timeout: 15 });
