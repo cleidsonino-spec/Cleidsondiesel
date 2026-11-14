@@ -11,14 +11,14 @@ DECLARE
 BEGIN
   IF TG_OP = 'INSERT' THEN
     -- Serializa com alterações concorrentes da OS e só emite garantia
-    -- quando a conclusão do serviço já foi registrada como pronta.
+    -- quando a OS já foi registrada como entregue.
     SELECT status INTO v_order_status
       FROM public.service_orders
      WHERE id = NEW.service_order_id
      FOR UPDATE;
 
-    IF NOT FOUND OR v_order_status IS DISTINCT FROM 'pronto' THEN
-      RAISE EXCEPTION 'A garantia só pode ser emitida quando a OS estiver pronta para retirada';
+    IF NOT FOUND OR v_order_status IS DISTINCT FROM 'entregue' THEN
+      RAISE EXCEPTION 'A garantia só pode ser emitida quando a OS estiver entregue';
     END IF;
   ELSE
     IF NEW.service_order_id IS DISTINCT FROM OLD.service_order_id
