@@ -100,6 +100,7 @@ RETURNS TABLE (
   original_complaint text,
   original_diagnosis text,
   original_parts text,
+  original_technical_history jsonb,
   return_complaint text,
   return_diagnosis text,
   return_parts_used text,
@@ -125,7 +126,9 @@ BEGIN
 
   RETURN QUERY
   SELECT wr.id, original.id, original.number::bigint, original.complaint, original.diagnosis,
-         original.parts, wr.complaint, wr.diagnosis, wr.parts_used,
+         original.parts,
+         COALESCE((SELECT jsonb_agg(jsonb_build_object('id', log.id, 'procedure', log.procedure, 'description', log.description, 'result', log.result, 'observations', log.observations, 'created_at', log.created_at) ORDER BY log.created_at ASC) FROM public.technical_service_logs log WHERE log.service_order_id = original.id), '[]'::jsonb),
+         wr.complaint, wr.diagnosis, wr.parts_used,
          wr.labor_description, wr.resolution
   FROM public.warranty_returns wr
   JOIN public.service_orders original ON original.id = wr.service_order_id
