@@ -91,7 +91,7 @@ BEGIN
  SELECT count(*) INTO n FROM public.service_order_assignments
  WHERE service_order_id=o.id AND mechanic_user_id='00000000-0000-4000-8000-000000000003' AND active=true;
  IF n <> 1 THEN RAISE EXCEPTION 'FAIL: repeated open did not restore exactly one active assignment'; END IF;
-END $;
+END $$;
 INSERT INTO public.technical_service_logs(service_order_id,procedure,description,result,observations)
 VALUES ('10000000-0000-4000-8000-000000000001','Teste','Inspeção sintética','OK','Sem dados reais');
 SET LOCAL ROLE authenticated;
