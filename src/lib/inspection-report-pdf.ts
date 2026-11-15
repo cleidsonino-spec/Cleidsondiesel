@@ -140,7 +140,7 @@ type NativeFilesystem = {
   writeFile(options: { path: string; data: string; directory: "CACHE" | "DOCUMENTS"; encoding?: "utf8" | "base64"; recursive?: boolean }): Promise<{ uri: string }>;
 };
 type NativeShare = {
-  share(options: { title?: string; text?: string; url?: string; dialogTitle?: string }): Promise<void>;
+  share(options: { title?: string; text?: string; files?: string[]; dialogTitle?: string }): Promise<void>;
 };
 const NativeFilesystem = registerPlugin<NativeFilesystem>("Filesystem");
 const NativeShare = registerPlugin<NativeShare>("Share");
@@ -178,7 +178,7 @@ export async function shareInspectionReport(file: File, title: string, text: str
       directory: "CACHE",
       recursive: true,
     });
-    await NativeShare.share({ title, text, url: saved.uri, dialogTitle: "Compartilhar relatório técnico" });
+    await NativeShare.share({ title, text, files: [saved.uri], dialogTitle: "Compartilhar relatório técnico" });
     return;
   }
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
