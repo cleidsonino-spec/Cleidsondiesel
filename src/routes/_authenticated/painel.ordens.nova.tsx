@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { appointmentQuery } from "@/lib/queries";
 import { todayISO } from "@/lib/schedule";
 import { normalizePlate } from "@/lib/plate";
-import { customersQuery, vehiclesQuery } from "@/lib/registry";
+import { customersQuery } from "@/lib/registry";
 
 type Search = { agendamento?: string; cliente?: string; veiculo?: string };
 type IntakeType = "vehicle" | "pump_injector";
@@ -36,7 +36,7 @@ export const Route = createFileRoute("/_authenticated/painel/ordens/nova")({
     ({ ...(typeof s["agendamento"] === "string" ? { agendamento: s["agendamento"] } : {}), ...(typeof s["cliente"] === "string" ? { cliente: s["cliente"] } : {}), ...(typeof s["veiculo"] === "string" ? { veiculo: s["veiculo"] } : {}) }),
   loaderDeps: ({ search }) => ({ agendamento: search.agendamento }),
   loader: async ({ context, deps }) => {
-    await Promise.all([context.queryClient.ensureQueryData(customersQuery()), context.queryClient.ensureQueryData(vehiclesQuery())]);
+    await context.queryClient.ensureQueryData(customersQuery());
     if (deps.agendamento) await context.queryClient.ensureQueryData(appointmentQuery(deps.agendamento));
   },
   component: NovaOS,
@@ -64,19 +64,17 @@ function FromAppointment({ id }: { id: string }) {
 }
 
 function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormValues> | undefined; appointmentId?: string | undefined }) {
-  const { cliente, veiculo } = Route.useSearch();
+  const { cliente } = Route.useSearch();
   const { data: customers } = useSuspenseQuery(customersQuery());
-  const { data: vehicles } = useSuspenseQuery(vehiclesQuery());
-  const selectedVehicle = vehicles.find((v) => v.id === veiculo);
-  const selectedCustomer = customers.find((c) => c.id === (selectedVehicle?.customer_id ?? cliente));
+  const selectedCustomer = customers.find((c) => c.id === cliente);
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [intakeType, setIntakeType] = useState<IntakeType>("vehicle");
   const [customer, setCustomer] = useState(prefill?.customer_name ?? selectedCustomer?.name ?? "");
   const [customerId, setCustomerId] = useState(selectedCustomer?.id ?? "");
   const selectedCustomerRecord = customers.find((item) => item.id === customerId);
-  const [vehicle, setVehicle] = useState(prefill?.vehicle ?? selectedVehicle?.model ?? "");
-  const [plate, setPlate] = useState(prefill?.plate ?? selectedVehicle?.plate ?? "");
+  const [vehicle, setVehicle] = useState(prefill?.vehicle ?? "");
+  const [plate, setPlate] = useState(prefill?.plate ?? "");
   const [towTruck, setTowTruck] = useState("no");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<DeliveredItem[]>([{ description: "", quantity: "1" }]);
@@ -87,17 +85,14 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
     intakeCustomerRecord.name.trim().toLocaleLowerCase("pt-BR") === intake.customer_name.trim().toLocaleLowerCase("pt-BR"));
   const intakeMatchesPrefillCustomer = Boolean(intake && prefill?.customer_name &&
     prefill.customer_name.trim().toLocaleLowerCase("pt-BR") === intake.customer_name.trim().toLocaleLowerCase("pt-BR"));
-  const intakeMatchesSelectedVehicle = Boolean(intake?.intake_type === "vehicle" && selectedVehicle &&
-    normalizePlate(selectedVehicle.plate) === normalizePlate(intake.plate) &&
-    selectedVehicle.model.trim().toLocaleLowerCase("pt-BR") === intake.vehicle.trim().toLocaleLowerCase("pt-BR"));
 
   const initial: OrderFormValues = {
     plate: intake?.plate ?? "",
     customer_name: customer,
     phone: prefill?.phone ?? selectedCustomer?.phone ?? "",
     vehicle: intake?.vehicle ?? vehicle,
-    vehicle_year: selectedVehicle?.year ?? "",
-    mileage: selectedVehicle?.mileage ?? "",
+    vehicle_year: "",
+    mileage: "",
     complaint: prefill?.complaint ?? "",
     diagnosis: "",
     parts: "",
@@ -111,16 +106,15 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
     inspection: { failedItems: "", observations: "" },
     ...prefill,
     ...(selectedCustomer ? { customer_id: selectedCustomer.id, customer_name: selectedCustomer.name, phone: selectedCustomer.phone ?? "" } : {}),
-    ...(selectedVehicle ? { vehicle_id: selectedVehicle.id, plate: selectedVehicle.plate, vehicle: selectedVehicle.model, vehicle_year: selectedVehicle.year ?? "", mileage: selectedVehicle.mileage ?? "" } : {}),
     ...(intake ? {
       customer_id: intakeMatchesSelectedCustomer ? intakeCustomerRecord?.id ?? "" : "",
       customer_name: intake.customer_name,
       phone: intakeMatchesSelectedCustomer ? intakeCustomerRecord?.phone ?? "" : intakeMatchesPrefillCustomer ? prefill?.phone ?? "" : "",
-      vehicle_id: intakeMatchesSelectedVehicle ? selectedVehicle?.id ?? "" : "",
+      vehicle_id: "",
       vehicle: intake.vehicle,
       plate: intake.plate ?? "",
-      vehicle_year: intakeMatchesSelectedVehicle ? selectedVehicle?.year ?? "" : "",
-      mileage: intakeMatchesSelectedVehicle ? selectedVehicle?.mileage ?? "" : "",
+      vehicle_year: "",
+      mileage: "",
     } : {}),
   };
 
