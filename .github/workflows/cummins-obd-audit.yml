@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   audit:
-    name: Read-only catalog audit
+    name: Read-only catalog audit through Supabase REST
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -24,11 +24,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Install isolated audit dependency
-        run: npm install --prefix tools/obd-audit --no-package-lock --ignore-scripts
-      - name: Audit Cummins catalog
+      - name: Audit Cummins catalog through HTTPS API
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: node tools/obd-audit/audit.mjs
       - name: Upload audit report
         if: always()
