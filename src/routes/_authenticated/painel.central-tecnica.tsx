@@ -4,6 +4,7 @@ import { AlertCircle, BookOpen, Boxes, CheckCircle2, Fuel, Gauge, Search, Wrench
 
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizePumpReference, matchesPumpReference } from "@/lib/technical-reference";
 
 export const Route = createFileRoute("/_authenticated/painel/central-tecnica")({
   head: () => ({ meta: [
@@ -118,7 +119,7 @@ function CentralTecnicaPage() {
   const [error, setError] = useState<string | null>(null);
   const normalizedSearch = search.trim();
   const normalizedPumpReference = pumpReference.trim();
-  const normalizedPumpReferenceDigits = normalizedPumpReference.replace(/\D/g, "");
+  const normalizedPumpReferenceDigits = normalizePumpReference(normalizedPumpReference);
 
   const activeArea = areas.find((area) => area.id === selectedArea) ?? areas[0];
   const activeCategoryIds = selectedArea === "bombas" && pumpFamily === "ve"
@@ -146,7 +147,7 @@ function CentralTecnicaPage() {
             .limit(500);
           if (queryError) throw queryError;
           const rows = (data ?? []).filter((row: any) =>
-            String(row.model ?? "").replace(/\D/g, "") === normalizedPumpReferenceDigits
+            matchesPumpReference(row.model, normalizedPumpReferenceDigits)
           );
           const matchedModels = [...new Set(rows.map((row: any) => row.model).filter(Boolean))];
           if (matchedModels.length > 1) {
