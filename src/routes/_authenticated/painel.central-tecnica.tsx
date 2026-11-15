@@ -38,9 +38,22 @@ function text(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
-function isPump(item: Row, categoryName?: string) {
-  if (item.component_type === "pump_component") return false;
-  return /bomba|pump|injetora/i.test([text(item.name), text(item.component_type), text(item.model), text(categoryName)].join(" "));
+const PUMP_TYPES = new Set([
+  "bomba_rotativa_ve",
+  "bomba_rotativa_ve_modelo",
+  "bomba_rotativa_ve_mecanica",
+  "bomba_rotativa_ve_edc",
+  "bomba_rotativa_ve_mv",
+  "bomba_injetora_completa_hyundai",
+  "bomba_em_linha",
+  "bomba_em_linha_p7100",
+  "injection_pump",
+  "bomba_alta_pressao",
+  "denso_hp3",
+]);
+
+function isPump(item: Row) {
+  return PUMP_TYPES.has(text(item.component_type));
 }
 
 function statusLabel(value: unknown) {
@@ -294,7 +307,7 @@ function CentralTecnicaPage() {
               {item.model && <p className="text-sm"><span className="text-muted-foreground">Modelo: </span>{item.model}</p>}
               {item.description && <p className="text-sm">{item.description}</p>}
               {item.technical_notes && <p className="border-t border-border pt-2 text-sm text-muted-foreground">{item.technical_notes}</p>}
-              {isPump(item, categoryById.get(item.category_id)) && <Button className="mt-2" size="sm" onClick={() => setSelectedPumpId(item.id)}>Abrir despiece <Boxes className="ml-2 size-4" /></Button>}
+              {isPump(item) && <Button className="mt-2" size="sm" onClick={() => setSelectedPumpId(item.id)}>Abrir despiece <Boxes className="ml-2 size-4" /></Button>}
             </article>)}</div> : <Empty text="Ainda não há componentes cadastrados para esta seleção. Não exibimos informações presumidas como se fossem validadas." />}
           </section>}
 
