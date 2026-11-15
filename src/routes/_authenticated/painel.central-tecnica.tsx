@@ -38,7 +38,12 @@ function text(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
-function isPump(item: Row, categoryName?: string) {\n  if (item.component_type === "pump_component") return false;\n  return /bomba|pump|injetora/i.test([text(item.name), text(item.component_type), text(item.model), text(categoryName)].join(" "));\n}\n\nfunction statusLabel(value: unknown) {
+function isPump(item: Row, categoryName?: string) {
+  if (item.component_type === "pump_component") return false;
+  return /bomba|pump|injetora/i.test([text(item.name), text(item.component_type), text(item.model), text(categoryName)].join(" "));
+}
+
+function statusLabel(value: unknown) {
   const status = text(value);
   if (status === "documented") return "Documentado";
   if (status === "pending_validation") return "Pendente de validação";
@@ -122,7 +127,8 @@ function CentralTecnicaPage() {
       })
     : [];
   const selectedPumpDocuments = selectedPump ? documents.filter((item) => item.component_id === selectedPump.id) : [];
-  const selectedPumpReferences = selectedPump ? references.filter((item) => item.component_id === selectedPump.id) : [];\n  const selectedPumpManufacturer = selectedPump ? manufacturerById.get(selectedPump.manufacturer_id) || "Fabricante não informado" : "";
+  const selectedPumpReferences = selectedPump ? references.filter((item) => item.component_id === selectedPump.id) : [];
+  const selectedPumpManufacturer = selectedPump ? manufacturerById.get(selectedPump.manufacturer_id) || "Fabricante não informado" : "";
 
   const q = search.trim().toLocaleLowerCase("pt-BR");
   const matches = (values: unknown[]) => !q || values.some((value) => text(value).toLocaleLowerCase("pt-BR").includes(q));
@@ -290,7 +296,8 @@ function CentralTecnicaPage() {
               {item.component_code && <p className="text-sm"><span className="text-muted-foreground">Código: </span><strong>{item.component_code}</strong></p>}
               {item.model && <p className="text-sm"><span className="text-muted-foreground">Modelo: </span>{item.model}</p>}
               {item.description && <p className="text-sm">{item.description}</p>}
-              {item.technical_notes && <p className="border-t border-border pt-2 text-sm text-muted-foreground">{item.technical_notes}</p>}\n              {isPump(item, categoryById.get(item.category_id)) && <Button className="mt-2" size="sm" onClick={() => setSelectedPumpId(item.id)}>Abrir despiece <Boxes className="ml-2 size-4" /></Button>}
+              {item.technical_notes && <p className="border-t border-border pt-2 text-sm text-muted-foreground">{item.technical_notes}</p>}
+              {isPump(item, categoryById.get(item.category_id)) && <Button className="mt-2" size="sm" onClick={() => setSelectedPumpId(item.id)}>Abrir despiece <Boxes className="ml-2 size-4" /></Button>}
             </article>)}</div> : <Empty text="Ainda não há componentes cadastrados para esta seleção. Não exibimos informações presumidas como se fossem validadas." />}
           </section>}
 
