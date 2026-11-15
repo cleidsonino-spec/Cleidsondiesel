@@ -68,7 +68,6 @@ function CentralTecnicaPage() {
   const [manufacturer, setManufacturer] = useState("all");
   const [category, setCategory] = useState("all");
   const [selectedPumpId, setSelectedPumpId] = useState<string | null>(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [imageMessage, setImageMessage] = useState("");
 
   const query = useQuery({
