@@ -329,13 +329,38 @@ function CentralTecnicaPage() {
                   <h4 className="text-sm font-semibold">Figura explodida — catálogo Bosch 2009/2010, página 110</h4>
                   <p className="text-xs text-muted-foreground">Documento vinculado a esta bomba. A figura é compartilhada com outras referências do catálogo; confirme sempre o código da bomba e a tabela de peças antes de usar na montagem.</p>
                 </div>
-                <div className="overflow-hidden rounded-md border bg-white">
+                <div className="relative overflow-hidden rounded-md border bg-white">
                   <iframe
-                    src={`https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf#page=${figurePdfPage ?? 81}&zoom=175`}
+                    src={`https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf#toolbar=0&navpanes=0&page=${figurePdfPage ?? 81}&zoom=page-fit`}
                     title={`Figura explodida Bosch — página física ${figurePdfPage ?? "não identificada"} do catálogo VE`}
                     className="h-[920px] w-full bg-white"
                     loading="lazy"
                   />
+                  {figureHotspots.length > 0 ? (
+                    <div className="pointer-events-none absolute inset-0" aria-label="Camada de áreas clicáveis da figura">
+                      {figureHotspots.map((hotspot: any) => {
+                        const linkedPart = results.find((item) => item.id === hotspot.reference_id);
+                        if (!linkedPart || !Number.isFinite(Number(hotspot.x)) || !Number.isFinite(Number(hotspot.y))) return null;
+                        const left = Math.max(0, Math.min(100, Number(hotspot.x) * 100));
+                        const top = Math.max(0, Math.min(100, Number(hotspot.y) * 100));
+                        const width = Math.max(2, Math.min(20, Number(hotspot.width) * 100));
+                        const height = Math.max(2, Math.min(12, Number(hotspot.height) * 100));
+                        return (
+                          <button
+                            key={hotspot.id}
+                            type="button"
+                            title={`Posição ${hotspot.catalog_position} — ${linkedPart.code ?? "sem código"}`}
+                            aria-label={`Selecionar peça na posição ${hotspot.catalog_position}`}
+                            onClick={() => setSelectedReferenceId(linkedPart.id)}
+                            className="pointer-events-auto absolute rounded-sm border-2 border-sky-600 bg-sky-400/20 shadow-sm hover:bg-sky-400/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700"
+                            style={{ left: `${left}%`, top: `${top}%`, width: `${width}%`, height: `${height}%` }}
+                          >
+                            <span className="sr-only">Posição {hotspot.catalog_position}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <a
@@ -347,7 +372,7 @@ function CentralTecnicaPage() {
                     Abrir página da figura no catálogo completo
                   </a>
                 </div>
-                <p className="text-xs text-muted-foreground">Visualização da página física {figurePdfPage ?? "não identificada"} do catálogo Bosch. {figureHotspots.length} áreas de referência carregadas para esta bomba; todas permanecem sujeitas à validação das coordenadas antes de habilitar o clique direto.</p>
+                <p className="text-xs text-muted-foreground">Visualização da página física {figurePdfPage ?? "não identificada"} do catálogo Bosch. {figureHotspots.length} áreas de referência carregadas. As marcações azuis são provisórias: as coordenadas estão pendentes de calibração visual.</p>
               </div>
             </article>
           ) : null}
