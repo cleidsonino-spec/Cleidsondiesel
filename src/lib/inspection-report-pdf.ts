@@ -1,3 +1,4 @@
+// Android build trigger: compile APK from main including PR #100 FileProvider share-path fix.
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import { formatPlate } from "@/lib/plate";
 import { formatDateBR } from "@/lib/schedule";
