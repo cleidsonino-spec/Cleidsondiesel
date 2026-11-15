@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AlertCircle, BookOpen, Boxes, CheckCircle2, Fuel, Gauge, Search, Wrench } from "lucide-react";
 
@@ -90,62 +90,31 @@ function positionSortValue(position: string | null) {
   return match ? Number(match[0]) : Number.MAX_SAFE_INTEGER;
 }
 
-function PdfFigureViewer({ pageNumber, hotspots, results, onSelect }: { pageNumber: number; hotspots: any[]; results: TechnicalResult[]; onSelect: (id: string) => void }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [viewerError, setViewerError] = useState<string | null>(null);
-  const [viewerLoading, setViewerLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    let renderTask: { cancel: () => void } | null = null;
-    const renderPage = async () => {
-      setViewerLoading(true);
-      setViewerError(null);
-      try {
-        // PDF.js renderiza a página no mesmo elemento que recebe a camada SVG/HTML.
-        // Assim, não dependemos das margens e do zoom internos de um iframe.
-        const pdfJsUrl = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
-        const pdfjs = await import(/* @vite-ignore */ pdfJsUrl);
-        pdfjs.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
-        const loadingTask = pdfjs.getDocument("https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf");
-        const pdf = await loadingTask.promise;
-        if (cancelled) return;
-        const page = await pdf.getPage(pageNumber);
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const baseViewport = page.getViewport({ scale: 1 });
-        const availableWidth = canvas.parentElement?.clientWidth || baseViewport.width;
-        const scale = Math.min(2, Math.max(0.5, availableWidth / baseViewport.width));
-        const viewport = page.getViewport({ scale });
-        const context = canvas.getContext("2d");
-        if (!context) throw new Error("Não foi possível preparar a área de desenho.");
-        canvas.width = Math.ceil(viewport.width);
-        canvas.height = Math.ceil(viewport.height);
-        canvas.style.width = "100%";
-        canvas.style.height = "auto";
-        renderTask = page.render({ canvasContext: context, viewport });
-        await (renderTask as any).promise;
-        if (!cancelled) setViewerLoading(false);
-      } catch (error) {
-        if (!cancelled) {
-          setViewerError(error instanceof Error ? error.message : "Não foi possível renderizar a página do catálogo.");
-          setViewerLoading(false);
-        }
-      }
-    };
-    void renderPage();
-    return () => {
-      cancelled = true;
-      renderTask?.cancel();
-    };
-  }, [pageNumber]);
+function PdfFigureViewer({ pageNumber }: { pageNumber: number }) {
+  const catalogUrl = `https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf#page=${pageNumber}`;
 
   return (
-    <div className="relative w-full overflow-hidden bg-white">
-      <canvas ref={canvasRef} className="block h-auto w-full" aria-label={`Página ${pageNumber} do catálogo Bosch`} />
-      {viewerLoading ? <div className="absolute inset-0 flex items-center justify-center bg-white/90 p-4 text-sm text-muted-foreground">Carregando página do catálogo...</div> : null}
-      {viewerError ? <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white p-4 text-center text-sm text-destructive"><p>Não foi possível alinhar a camada porque a página não foi renderizada.</p><p className="text-xs">{viewerError}</p><a className="text-primary underline" href="https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf" target="_blank" rel="noreferrer">Abrir o PDF original</a></div> : null}
-
+    <div className="space-y-2">
+      <div className="relative w-full overflow-hidden bg-white" style={{ height: "min(78vh, 760px)" }}>
+        <iframe
+          title={`Catálogo Bosch — página ${pageNumber}`}
+          src={catalogUrl}
+          className="h-full w-full border-0"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+        />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Se o navegador não exibir o PDF incorporado, abra a página diretamente no catálogo.
+      </p>
+      <a
+        className="text-sm text-primary underline"
+        href={catalogUrl}
+        target="_blank"
+        rel="noreferrer"
+      >
+        Abrir página {pageNumber} no catálogo Bosch
+      </a>
     </div>
   );
 }
@@ -390,7 +359,7 @@ function CentralTecnicaPage() {
                   <p className="text-xs text-muted-foreground">Documento vinculado a esta bomba. A figura é compartilhada com outras referências do catálogo; confirme sempre o código da bomba e a tabela de peças antes de usar na montagem.</p>
                 </div>
                 <div className="overflow-hidden rounded-md border bg-white">
-                  <PdfFigureViewer pageNumber={figurePdfPage ?? 81} hotspots={figureHotspots} results={results} onSelect={setSelectedReferenceId} />
+                  <PdfFigureViewer pageNumber={figurePdfPage ?? 81} />
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <a
