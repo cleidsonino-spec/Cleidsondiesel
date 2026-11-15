@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Bell, CalendarDays, ClipboardList, LogOut, Wrench } from "lucide-react";
+import { Bell, CalendarDays, ClipboardList, LogOut, Users, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
