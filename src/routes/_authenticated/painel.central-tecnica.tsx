@@ -38,7 +38,7 @@ function text(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
-function statusLabel(value: unknown) {
+function isPump(item: Row, categoryName?: string) {\n  if (item.component_type === "pump_component") return false;\n  return /bomba|pump|injetora/i.test([text(item.name), text(item.component_type), text(item.model), text(categoryName)].join(" "));\n}\n\nfunction statusLabel(value: unknown) {
   const status = text(value);
   if (status === "documented") return "Documentado";
   if (status === "pending_validation") return "Pendente de validação";
@@ -114,7 +114,7 @@ function CentralTecnicaPage() {
   const componentById = useMemo(() => new Map(components.map((item) => [item.id, item])), [components]);
   const selectedPump = components.find((item) => item.id === selectedPumpId) ?? null;
   const pumpParts = selectedPump
-    ? components.filter((item) => item.component_type === "pump_component" && item.model === selectedPump.model)
+    ? components.filter((item) => item.component_type === "pump_component" && Boolean(selectedPump.model) && item.model === selectedPump.model && item.manufacturer_id === selectedPump.manufacturer_id)
       .sort((a, b) => {
         const pa = Number((text(a.technical_notes).match(/Posi[cç][aã]o\s*:\s*(\d+)/i) || [])[1] || 999999);
         const pb = Number((text(b.technical_notes).match(/Posi[cç][aã]o\s*:\s*(\d+)/i) || [])[1] || 999999);
@@ -122,7 +122,7 @@ function CentralTecnicaPage() {
       })
     : [];
   const selectedPumpDocuments = selectedPump ? documents.filter((item) => item.component_id === selectedPump.id) : [];
-  const selectedPumpReferences = selectedPump ? references.filter((item) => item.component_id === selectedPump.id) : [];
+  const selectedPumpReferences = selectedPump ? references.filter((item) => item.component_id === selectedPump.id) : [];\n  const selectedPumpManufacturer = selectedPump ? manufacturerById.get(selectedPump.manufacturer_id) || "Fabricante não informado" : "";
 
   const q = search.trim().toLocaleLowerCase("pt-BR");
   const matches = (values: unknown[]) => !q || values.some((value) => text(value).toLocaleLowerCase("pt-BR").includes(q));
@@ -229,7 +229,7 @@ function CentralTecnicaPage() {
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Despiece da bomba</p>
                   <h2 className="text-xl font-semibold">{selectedPump.name}</h2>
-                  <p className="text-sm text-muted-foreground">Bosch · Código {selectedPump.component_code || selectedPump.model}</p>
+                  <p className="text-sm text-muted-foreground">{selectedPumpManufacturer} · Código {selectedPump.component_code || selectedPump.model || "Não informado"}</p>
                   <div className="mt-2"><Status value={selectedPump.information_status} /></div>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => setSelectedPumpId(null)}>Fechar despiece</Button>
@@ -290,7 +290,7 @@ function CentralTecnicaPage() {
               {item.component_code && <p className="text-sm"><span className="text-muted-foreground">Código: </span><strong>{item.component_code}</strong></p>}
               {item.model && <p className="text-sm"><span className="text-muted-foreground">Modelo: </span>{item.model}</p>}
               {item.description && <p className="text-sm">{item.description}</p>}
-              {item.technical_notes && <p className="border-t border-border pt-2 text-sm text-muted-foreground">{item.technical_notes}</p>}
+              {item.technical_notes && <p className="border-t border-border pt-2 text-sm text-muted-foreground">{item.technical_notes}</p>}\n              {isPump(item, categoryById.get(item.category_id)) && <Button className="mt-2" size="sm" onClick={() => setSelectedPumpId(item.id)}>Abrir despiece <Boxes className="ml-2 size-4" /></Button>}
             </article>)}</div> : <Empty text="Ainda não há componentes cadastrados para esta seleção. Não exibimos informações presumidas como se fossem validadas." />}
           </section>}
 
