@@ -294,20 +294,14 @@ function CentralTecnicaPage() {
                   <h4 className="text-sm font-semibold">Figura explodida — catálogo Bosch 2009/2010, página 110</h4>
                   <p className="text-xs text-muted-foreground">Documento vinculado a esta bomba. A figura é compartilhada com outras referências do catálogo; confirme sempre o código da bomba e a tabela de peças antes de usar na montagem.</p>
                 </div>
-                <a
-                  href="https://image.slidesharecdn.com/boschdieselbombasve20092010-160112114713/85/Bosch-diesel-bombas-VE-2009_2010-81-320.jpg"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block overflow-hidden rounded-md border bg-white"
-                  aria-label="Abrir a figura explodida original em tamanho disponível"
-                >
-                  <img
-                    src="https://image.slidesharecdn.com/boschdieselbombasve20092010-160112114713/85/Bosch-diesel-bombas-VE-2009_2010-81-320.jpg"
-                    alt="Figura explodida Bosch da página 110 do catálogo de bombas rotativas VE, incluindo a referência 0 460 426 436"
-                    className="mx-auto h-auto max-h-[760px] w-full object-contain"
+                <div className="overflow-hidden rounded-md border bg-white">
+                  <iframe
+                    src="https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf#page=110&zoom=page"
+                    title="Figura explodida Bosch — página 110 do catálogo VE"
+                    className="h-[760px] w-full bg-white"
                     loading="lazy"
                   />
-                </a>
+                </div>
                 <div className="flex flex-wrap gap-3">
                   <a
                     href="https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf#page=110"
@@ -318,7 +312,7 @@ function CentralTecnicaPage() {
                     Abrir página 110 do catálogo completo
                   </a>
                 </div>
-                <p className="text-xs text-muted-foreground">Imagem de consulta hospedada por terceiro e em resolução reduzida. A figura é compartilhada por várias referências; os códigos e quantidades devem ser conferidos na tabela específica da bomba. Os pontos clicáveis serão adicionados após validação das posições.</p>
+                <p className="text-xs text-muted-foreground">Visualização da página original do catálogo Bosch. A figura é compartilhada por várias referências; os códigos e quantidades devem ser conferidos na tabela específica da bomba. Os pontos clicáveis serão adicionados após validação das posições.</p>
               </div>
             </article>
           ) : null}
