@@ -62,6 +62,7 @@ function CentralTecnicaPage() {
   const [area, setArea] = useState<Area>("tudo");
   const [manufacturer, setManufacturer] = useState("all");
   const [category, setCategory] = useState("all");
+  const [selectedPumpId, setSelectedPumpId] = useState<string | null>(null);
 
   const query = useQuery({
     queryKey: ["central-tecnica-readonly"],
@@ -75,13 +76,22 @@ function CentralTecnicaPage() {
         "technical_applications",
         "technical_documents",
       ] as const;
-      const results = await Promise.all(tables.map((table) => {
-        let request = (supabase as any).from(table).select("*");
-        if (table === "technical_manufacturers" || table === "technical_documents") {
-          request = request.eq("is_active", true);
+      const loadAllPages = async (table: string) => {
+        const pageSize = 500;
+        const rows: Row[] = [];
+        for (let from = 0; ; from += pageSize) {
+          let request = (supabase as any).from(table).select("*");
+          if (table === "technical_manufacturers" || table === "technical_documents") {
+            request = request.eq("is_active", true);
+          }
+          const result = await request.order("created_at", { ascending: false }).range(from, from + pageSize - 1);
+          if (result.error) throw result.error;
+          rows.push(...(result.data ?? []));
+          if (!result.data || result.data.length < pageSize) break;
         }
-        return request.order("created_at", { ascending: false }).limit(500);
-      }));
+        return rows;
+      };
+      const results = await Promise.all(tables.map((table) => loadAllPages(table)));
       const failed = results.find((result) => result.error);
       if (failed?.error) throw failed.error;
       return Object.fromEntries(tables.map((table, index) => [table, results[index]?.data ?? []])) as Record<string, Row[]>;
@@ -102,6 +112,17 @@ function CentralTecnicaPage() {
   const categoryById = useMemo(() => new Map(categories.map((item) => [item.id, item.name])), [categories]);
   const engineById = useMemo(() => new Map(engines.map((item) => [item.id, item])), [engines]);
   const componentById = useMemo(() => new Map(components.map((item) => [item.id, item])), [components]);
+  const selectedPump = components.find((item) => item.id === selectedPumpId) ?? null;
+  const pumpParts = selectedPump
+    ? components.filter((item) => item.component_type === "pump_component" && item.model === selectedPump.model)
+      .sort((a, b) => {
+        const pa = Number((text(a.technical_notes).match(/Posi[cç][aã]o\\s*:\\s*(\\d+)/i) || [])[1] || 999999);
+        const pb = Number((text(b.technical_notes).match(/Posi[cç][aã]o\\s*:\\s*(\\d+)/i) || [])[1] || 999999);
+        return pa - pb;
+      })
+    : [];
+  const selectedPumpDocuments = selectedPump ? documents.filter((item) => item.component_id === selectedPump.id) : [];
+  const selectedPumpReferences = selectedPump ? references.filter((item) => item.component_id === selectedPump.id) : [];
 
   const q = search.trim().toLocaleLowerCase("pt-BR");
   const matches = (values: unknown[]) => !q || values.some((value) => text(value).toLocaleLowerCase("pt-BR").includes(q));
@@ -202,6 +223,54 @@ function CentralTecnicaPage() {
             <p className="text-xs text-muted-foreground">{totalResults} resultado(s) nas áreas exibidas. Os filtros não alteram os dados cadastrados.</p>
           </section>
 
+          {selectedPump && (
+            <section className="space-y-4 rounded-xl border-2 border-primary/30 bg-card p-4" aria-label="Detalhes do despiece">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Despiece da bomba</p>
+                  <h2 className="text-xl font-semibold">{selectedPump.name}</h2>
+                  <p className="text-sm text-muted-foreground">Bosch · Código {selectedPump.component_code || selectedPump.model}</p>
+                  <div className="mt-2"><Status value={selectedPump.information_status} /></div>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setSelectedPumpId(null)}>Fechar despiece</Button>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-lg border border-dashed border-border p-4">
+                  <h3 className="font-semibold">Imagem do despiece</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">Imagem original ainda não cadastrada. Não exibimos desenhos genéricos como se fossem o despiece confirmado desta bomba.</p>
+                </div>
+                <div className="rounded-lg border border-border p-4">
+                  <h3 className="font-semibold">Documentos e referências</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{selectedPumpDocuments.length} documento(s) · {selectedPumpReferences.length} referência(s)</p>
+                  {selectedPumpDocuments.map((doc) => <div key={doc.id} className="mt-2 text-sm">
+                    <p className="font-medium">{doc.title}</p>
+                    {doc.source_url && <a className="text-primary underline" href={doc.source_url} target="_blank" rel="noreferrer">Abrir fonte</a>}
+                    <Status value={doc.information_status} />
+                  </div>)}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2"><h3 className="font-semibold">Peças do despiece</h3><span className="text-sm text-muted-foreground">{pumpParts.length} peças</span></div>
+                {pumpParts.length ? <div className="overflow-x-auto rounded-lg border border-border">
+                  <table className="w-full min-w-[560px] text-sm">
+                    <thead className="bg-muted/60 text-left"><tr><th className="p-3">Posição</th><th className="p-3">Código</th><th className="p-3">Descrição</th><th className="p-3">Quantidade</th><th className="p-3">Status</th></tr></thead>
+                    <tbody>{pumpParts.map((part) => {
+                      const position = (text(part.technical_notes).match(/Posi[cç][aã]o\\s*:\\s*(\\d+)/i) || [])[1] || "—";
+                      return <tr key={part.id} className="border-t border-border">
+                        <td className="p-3 font-semibold tabular-nums">{position}</td>
+                        <td className="p-3 font-mono">{part.component_code || "—"}</td>
+                        <td className="p-3">{part.name}<p className="mt-1 text-xs text-muted-foreground">Foto individual ainda não cadastrada</p></td>
+                        <td className="p-3 text-muted-foreground">Não informada</td>
+                        <td className="p-3"><Status value={part.information_status} /></td>
+                      </tr>;
+                    })}</tbody>
+                  </table>
+                </div> : <Empty text="Nenhuma peça vinculada a este modelo." />}
+              </div>
+              <p className="text-xs text-muted-foreground">As posições e descrições são exibidas conforme o cadastro existente. Quantidades e imagens não são presumidas.</p>
+            </section>
+          )}
+
           {(area === "tudo" || area === "motores") && <section className="space-y-3">
             <SectionTitle icon={<Gauge />} title="Motores" count={visibleEngines.length} />
             {visibleEngines.length ? <div className="grid gap-3 md:grid-cols-2">{visibleEngines.map((item) => <article key={item.id} className="space-y-2 rounded-lg border border-border bg-card p-4">
@@ -209,6 +278,7 @@ function CentralTecnicaPage() {
               <p className="text-sm text-muted-foreground">{manufacturerById.get(item.manufacturer_id) || "Fabricante não informado"}{item.model ? ` · ${item.model}` : ""}</p>
               <dl className="grid grid-cols-2 gap-2 text-sm">{item.engine_code && <Info label="Código" value={item.engine_code} />}{item.displacement && <Info label="Cilindrada" value={item.displacement} />}{item.fuel_system && <Info label="Sistema" value={item.fuel_system} />}{item.cylinder_configuration && <Info label="Configuração" value={item.cylinder_configuration} />}</dl>
               {item.technical_notes && <p className="border-t border-border pt-2 text-sm text-muted-foreground">{item.technical_notes}</p>}
+              {item.component_type === "bomba_rotativa_ve" && <Button className="mt-2" size="sm" onClick={() => setSelectedPumpId(item.id)}>Abrir despiece <Boxes className="ml-2 size-4" /></Button>}
             </article>)}</div> : <Empty text="Nenhum motor corresponde aos filtros selecionados." />}
           </section>}
 
