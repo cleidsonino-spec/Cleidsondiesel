@@ -118,6 +118,7 @@ function CentralTecnicaPage() {
   const [error, setError] = useState<string | null>(null);
   const normalizedSearch = search.trim();
   const normalizedPumpReference = pumpReference.trim();
+  const normalizedPumpReferenceDigits = normalizedPumpReference.replace(/\\D/g, "");
 
   const activeArea = areas.find((area) => area.id === selectedArea) ?? areas[0];
   const activeCategoryIds = selectedArea === "bombas" && pumpFamily === "ve"
@@ -129,7 +130,7 @@ function CentralTecnicaPage() {
     if (selectedArea === "bombas" && pumpFamily === "ve") {
       setResults([]);
       setError(null);
-      if (normalizedPumpReference.length < 5) {
+      if (normalizedPumpReferenceDigits.length !== 10) {
         setLoading(false);
         return () => { active = false; };
       }
@@ -141,10 +142,12 @@ function CentralTecnicaPage() {
             .select("id,name,component_code,model,description,technical_notes,information_status,technical_manufacturers(name),technical_categories(name)")
             .eq("category_id", "d5f8206a-1002-43e8-bc62-f000fa256ee1")
             .in("component_type", importantVEComponentTypes)
-            .ilike("model", `%${normalizedPumpReference}%`)
-            .limit(150);
+            .ilike("model", `%${normalizedPumpReferenceDigits.split("").join("%")}%`)
+            .limit(500);
           if (queryError) throw queryError;
-          const rows = data ?? [];
+          const rows = (data ?? []).filter((row: any) =>
+            String(row.model ?? "").replace(/\\D/g, "") === normalizedPumpReferenceDigits
+          );
           const matchedModels = [...new Set(rows.map((row: any) => row.model).filter(Boolean))];
           if (matchedModels.length > 1) {
             if (active) setError("A referência corresponde a mais de um modelo. Digite a referência Bosch completa para identificar a bomba correta.");
@@ -272,7 +275,7 @@ function CentralTecnicaPage() {
           </div>
           {loading ? <p className="text-sm text-muted-foreground">Localizando a referência e suas peças...</p> : null}
           {error ? <div className="rounded-md border border-destructive/30 p-4 text-sm text-destructive">{error}</div> : null}
-          {!loading && !error && normalizedPumpReference.length >= 5 && groupedResults.length === 0 ? <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">Nenhuma peça ou kit vinculado a essa referência foi cadastrado ainda. Não exibiremos peças genéricas como se fossem específicas deste modelo.</div> : null}
+          {!loading && !error && normalizedPumpReferenceDigits.length === 10 && groupedResults.length === 0 ? <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">Digite a referência Bosch completa com 10 números para localizar as peças. Nenhuma peça genérica será exibida como se fosse específica deste modelo.</div> : null}
           <div className="grid gap-3 md:grid-cols-2">
             {groupedResults.map((item) => (
               <article key={`${item.kind}:${item.id}`} className="space-y-2 rounded-lg border border-border bg-card p-4">
