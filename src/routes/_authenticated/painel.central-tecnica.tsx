@@ -85,8 +85,8 @@ const importantVEComponentTypes = [
 
 function catalogMetadata(notes: string | null) {
   return {
-    position: notes?.match(/Posição\\s*:?\\s*([^|\\n]+)/i)?.[1]?.trim() ?? null,
-    quantity: notes?.match(/Quantidade\\s*:?\\s*([^|\\n]+)/i)?.[1]?.trim() ?? null,
+    position: notes?.match(/Posição\s*:?\s*([^|\n]+)/i)?.[1]?.trim() ?? null,
+    quantity: notes?.match(/Quantidade\s*:?\s*([^|\n]+)/i)?.[1]?.trim() ?? null,
   };
 }
 
