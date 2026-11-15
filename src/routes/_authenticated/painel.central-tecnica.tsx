@@ -109,7 +109,8 @@ function CentralTecnicaPage() {
   const manufacturers = data?.technical_manufacturers ?? [];
   const categories = data?.technical_categories ?? [];
   const engines = data?.technical_engines ?? [];
-  const components = data?.technical_components ?? [];\n  const references = data?.technical_references ?? [];
+  const components = data?.technical_components ?? [];
+  const references = data?.technical_references ?? [];
   const applications = data?.technical_applications ?? [];
   const documents = data?.technical_documents ?? [];
 
