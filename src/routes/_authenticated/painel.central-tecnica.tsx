@@ -102,7 +102,7 @@ function CentralTecnicaPage() {
       try {
         const { data, error: queryError } = await (supabase as any)
           .from("technical_components")
-          .select("id,name,component_code,model,information_status,technical_manufacturers(name),technical_categories(name)")
+          .select("id,name,component_code,model,description,technical_notes,information_status,technical_manufacturers(name),technical_categories(name)")
           .in("category_id", activeCategoryIds)
           .or(`name.ilike.%${normalizedSearch}%,component_code.ilike.%${normalizedSearch}%,model.ilike.%${normalizedSearch}%`)
           .limit(40);
@@ -117,7 +117,7 @@ function CentralTecnicaPage() {
           category: row.technical_categories?.name ?? null,
           status: row.information_status,
           kind: "Componente",
-          detail: null,
+          detail: [row.description, row.technical_notes].filter(Boolean).join(" "),
         }));
         if (active) setResults(mapped);
       } catch (cause) {
