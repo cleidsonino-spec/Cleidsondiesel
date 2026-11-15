@@ -69,6 +69,20 @@ type TechnicalResult = {
   quantity: string | null;
 };
 
+const importantVEComponentTypes = [
+  "bomba_alimentadora",
+  "ve_bomba_alimentadora_palhetas",
+  "ve_cabecote_distribuidor",
+  "ve_embuolo_distribuidor",
+  "ve_placa_cames",
+  "ve_anel_roletes",
+  "ve_dispositivo_avanco",
+  "ve_valvula_recalque",
+  "ve_restritor_retorno",
+  "ve_valvula_reguladora_pressao",
+  "ve_valvula_eletromagnetica_corte",
+];
+
 function catalogMetadata(notes: string | null) {
   return {
     position: notes?.match(/Posição\\s*:?\\s*([^|\\n]+)/i)?.[1]?.trim() ?? null,
@@ -114,6 +128,7 @@ function CentralTecnicaPage() {
             .from("technical_components")
             .select("id,name,component_code,model,description,technical_notes,information_status,technical_manufacturers(name),technical_categories(name)")
             .eq("category_id", "d5f8206a-1002-43e8-bc62-f000fa256ee1")
+            .in("component_type", importantVEComponentTypes)
             .ilike("model", `%${normalizedPumpReference}%`)
             .limit(150);
           if (queryError) throw queryError;
@@ -128,7 +143,7 @@ function CentralTecnicaPage() {
             manufacturer: row.technical_manufacturers?.name ?? null,
             category: row.technical_categories?.name ?? null,
             status: row.information_status, kind: "Componente",
-            detail: [row.description, row.technical_notes].filter(Boolean).join(" "),
+            detail: row.description ?? null,
             ...catalogMetadata(row.technical_notes),
           })));
         } catch (cause) {
@@ -227,7 +242,7 @@ function CentralTecnicaPage() {
         <section className="space-y-2" aria-label="Identificar bomba rotativa VE">
           <label htmlFor="pump-reference" className="text-sm font-medium">Referência da bomba injetora</label>
           <Input id="pump-reference" value={pumpReference} onChange={(event) => setPumpReference(event.target.value)} placeholder="Digite a referência Bosch, ex.: 0 460 424 232" className="h-12" />
-          <p className="text-xs text-muted-foreground">As peças só aparecem depois que a referência identifica um único modelo cadastrado.</p>
+          <p className="text-xs text-muted-foreground">Mostramos somente peças principais. Parafusos, arruelas, juntas e itens de fixação ficam fora desta consulta.</p>
         </section>
       ) : null}
 
@@ -239,7 +254,7 @@ function CentralTecnicaPage() {
           </div>
           {loading ? <p className="text-sm text-muted-foreground">Localizando a referência e suas peças...</p> : null}
           {error ? <div className="rounded-md border border-destructive/30 p-4 text-sm text-destructive">{error}</div> : null}
-          {!loading && !error && normalizedPumpReference.length >= 5 && groupedResults.length === 0 ? <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">Nenhuma bomba cadastrada com essa referência.</div> : null}
+          {!loading && !error && normalizedPumpReference.length >= 5 && groupedResults.length === 0 ? <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">Nenhuma peça principal vinculada a essa referência foi cadastrada ainda. Não exibiremos peças genéricas como se fossem específicas deste modelo.</div> : null}
           <div className="grid gap-3 md:grid-cols-2">
             {groupedResults.map((item) => (
               <article key={`${item.kind}:${item.id}`} className="space-y-2 rounded-lg border border-border bg-card p-4">
