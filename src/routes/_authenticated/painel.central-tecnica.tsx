@@ -82,6 +82,8 @@ const importantVEComponentTypes = [
   "ve_valvula_reguladora_pressao",
   "ve_valvula_eletromagnetica_corte",
   "anel_vedacao",
+  "oring",
+  "retentor_eixo",
   "arruela_vedacao",
   "junta",
   "tampa_vedacao",
