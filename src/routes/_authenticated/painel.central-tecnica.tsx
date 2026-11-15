@@ -1,0 +1,242 @@
+import { useMemo, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import {
+  BookOpen, Boxes, Building2, CheckCircle2, ExternalLink, FileText,
+  Gauge, Search, Wrench, AlertCircle,
+} from "lucide-react";
+
+import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+export const Route = createFileRoute("/_authenticated/painel/central-tecnica")({
+  head: () => ({
+    meta: [
+      { title: "Central Técnica — Cleidson Diesel" },
+      { name: "description", content: "Consulta técnica de fabricantes, motores, componentes, aplicações e documentos." },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
+  component: CentralTecnicaPage,
+});
+
+type Row = Record<string, any>;
+type Area = "tudo" | "bombas" | "bicos" | "common-rail" | "motores" | "pecas" | "documentos";
+
+const AREAS: { id: Area; label: string }[] = [
+  { id: "tudo", label: "Tudo" },
+  { id: "bombas", label: "Bombas injetoras" },
+  { id: "bicos", label: "Bicos injetores" },
+  { id: "common-rail", label: "Common Rail" },
+  { id: "motores", label: "Motores" },
+  { id: "pecas", label: "Peças e componentes" },
+  { id: "documentos", label: "Documentação" },
+];
+
+function text(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function statusLabel(value: unknown) {
+  const status = text(value);
+  if (status === "documented") return "Documentado";
+  if (status === "pending_validation") return "Pendente de validação";
+  if (status === "request_required") return "Acesso mediante solicitação";
+  if (status === "public") return "Acesso público";
+  return status || "Sem classificação";
+}
+
+function Status({ value }: { value: unknown }) {
+  const status = text(value);
+  const documented = status === "documented" || status === "public";
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${documented ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300"}`}>
+      {statusLabel(value)}
+    </span>
+  );
+}
+
+function CentralTecnicaPage() {
+  const [search, setSearch] = useState("");
+  const [area, setArea] = useState<Area>("tudo");
+  const [manufacturer, setManufacturer] = useState("all");
+  const [category, setCategory] = useState("all");
+
+  const query = useQuery({
+    queryKey: ["central-tecnica-readonly"],
+    queryFn: async () => {
+      const tables = [
+        "technical_manufacturers",
+        "technical_categories",
+        "technical_engines",
+        "technical_components",
+        "technical_references",
+        "technical_applications",
+        "technical_documents",
+      ] as const;
+      const results = await Promise.all(tables.map((table) => {
+        let request = (supabase as any).from(table).select("*");
+        if (table === "technical_manufacturers" || table === "technical_documents") {
+          request = request.eq("is_active", true);
+        }
+        return request.order("created_at", { ascending: false }).limit(500);
+      }));
+      const failed = results.find((result) => result.error);
+      if (failed?.error) throw failed.error;
+      return Object.fromEntries(tables.map((table, index) => [table, results[index]?.data ?? []])) as Record<string, Row[]>;
+    },
+    staleTime: 60_000,
+  });
+
+  const data = query.data;
+  const manufacturers = data?.technical_manufacturers ?? [];
+  const categories = data?.technical_categories ?? [];
+  const engines = data?.technical_engines ?? [];
+  const components = data?.technical_components ?? [];
+  const references = data?.technical_references ?? [];
+  const applications = data?.technical_applications ?? [];
+  const documents = data?.technical_documents ?? [];
+
+  const manufacturerById = useMemo(() => new Map(manufacturers.map((item) => [item.id, item.name])), [manufacturers]);
+  const categoryById = useMemo(() => new Map(categories.map((item) => [item.id, item.name])), [categories]);
+  const engineById = useMemo(() => new Map(engines.map((item) => [item.id, item])), [engines]);
+  const componentById = useMemo(() => new Map(components.map((item) => [item.id, item])), [components]);
+
+  const q = search.trim().toLocaleLowerCase("pt-BR");
+  const matches = (values: unknown[]) => !q || values.some((value) => text(value).toLocaleLowerCase("pt-BR").includes(q));
+
+  const visibleEngines = engines.filter((item) =>
+    (manufacturer === "all" || item.manufacturer_id === manufacturer) &&
+    matches([item.family, item.model, item.engine_code, item.fuel_system, manufacturerById.get(item.manufacturer_id), item.technical_notes]) &&
+    (area === "tudo" || area === "motores")
+  );
+  const visibleComponents = components.filter((item) =>
+    (manufacturer === "all" || item.manufacturer_id === manufacturer) &&
+    (category === "all" || item.category_id === category) &&
+    matches([item.name, item.component_code, item.model, item.component_type, item.description, item.technical_notes, manufacturerById.get(item.manufacturer_id), categoryById.get(item.category_id)]) &&
+    (area === "tudo" || area === "bombas" && /bomba|injetora|ve|vp/i.test(`${item.name} ${categoryById.get(item.category_id)}`) ||
+      area === "bicos" && /bico|injetor/i.test(`${item.name} ${categoryById.get(item.category_id)}`) ||
+      area === "common-rail" && /common rail|rail/i.test(`${item.name} ${item.description} ${categoryById.get(item.category_id)}`) ||
+      area === "pecas")
+  );
+  const visibleDocuments = documents.filter((item) =>
+    (manufacturer === "all" || item.manufacturer_id === manufacturer) &&
+    matches([item.title, item.document_type, item.source_name, item.notes, manufacturerById.get(item.manufacturer_id), engineById.get(item.engine_id)?.model]) &&
+    (area === "tudo" || area === "documentos")
+  );
+  const visibleReferences = references.filter((item) => {
+    const component = componentById.get(item.component_id);
+    return (manufacturer === "all" || component?.manufacturer_id === manufacturer || item.reference_manufacturer_id === manufacturer) &&
+      matches([item.reference_code, item.relation_type, item.source_description, item.notes, component?.name, manufacturerById.get(item.reference_manufacturer_id)]) &&
+      (area === "tudo" || area === "pecas");
+  });
+
+  const totalResults = visibleEngines.length + visibleComponents.length + visibleDocuments.length + visibleReferences.length;
+  const stats = [
+    { label: "Fabricantes", value: manufacturers.length, icon: Building2 },
+    { label: "Motores", value: engines.length, icon: Gauge },
+    { label: "Componentes", value: components.length, icon: Boxes },
+    { label: "Documentos", value: documents.length, icon: FileText },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm text-muted-foreground">Consulta interna da oficina</p>
+          <h1 className="flex items-center gap-2 text-3xl"><BookOpen className="size-7 text-primary" />Central Técnica</h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Consulte informações cadastradas sobre fabricantes, motores, componentes, aplicações e documentação técnica.</p>
+        </div>
+        <span className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">Somente consulta · sem edição</span>
+      </div>
+
+      {query.isLoading && <div className="rounded-lg border border-border p-8 text-center text-sm text-muted-foreground">Carregando a base técnica…</div>}
+      {query.isError && (
+        <div role="alert" className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm">
+          <AlertCircle className="mt-0.5 size-5 shrink-0 text-destructive" />
+          <div><p className="font-medium">Não foi possível carregar a Central Técnica.</p><p className="mt-1 text-muted-foreground">Verifique sua conexão e as permissões de leitura do seu usuário.</p><Button className="mt-3" size="sm" variant="outline" onClick={() => void query.refetch()}>Tentar novamente</Button></div>
+        </div>
+      )}
+
+      {data && (
+        <>
+          <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Resumo da base técnica">
+            {stats.map(({ label, value, icon: Icon }) => <div key={label} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-4"><div><p className="text-sm text-muted-foreground">{label}</p><p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p></div><Icon className="size-5 text-muted-foreground" /></div>)}
+          </section>
+
+          <section className="space-y-3 rounded-lg border border-border bg-card p-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" placeholder="Buscar fabricante, motor, código, componente ou documento…" aria-label="Buscar na Central Técnica" />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="space-y-1 text-sm"><span className="text-muted-foreground">Fabricante</span><select value={manufacturer} onChange={(event) => setManufacturer(event.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3"><option value="all">Todos os fabricantes</option>{manufacturers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+              <label className="space-y-1 text-sm"><span className="text-muted-foreground">Categoria</span><select value={category} onChange={(event) => setCategory(event.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3"><option value="all">Todas as categorias</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+            </div>
+            <div className="flex flex-wrap gap-2" aria-label="Filtrar por área">
+              {AREAS.map((item) => <Button key={item.id} type="button" size="sm" variant={area === item.id ? "default" : "outline"} onClick={() => setArea(item.id)}>{item.label}</Button>)}
+            </div>
+            <p className="text-xs text-muted-foreground">{totalResults} resultado(s) nas áreas exibidas. Os filtros não alteram os dados cadastrados.</p>
+          </section>
+
+          {(area === "tudo" || area === "motores") && <section className="space-y-3">
+            <SectionTitle icon={<Gauge />} title="Motores" count={visibleEngines.length} />
+            {visibleEngines.length ? <div className="grid gap-3 md:grid-cols-2">{visibleEngines.map((item) => <article key={item.id} className="space-y-2 rounded-lg border border-border bg-card p-4">
+              <div className="flex flex-wrap items-start justify-between gap-2"><h3 className="font-semibold">{item.family || item.model || "Motor sem identificação"}</h3><Status value={item.information_status} /></div>
+              <p className="text-sm text-muted-foreground">{manufacturerById.get(item.manufacturer_id) || "Fabricante não informado"}{item.model ? ` · ${item.model}` : ""}</p>
+              <dl className="grid grid-cols-2 gap-2 text-sm">{item.engine_code && <Info label="Código" value={item.engine_code} />}{item.displacement && <Info label="Cilindrada" value={item.displacement} />}{item.fuel_system && <Info label="Sistema" value={item.fuel_system} />}{item.cylinder_configuration && <Info label="Configuração" value={item.cylinder_configuration} />}</dl>
+              {item.technical_notes && <p className="border-t border-border pt-2 text-sm text-muted-foreground">{item.technical_notes}</p>}
+            </article>)}</div> : <Empty text="Nenhum motor corresponde aos filtros selecionados." />}
+          </section>}
+
+          {(area === "tudo" || ["bombas", "bicos", "common-rail", "pecas"].includes(area)) && <section className="space-y-3">
+            <SectionTitle icon={<Wrench />} title="Componentes" count={visibleComponents.length} />
+            {visibleComponents.length ? <div className="grid gap-3 md:grid-cols-2">{visibleComponents.map((item) => <article key={item.id} className="space-y-2 rounded-lg border border-border bg-card p-4">
+              <div className="flex flex-wrap items-start justify-between gap-2"><h3 className="font-semibold">{item.name}</h3><Status value={item.information_status} /></div>
+              <p className="text-sm text-muted-foreground">{manufacturerById.get(item.manufacturer_id) || "Fabricante não informado"} · {categoryById.get(item.category_id) || item.component_type || "Categoria não informada"}</p>
+              {item.component_code && <p className="text-sm"><span className="text-muted-foreground">Código: </span><strong>{item.component_code}</strong></p>}
+              {item.model && <p className="text-sm"><span className="text-muted-foreground">Modelo: </span>{item.model}</p>}
+              {item.description && <p className="text-sm">{item.description}</p>}
+              {item.technical_notes && <p className="border-t border-border pt-2 text-sm text-muted-foreground">{item.technical_notes}</p>}
+            </article>)}</div> : <Empty text="Ainda não há componentes cadastrados para esta seleção. Não exibimos informações presumidas como se fossem validadas." />}
+          </section>}
+
+          {(area === "tudo" || area === "pecas") && <section className="space-y-3">
+            <SectionTitle icon={<Boxes />} title="Referências de peças" count={visibleReferences.length} />
+            {visibleReferences.length ? <div className="divide-y divide-border rounded-lg border border-border bg-card">{visibleReferences.map((item) => <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="font-semibold">{item.reference_code}</p><p className="text-sm text-muted-foreground">{componentById.get(item.component_id)?.name || "Componente não informado"} · {manufacturerById.get(item.reference_manufacturer_id) || "Fabricante não informado"}</p><p className="mt-1 text-xs text-muted-foreground">{item.relation_type || "Relação não classificada"}</p></div><Status value={item.information_status} /></div>)}</div> : <Empty text="Nenhuma referência de peça foi cadastrada até o momento." />}
+          </section>}
+
+          {(area === "tudo" || area === "documentos") && <section className="space-y-3">
+            <SectionTitle icon={<FileText />} title="Documentação técnica" count={visibleDocuments.length} />
+            {visibleDocuments.length ? <div className="divide-y divide-border rounded-lg border border-border bg-card">{visibleDocuments.map((item) => <article key={item.id} className="flex flex-wrap items-start justify-between gap-3 p-4">
+              <div className="min-w-0 flex-1 space-y-1"><h3 className="font-semibold">{item.title}</h3><p className="text-sm text-muted-foreground">{manufacturerById.get(item.manufacturer_id) || "Fabricante não informado"}{item.source_name ? ` · ${item.source_name}` : ""}{item.document_type ? ` · ${item.document_type}` : ""}</p>{item.notes && <p className="text-sm">{item.notes}</p>}<div className="flex flex-wrap gap-2 pt-1"><Status value={item.information_status} /><Status value={item.access_type} /></div></div>
+              {item.source_url && <a href={item.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-primary hover:underline">Abrir fonte <ExternalLink className="size-3.5" /></a>}
+            </article>)}</div> : <Empty text="Nenhum documento corresponde aos filtros selecionados." />}
+          </section>}
+
+          {(area === "tudo" || area === "bombas" || area === "bicos" || area === "common-rail") && (
+            <section className="space-y-3">
+              <SectionTitle icon={<CheckCircle2 />} title="Aplicações cadastradas" count={applications.filter((item) => matches([item.equipment_type, item.equipment_manufacturer, item.equipment_model, item.application_notes])).length} />
+              {applications.filter((item) => matches([item.equipment_type, item.equipment_manufacturer, item.equipment_model, item.application_notes])).length ? <div className="divide-y divide-border rounded-lg border border-border bg-card">{applications.filter((item) => matches([item.equipment_type, item.equipment_manufacturer, item.equipment_model, item.application_notes])).map((item) => <div key={item.id} className="p-4"><p className="font-medium">{[item.equipment_manufacturer, item.equipment_model].filter(Boolean).join(" ") || item.equipment_type || "Aplicação sem identificação"}</p><p className="text-sm text-muted-foreground">{item.equipment_type || "Equipamento"}{item.year_start ? ` · ${item.year_start}${item.year_end ? `–${item.year_end}` : "+"}` : ""}</p>{item.application_notes && <p className="mt-1 text-sm">{item.application_notes}</p>}<p className="mt-1 text-xs text-muted-foreground">{item.information_status ? statusLabel(item.information_status) : "Status não informado"}</p></div>)}</div> : <Empty text="Nenhuma aplicação cadastrada corresponde à busca." />}
+            </section>
+          )}
+
+          <p className="flex items-center gap-2 border-t border-border pt-4 text-xs text-muted-foreground"><AlertCircle className="size-4 shrink-0" />Informações pendentes de validação estão identificadas. Documentos com acesso mediante solicitação devem ser obtidos diretamente com a fonte responsável.</p>
+        </>
+      )}
+    </div>
+  );
+}
+
+function SectionTitle({ icon, title, count }: { icon: React.ReactNode; title: string; count: number }) {
+  return <div className="flex items-center justify-between gap-2"><h2 className="flex items-center gap-2 text-xl font-semibold">{icon}<span>{title}</span></h2><span className="rounded-full bg-muted px-2.5 py-1 text-xs tabular-nums text-muted-foreground">{count}</span></div>;
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return <div><dt className="text-xs text-muted-foreground">{label}</dt><dd className="font-medium">{value}</dd></div>;
+}
+
+function Empty({ text }: { text: string }) {
+  return <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">{text}</p>;
+}
