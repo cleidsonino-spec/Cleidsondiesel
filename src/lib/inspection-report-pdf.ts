@@ -137,7 +137,7 @@ export function downloadInspectionReport(file: File) {
 
 
 type NativeFilesystem = {
-  writeFile(options: { path: string; data: string; directory: "CACHE" | "DATA"; encoding?: "utf8" | "base64"; recursive?: boolean }): Promise<{ uri: string }>;
+  writeFile(options: { path: string; data: string; directory: "CACHE" | "DATA"; encoding?: "utf8"; recursive?: boolean }): Promise<{ uri: string }>;
   readFile(options: { path: string; directory: "CACHE" | "DATA" }): Promise<{ data: string }>;
   stat(options: { path: string; directory: "CACHE" | "DATA" }): Promise<{ size: number; type: string }>;
 };
@@ -162,7 +162,6 @@ export async function saveInspectionReport(file: File): Promise<void> {
     await NativeFilesystem.writeFile({
       path: file.name,
       data: await fileToBase64(file),
-      encoding: "base64",
       directory: "DATA",
       recursive: true,
     });
@@ -227,7 +226,6 @@ export async function shareInspectionReport(file: File, title: string, text: str
     const saved = await NativeFilesystem.writeFile({
       path: file.name,
       data: await fileToBase64(file),
-      encoding: "base64",
       directory: "DATA",
       recursive: true,
     });

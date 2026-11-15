@@ -18,6 +18,7 @@ import {
 
 type ReportRecord = InspectionReportData & {
   id: string;
+  version: number;
   status: "draft" | "pending_review" | "approved" | "returned";
   review_note: string;
   submitted_at: string | null;
@@ -64,8 +65,8 @@ export function InspectionReportEditor({ order, isAdmin, isSecretary }: Props) {
       try {
         const [result, assigned] = await Promise.all([
           (supabase as any).from("service_order_inspection_reports")
-            .select("id, diagnosis, executed_parts, rejected_items, inspection_observations, status, review_note, submitted_at, reviewed_at")
-            .eq("service_order_id", order.id).maybeSingle(),
+            .select("id, version, diagnosis, executed_parts, rejected_items, inspection_observations, status, review_note, submitted_at, reviewed_at")
+            .eq("service_order_id", order.id).order("version", { ascending: false }).limit(1).maybeSingle(),
           supabase.rpc("is_mechanic_assigned", { _order_id: order.id }),
         ]);
         if (!active) return;
@@ -115,7 +116,7 @@ export function InspectionReportEditor({ order, isAdmin, isSecretary }: Props) {
       : (supabase as any).from("service_order_inspection_reports")
           .insert({ service_order_id: order.id, ...payload });
     const { data, error } = await query
-      .select("id, diagnosis, executed_parts, rejected_items, inspection_observations, status, review_note, submitted_at, reviewed_at")
+      .select("id, version, diagnosis, executed_parts, rejected_items, inspection_observations, status, review_note, submitted_at, reviewed_at")
       .single();
     setBusy(false);
     if (error) {
@@ -127,13 +128,33 @@ export function InspectionReportEditor({ order, isAdmin, isSecretary }: Props) {
     return true;
   }
 
+  async function createNewReport() {
+    if (!manager || record?.status !== "approved" || busy) return;
+    setBusy(true);
+    const { data, error } = await (supabase as any)
+      .from("service_order_inspection_reports")
+      .insert({ service_order_id: order.id, ...emptyReport, status: "draft" })
+      .select("id, version, diagnosis, executed_parts, rejected_items, inspection_observations, status, review_note, submitted_at, reviewed_at")
+      .single();
+    setBusy(false);
+    if (error) {
+      toast.error(`Não foi possível gerar um novo relatório: ${error.message}`);
+      return;
+    }
+    setRecord(data as ReportRecord);
+    setReport(emptyReport);
+    setReviewNote("");
+    setPdfFeedback(null);
+    toast.success(`Novo relatório técnico nº ${data.version} criado. O relatório aprovado anterior foi preservado.`);
+  }
+
   async function review(status: "approved" | "returned") {
     if (!record) return;
     setBusy(true);
     const { data, error } = await (supabase as any).from("service_order_inspection_reports")
       .update({ ...report, status, review_note: status === "returned" ? reviewNote : "" })
       .eq("id", record.id)
-      .select("id, diagnosis, executed_parts, rejected_items, inspection_observations, status, review_note, submitted_at, reviewed_at")
+      .select("id, version, diagnosis, executed_parts, rejected_items, inspection_observations, status, review_note, submitted_at, reviewed_at")
       .single();
     setBusy(false);
     if (error) {
@@ -202,7 +223,7 @@ export function InspectionReportEditor({ order, isAdmin, isSecretary }: Props) {
           <h2 className="font-display text-base uppercase">Relatório técnico de inspeção</h2>
           <p className="mt-1 text-sm text-muted-foreground">Documento opcional vinculado à OS nº {order.number}. Não integra o orçamento.</p>
         </div>
-        {record && <span className="rounded-full border px-3 py-1 text-xs font-medium">{statusLabels[record.status]}</span>}
+        {record && <span className="rounded-full border px-3 py-1 text-xs font-medium">Versão {record.version} · {statusLabels[record.status]}</span>}
       </div>
 
       <div className="grid gap-4">
@@ -276,6 +297,9 @@ export function InspectionReportEditor({ order, isAdmin, isSecretary }: Props) {
             </Button>
             <Button type="button" variant="outline" onClick={() => emitPdf(true)} disabled={busy}>
               <Share2 /> Compartilhar PDF
+            </Button>
+            <Button type="button" variant="secondary" onClick={createNewReport} disabled={busy}>
+              <FileText /> Gerar novo relatório
             </Button>
           </div>
           {pdfFeedback && (
