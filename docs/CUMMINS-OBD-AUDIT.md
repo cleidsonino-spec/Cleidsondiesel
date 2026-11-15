@@ -3,25 +3,27 @@
 Auditoria **somente leitura** dos 532 DTCs do motor Cummins ISB6.7 CM2350 B101 em `public.technical_fault_codes`.
 
 ## Verificações
-- Colunas esperadas da tabela.
-- Quantidade de registros para engine/document configurados.
+- Quantidade exata de registros via cabeçalho Content-Range do PostgREST.
+- Todos os registros do filtro engine/document foram recuperados.
 - Códigos duplicados.
 - Valores permitidos de `information_status`.
 - Campos `fault_name` e `source_section` preenchidos.
 - Relatórios JSON e Markdown publicados como artefatos do GitHub Actions.
 
+## Conexão sem DB URL
+A rotina usa HTTPS pela API REST oficial do Supabase (`/rest/v1`). Não usa connection string PostgreSQL, senha de banco, Hyperdrive nem service-role key.
+
+Configure em GitHub **Settings → Secrets and variables → Actions**:
+- `SUPABASE_URL`: URL HTTPS do projeto Supabase.
+- `SUPABASE_PUBLISHABLE_KEY`: chave publishable (ou anon key legada) do projeto.
+
+A chave publishable/anon é destinada a uso público e **não contorna RLS**. A consulta só funcionará se as políticas RLS permitirem SELECT anônimo nessa tabela. Se a tabela exigir usuário autenticado, o workflow falhará de forma segura; não substitua por service-role key. Nesse caso, a alternativa é uma Edge Function autenticada com segredo guardado no Supabase, ou um usuário técnico de leitura autenticado.
+
 ## Segurança
-- Transação PostgreSQL `READ ONLY`.
+- Apenas requisição HTTP GET.
 - Nenhum INSERT, UPDATE ou DELETE.
 - Nenhuma alteração dos registros existentes.
 - Não marca códigos como tecnicamente validados.
-- Não utiliza a service-role key do Supabase.
-
-## Configuração
-Em GitHub: **Settings → Secrets and variables → Actions → New repository secret**.
-Crie o secret `SUPABASE_DB_URL` com a connection string PostgreSQL do Supabase. Prefira usuário de leitura dedicado, com SELECT apenas em `public.technical_fault_codes`.
-
-Nunca coloque a connection string em arquivos, commits, issues ou mensagens. Sem o secret, o workflow falha explicitamente sem tocar no banco.
 
 ## Execução
 Manual: **Actions → Cummins OBD catalog audit → Run workflow**.
