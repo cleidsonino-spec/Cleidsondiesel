@@ -178,18 +178,47 @@ async function validateSavedPdf(file: File, directory: "CACHE" | "DATA"): Promis
     NativeFilesystem.readFile({ path: file.name, directory }),
   ]);
 
-  if (metadata.type !== "file" || metadata.size !== file.size) {
-    throw new Error("O PDF salvo no Android está incompleto. Gere o relatório novamente.");
+  // O tamanho retornado por stat pode variar entre versões/implementações
+  // do provider Android. A confirmação principal é comparar os bytes lidos
+  // do arquivo com os bytes originais que foram enviados para writeFile.
+  const expected = new Uint8Array(await file.arrayBuffer());
+  let binary: string;
+  try {
+    binary = atob(saved.data.replace(/\s/g, ""));
+  } catch {
+    throw new Error(
+      `Não foi possível decodificar o PDF salvo (esperado: ${expected.length} bytes; stat: ${metadata.size} bytes; tipo: ${metadata.type}). Gere o relatório novamente.`,
+    );
   }
 
-  const binary = atob(saved.data);
-  if (binary.length !== file.size || !binary.startsWith("%PDF-")) {
-    throw new Error("O arquivo gerado não passou na validação de PDF. Gere o relatório novamente.");
+  const actual = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) actual[i] = binary.charCodeAt(i);
+
+  let firstDifference = -1;
+  const compareLength = Math.min(expected.length, actual.length);
+  for (let i = 0; i < compareLength; i += 1) {
+    if (expected[i] !== actual[i]) {
+      firstDifference = i;
+      break;
+    }
   }
 
-  const tail = binary.slice(-1024).trimEnd();
-  if (!tail.includes("%%EOF")) {
-    throw new Error("O PDF está incompleto e não pode ser compartilhado. Gere o relatório novamente.");
+  if (
+    metadata.type !== "file" ||
+    actual.length !== expected.length ||
+    firstDifference !== -1
+  ) {
+    throw new Error(
+      `O PDF salvo diverge do original (original: ${expected.length} bytes; leitura: ${actual.length} bytes; stat: ${metadata.size} bytes; tipo: ${metadata.type}; primeira diferença: ${firstDifference === -1 ? "nenhuma" : firstDifference}). Gere o relatório novamente.`,
+    );
+  }
+
+  const header = String.fromCharCode(...actual.subarray(0, 5));
+  const tail = String.fromCharCode(...actual.subarray(Math.max(0, actual.length - 1024)));
+  if (header !== "%PDF-" || !tail.includes("%%EOF")) {
+    throw new Error(
+      `O arquivo salvo não contém a estrutura completa de PDF (tamanho confirmado: ${actual.length} bytes). Gere o relatório novamente.`,
+    );
   }
 }
 
