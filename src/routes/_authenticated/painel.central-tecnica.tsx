@@ -77,10 +77,12 @@ function CentralTecnicaPage() {
   const [search, setSearch] = useState("");
   const [selectedArea, setSelectedArea] = useState<(typeof areas)[number]["id"]>("bombas");
   const [pumpFamily, setPumpFamily] = useState<"todas" | "ve">("todas");
+  const [pumpReference, setPumpReference] = useState("");
   const [results, setResults] = useState<TechnicalResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const normalizedSearch = search.trim();
+  const normalizedPumpReference = pumpReference.trim();
 
   const activeArea = areas.find((area) => area.id === selectedArea) ?? areas[0];
   const activeCategoryIds = selectedArea === "bombas" && pumpFamily === "ve"
@@ -89,6 +91,45 @@ function CentralTecnicaPage() {
 
   useEffect(() => {
     let active = true;
+    if (selectedArea === "bombas" && pumpFamily === "ve") {
+      setResults([]);
+      setError(null);
+      if (normalizedPumpReference.length < 5) {
+        setLoading(false);
+        return () => { active = false; };
+      }
+      const loadPumpParts = async () => {
+        setLoading(true);
+        try {
+          const { data, error: queryError } = await (supabase as any)
+            .from("technical_components")
+            .select("id,name,component_code,model,description,technical_notes,information_status,technical_manufacturers(name),technical_categories(name)")
+            .eq("category_id", "d5f8206a-1002-43e8-bc62-f000fa256ee1")
+            .ilike("model", `%${normalizedPumpReference}%`)
+            .limit(150);
+          if (queryError) throw queryError;
+          const rows = data ?? [];
+          const matchedModels = [...new Set(rows.map((row: any) => row.model).filter(Boolean))];
+          if (matchedModels.length > 1) {
+            if (active) setError("A referência corresponde a mais de um modelo. Digite a referência Bosch completa para identificar a bomba correta.");
+            return;
+          }
+          if (active) setResults(rows.map((row: any) => ({
+            id: row.id, title: row.name, code: row.component_code, model: row.model,
+            manufacturer: row.technical_manufacturers?.name ?? null,
+            category: row.technical_categories?.name ?? null,
+            status: row.information_status, kind: "Componente",
+            detail: [row.description, row.technical_notes].filter(Boolean).join(" "),
+          })));
+        } catch (cause) {
+          if (active) setError(cause instanceof Error ? cause.message : "Não foi possível localizar as peças desta referência.");
+        } finally {
+          if (active) setLoading(false);
+        }
+      };
+      void loadPumpParts();
+      return () => { active = false; };
+    }
     if (normalizedSearch.length < 2) {
       setResults([]);
       setError(null);
@@ -129,7 +170,7 @@ function CentralTecnicaPage() {
 
     void runSearch();
     return () => { active = false; };
-  }, [normalizedSearch, activeArea, pumpFamily, selectedArea]);
+  }, [normalizedSearch, normalizedPumpReference, activeArea, pumpFamily, selectedArea]);
 
   const groupedResults = useMemo(() => results, [results]);
 
@@ -166,12 +207,41 @@ function CentralTecnicaPage() {
       {selectedArea === "bombas" ? (
         <section className="flex flex-wrap items-center gap-2" aria-label="Família de bombas">
           <span className="text-sm font-medium">Família:</span>
-          <button type="button" onClick={() => { setPumpFamily("todas"); setSearch(""); }} aria-pressed={pumpFamily === "todas"} className={`rounded-full border px-3 py-1.5 text-sm ${pumpFamily === "todas" ? "border-primary bg-primary/10 text-primary" : "border-border"}`}>Todas as bombas</button>
-          <button type="button" onClick={() => { setPumpFamily("ve"); setSearch(""); }} aria-pressed={pumpFamily === "ve"} className={`rounded-full border px-3 py-1.5 text-sm ${pumpFamily === "ve" ? "border-primary bg-primary/10 text-primary" : "border-border"}`}>Rotativa VE</button>
+          <button type="button" onClick={() => { setPumpFamily("todas"); setSearch(""); setPumpReference(""); }} aria-pressed={pumpFamily === "todas"} className={`rounded-full border px-3 py-1.5 text-sm ${pumpFamily === "todas" ? "border-primary bg-primary/10 text-primary" : "border-border"}`}>Todas as bombas</button>
+          <button type="button" onClick={() => { setPumpFamily("ve"); setSearch(""); setPumpReference(""); }} aria-pressed={pumpFamily === "ve"} className={`rounded-full border px-3 py-1.5 text-sm ${pumpFamily === "ve" ? "border-primary bg-primary/10 text-primary" : "border-border"}`}>Rotativa VE</button>
         </section>
       ) : null}
 
-      {normalizedSearch.length < 2 ? (
+      {selectedArea === "bombas" && pumpFamily === "ve" ? (
+        <section className="space-y-2" aria-label="Identificar bomba rotativa VE">
+          <label htmlFor="pump-reference" className="text-sm font-medium">Referência da bomba injetora</label>
+          <Input id="pump-reference" value={pumpReference} onChange={(event) => setPumpReference(event.target.value)} placeholder="Digite a referência Bosch, ex.: 0 460 424 232" className="h-12" />
+          <p className="text-xs text-muted-foreground">As peças só aparecem depois que a referência identifica um único modelo cadastrado.</p>
+        </section>
+      ) : null}
+
+      {selectedArea === "bombas" && pumpFamily === "ve" ? (
+        <section className="space-y-3" aria-live="polite">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">Peças da bomba identificada</h2>
+            <span className="text-xs text-muted-foreground">{groupedResults.length} peças</span>
+          </div>
+          {loading ? <p className="text-sm text-muted-foreground">Localizando a referência e suas peças...</p> : null}
+          {error ? <div className="rounded-md border border-destructive/30 p-4 text-sm text-destructive">{error}</div> : null}
+          {!loading && !error && normalizedPumpReference.length >= 5 && groupedResults.length === 0 ? <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">Nenhuma bomba cadastrada com essa referência.</div> : null}
+          <div className="grid gap-3 md:grid-cols-2">
+            {groupedResults.map((item) => (
+              <article key={`${item.kind}:${item.id}`} className="space-y-2 rounded-lg border border-border bg-card p-4">
+                <div className="flex items-center justify-between gap-2"><span className="text-xs text-muted-foreground">Peça</span><span className="text-xs text-muted-foreground">{statusLabel(item.status)}</span></div>
+                <h3 className="font-semibold">{item.title}</h3>
+                {item.code ? <p className="text-sm"><span className="text-muted-foreground">Código:</span> {item.code}</p> : null}
+                {item.model ? <p className="text-xs text-muted-foreground">{item.model}</p> : null}
+                {item.detail ? <p className="text-xs text-muted-foreground">{item.detail}</p> : null}
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : normalizedSearch.length < 2 ? (
         <section className="space-y-3" aria-labelledby="technical-areas-title">
           <h2 id="technical-areas-title" className="text-lg font-semibold">Escolha uma área técnica</h2>
           <div className="grid gap-3 md:grid-cols-3">
