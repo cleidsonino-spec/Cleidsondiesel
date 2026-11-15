@@ -106,7 +106,11 @@ function CentralTecnicaPage() {
     staleTime: 60_000,
   });
 
-  const imageQuery = useQuery({
+  const data = query.data;
+  const manufacturers = data?.technical_manufacturers ?? [];
+  const categories = data?.technical_categories ?? [];
+  const engines = data?.technical_engines ?? [];
+  const components = data?.technical_components ?? [];\n  const imageQuery = useQuery({
     queryKey: ["central-tecnica-images", selectedPumpId],
     enabled: Boolean(selectedPumpId),
     queryFn: async () => {
@@ -167,11 +171,7 @@ function CentralTecnicaPage() {
     } finally { setUploadingImage(false); }
   };
 
-  const data = query.data;
-  const manufacturers = data?.technical_manufacturers ?? [];
-  const categories = data?.technical_categories ?? [];
-  const engines = data?.technical_engines ?? [];
-  const components = data?.technical_components ?? [];
+
   const references = data?.technical_references ?? [];
   const applications = data?.technical_applications ?? [];
   const documents = data?.technical_documents ?? [];
