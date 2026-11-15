@@ -98,7 +98,7 @@ function PainelLayout() {
                       <SheetClose asChild><PanelLink to="/painel" icon={<ClipboardList />} label="Visão geral" exact /></SheetClose>
                       <SheetClose asChild><PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" /></SheetClose>
                       <SheetClose asChild><PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" /></SheetClose>
-                      <SheetClose asChild><PanelLink to="/painel/relatorios" icon={<ClipboardCheck />} label="Relatórios" />
+                      <SheetClose asChild><PanelLink to="/painel/relatorios" icon={<ClipboardCheck />} label="Relatórios" /></SheetClose>
                       <SheetClose asChild><PanelLink to="/painel/central-tecnica" icon={<BookOpen />} label="Central Técnica" /></SheetClose>
                       <SheetClose asChild><PanelLink to="/equipe" icon={<Users />} label="Desempenho" /></SheetClose>
                       <SheetClose asChild><PanelLink to="/painel/recebimento" icon={<ClipboardCheck />} label="Recebimento de veículos" /></SheetClose>
