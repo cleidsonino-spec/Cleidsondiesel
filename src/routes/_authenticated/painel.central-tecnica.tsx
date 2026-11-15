@@ -150,7 +150,13 @@ function CentralTecnicaPage() {
             if (active) setError("A referência corresponde a mais de um modelo. Digite a referência Bosch completa para identificar a bomba correta.");
             return;
           }
-          if (active) setResults(rows.map((row: any) => ({
+          const uniqueRows = new Map<string, any>();
+          for (const row of rows) {
+            const metadata = catalogMetadata(row.technical_notes);
+            const key = [row.component_code ?? row.name, metadata.position ?? "", metadata.quantity ?? ""].join("|");
+            if (!uniqueRows.has(key)) uniqueRows.set(key, row);
+          }
+          if (active) setResults([...uniqueRows.values()].map((row: any) => ({
             id: row.id, title: row.name, code: row.component_code, model: row.model,
             manufacturer: row.technical_manufacturers?.name ?? null,
             category: row.technical_categories?.name ?? null,
