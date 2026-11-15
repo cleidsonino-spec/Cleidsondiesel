@@ -156,7 +156,7 @@ function CentralTecnicaPage() {
     (manufacturer === "all" || item.manufacturer_id === manufacturer) &&
     (category === "all" || item.category_id === category) &&
     matches([item.name, item.component_code, item.model, item.component_type, item.description, item.technical_notes, manufacturerById.get(item.manufacturer_id), categoryById.get(item.category_id)]) &&
-    (area === "tudo" || area === "bombas" && /bomba|injetora|ve|vp/i.test(`${item.name} ${categoryById.get(item.category_id)}`) ||
+    (area === "tudo" || (area === "bombas" && isPump(item)) ||
       area === "bicos" && /bico|injetor/i.test(`${item.name} ${categoryById.get(item.category_id)}`) ||
       area === "common-rail" && /common rail|rail/i.test(`${item.name} ${item.description} ${categoryById.get(item.category_id)}`) ||
       area === "pecas")
