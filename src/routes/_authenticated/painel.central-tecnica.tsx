@@ -114,6 +114,7 @@ function CentralTecnicaPage() {
     if (selectedArea === "bombas" && pumpFamily === "ve") {
       setResults([]);
       setIdentifiedPump(null);
+      setSelectedReferenceId(null);
       setError(null);
       if (normalizedPumpReferenceDigits.length !== 10) {
         setLoading(false);
@@ -235,6 +236,10 @@ function CentralTecnicaPage() {
     ),
     [results]
   );
+  const selectedReference = useMemo(
+    () => results.find((item) => item.id === selectedReferenceId) ?? null,
+    [results, selectedReferenceId]
+  );
 
   return (
     <div className="space-y-7">
@@ -351,6 +356,23 @@ function CentralTecnicaPage() {
                   </button>
                 ))}
               </div>
+              {selectedReference ? (
+                <article className="rounded-md border border-primary/30 bg-primary/5 p-4" aria-live="polite">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h4 className="font-semibold">Peça selecionada — posição {selectedReference.position}</h4>
+                    <span className="text-xs text-muted-foreground">{statusLabel(selectedReference.status)}</span>
+                  </div>
+                  <p className="mt-2 font-medium">{selectedReference.title}</p>
+                  <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                    <div><dt className="text-xs text-muted-foreground">Referência Bosch</dt><dd className="font-semibold">{selectedReference.code ?? "Não informada"}</dd></div>
+                    <div><dt className="text-xs text-muted-foreground">Quantidade</dt><dd>{selectedReference.quantity ?? "Não informada"}</dd></div>
+                    <div><dt className="text-xs text-muted-foreground">Modelo da bomba</dt><dd>{selectedReference.model ?? "Não informado"}</dd></div>
+                    <div><dt className="text-xs text-muted-foreground">Relação</dt><dd>{selectedReference.category ?? "Não informada"}</dd></div>
+                  </dl>
+                  {selectedReference.detail ? <p className="mt-3 text-xs text-muted-foreground">{selectedReference.detail}</p> : null}
+                  <button type="button" onClick={() => setSelectedReferenceId(null)} className="mt-3 text-xs font-medium text-primary underline-offset-4 hover:underline">Limpar seleção</button>
+                </article>
+              ) : null}
             </section>
           ) : null}
           <div className="grid gap-3 md:grid-cols-2">
