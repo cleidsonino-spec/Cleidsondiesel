@@ -1,0 +1,40 @@
+name: Cummins OBD catalog audit
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 11 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cummins-obd-catalog-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Read-only catalog audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install isolated audit dependency
+        run: npm install --prefix tools/obd-audit --no-package-lock --ignore-scripts
+      - name: Audit Cummins catalog
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: node tools/obd-audit/audit.mjs
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cummins-obd-audit
+          path: artifacts/
+          if-no-files-found: ignore
+          retention-days: 30
