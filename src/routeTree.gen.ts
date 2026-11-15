@@ -23,6 +23,7 @@ import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
 import { Route as AuthenticatedPainelIndexRouteImport } from './routes/_authenticated/painel.index'
 import { Route as AuthenticatedPainelAgendamentosRouteImport } from './routes/_authenticated/painel.agendamentos'
 import { Route as AuthenticatedPainelClientesRouteImport } from './routes/_authenticated/painel.clientes'
+import { Route as AuthenticatedPainelCentralTecnicaRouteImport } from './routes/_authenticated/painel.central-tecnica'
 import { Route as AuthenticatedPainelCobrancasRouteImport } from './routes/_authenticated/painel.cobrancas'
 import { Route as AuthenticatedPainelFinanceiroRouteImport } from './routes/_authenticated/painel.financeiro'
 import { Route as AuthenticatedPainelFuncionariosRouteImport } from './routes/_authenticated/painel.funcionarios'
@@ -107,6 +108,12 @@ const AuthenticatedPainelClientesRoute =
   AuthenticatedPainelClientesRouteImport.update({
     id: '/clientes',
     path: '/clientes',
+    getParentRoute: () => AuthenticatedPainelRoute,
+  } as any)
+const AuthenticatedPainelCentralTecnicaRoute =
+  AuthenticatedPainelCentralTecnicaRouteImport.update({
+    id: '/central-tecnica',
+    path: '/central-tecnica',
     getParentRoute: () => AuthenticatedPainelRoute,
   } as any)
 const AuthenticatedPainelCobrancasRoute =
@@ -195,6 +202,8 @@ export interface FileRoutesByFullPath {
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/painel/clientes': typeof AuthenticatedPainelClientesRoute
+  '/painel/central-tecnica': typeof AuthenticatedPainelCentralTecnicaRoute
+  '/painel/central-tecnica': typeof AuthenticatedPainelCentralTecnicaRoute
   '/painel/cobrancas': typeof AuthenticatedPainelCobrancasRoute
   '/painel/financeiro': typeof AuthenticatedPainelFinanceiroRoute
   '/painel/funcionarios': typeof AuthenticatedPainelFuncionariosRoute
@@ -249,6 +258,7 @@ export interface FileRoutesById {
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/_authenticated/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/_authenticated/painel/clientes': typeof AuthenticatedPainelClientesRoute
+  '/_authenticated/painel/central-tecnica': typeof AuthenticatedPainelCentralTecnicaRoute
   '/_authenticated/painel/cobrancas': typeof AuthenticatedPainelCobrancasRoute
   '/_authenticated/painel/financeiro': typeof AuthenticatedPainelFinanceiroRoute
   '/_authenticated/painel/funcionarios': typeof AuthenticatedPainelFuncionariosRoute
@@ -564,6 +574,7 @@ const AuthenticatedPainelGarantiasRouteWithChildren =
 interface AuthenticatedPainelRouteChildren {
   AuthenticatedPainelAgendamentosRoute: typeof AuthenticatedPainelAgendamentosRoute
   AuthenticatedPainelClientesRoute: typeof AuthenticatedPainelClientesRoute
+  AuthenticatedPainelCentralTecnicaRoute: typeof AuthenticatedPainelCentralTecnicaRoute
   AuthenticatedPainelCobrancasRoute: typeof AuthenticatedPainelCobrancasRoute
   AuthenticatedPainelFinanceiroRoute: typeof AuthenticatedPainelFinanceiroRoute
   AuthenticatedPainelFuncionariosRoute: typeof AuthenticatedPainelFuncionariosRoute
@@ -580,6 +591,7 @@ interface AuthenticatedPainelRouteChildren {
 const AuthenticatedPainelRouteChildren: AuthenticatedPainelRouteChildren = {
   AuthenticatedPainelAgendamentosRoute: AuthenticatedPainelAgendamentosRoute,
   AuthenticatedPainelClientesRoute: AuthenticatedPainelClientesRoute,
+  AuthenticatedPainelCentralTecnicaRoute: AuthenticatedPainelCentralTecnicaRoute,
   AuthenticatedPainelCobrancasRoute: AuthenticatedPainelCobrancasRoute,
   AuthenticatedPainelFinanceiroRoute: AuthenticatedPainelFinanceiroRoute,
   AuthenticatedPainelFuncionariosRoute: AuthenticatedPainelFuncionariosRoute,
