@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   BookOpen, Boxes, Building2, CheckCircle2, ExternalLink, FileText,
-  Gauge, Search, Wrench, AlertCircle,
+  Gauge, Search, Wrench, AlertCircle, Image as ImageIcon, Upload,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -68,6 +68,8 @@ function CentralTecnicaPage() {
   const [manufacturer, setManufacturer] = useState("all");
   const [category, setCategory] = useState("all");
   const [selectedPumpId, setSelectedPumpId] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageMessage, setImageMessage] = useState("");
 
   const query = useQuery({
     queryKey: ["central-tecnica-readonly"],
@@ -103,6 +105,67 @@ function CentralTecnicaPage() {
     },
     staleTime: 60_000,
   });
+
+  const imageQuery = useQuery({
+    queryKey: ["central-tecnica-images", selectedPumpId],
+    enabled: Boolean(selectedPumpId),
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("technical_component_images").select("*").in(
+        "component_id",
+        [selectedPumpId, ...components.filter((item) => item.component_type === "pump_component" && item.model === components.find((pump) => pump.id === selectedPumpId)?.model && item.manufacturer_id === components.find((pump) => pump.id === selectedPumpId)?.manufacturer_id).map((item) => item.id)]
+      );
+      if (error) {
+        if (error.code === "42P01" || error.code === "PGRST205") return { images: [], migrationPending: true };
+        throw error;
+      }
+      const images = await Promise.all((data ?? []).map(async (item: Row) => {
+        const { data: signed } = await supabase.storage.from("technical-catalog").createSignedUrl(item.storage_path, 3600);
+        return { ...item, signedUrl: signed?.signedUrl || "" };
+      }));
+      return { images, migrationPending: false };
+    },
+    staleTime: 30_000,
+  });
+  const adminQuery = useQuery({
+    queryKey: ["central-tecnica-current-user-admin"],
+    queryFn: async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return false;
+      const { data, error } = await (supabase as any).from("user_roles").select("role").eq("user_id", auth.user.id).eq("is_active", true);
+      if (error) return false;
+      return (data ?? []).some((item: Row) => item.role === "admin");
+    },
+    staleTime: 60_000,
+  });
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>, componentId: string, imageType: "exploded_view" | "component_photo") => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!adminQuery.data) { setImageMessage("Somente administrador pode cadastrar imagens."); return; }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 20 * 1024 * 1024) {
+      setImageMessage("Escolha uma imagem JPG, PNG ou WebP de até 20 MB."); return;
+    }
+    setUploadingImage(true); setImageMessage("");
+    const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+    const path = componentId + "/" + crypto.randomUUID() + "." + extension;
+    try {
+      const { error: uploadError } = await supabase.storage.from("technical-catalog").upload(path, file, { contentType: file.type, upsert: false });
+      if (uploadError) throw uploadError;
+      const { data: auth } = await supabase.auth.getUser();
+      const { error: insertError } = await (supabase as any).from("technical_component_images").insert({
+        component_id: componentId, image_type: imageType, storage_path: path,
+        caption: file.name, information_status: "pending_validation", created_by: auth.user?.id ?? null,
+      });
+      if (insertError) {
+        await supabase.storage.from("technical-catalog").remove([path]);
+        throw insertError;
+      }
+      await imageQuery.refetch();
+      setImageMessage("Imagem cadastrada e vinculada ao componente selecionado.");
+    } catch (error) {
+      setImageMessage(error instanceof Error ? error.message : "Não foi possível cadastrar a imagem.");
+    } finally { setUploadingImage(false); }
+  };
 
   const data = query.data;
   const manufacturers = data?.technical_manufacturers ?? [];
@@ -241,9 +304,11 @@ function CentralTecnicaPage() {
                 <Button variant="outline" size="sm" onClick={() => setSelectedPumpId(null)}>Fechar despiece</Button>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-lg border border-dashed border-border p-4">
-                  <h3 className="font-semibold">Imagem do despiece</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">Imagem original ainda não cadastrada. Não exibimos desenhos genéricos como se fossem o despiece confirmado desta bomba.</p>
+                <div className="rounded-lg border border-dashed border-border p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2"><h3 className="font-semibold">Imagem do despiece</h3>{adminQuery.data && <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium"><Upload className="size-4" />{uploadingImage ? "Enviando…" : "Adicionar imagem"}<input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" disabled={uploadingImage} onChange={(event) => void handleImageUpload(event, selectedPump.id, "exploded_view")} /></label>}</div>
+                  {(imageQuery.data?.images ?? []).filter((image: Row) => image.component_id === selectedPump.id && image.image_type === "exploded_view").map((image: Row) => <figure key={image.id} className="space-y-1">{image.signedUrl ? <img src={image.signedUrl} alt={image.caption || "Despiece da bomba"} className="max-h-96 w-full rounded-md object-contain" /> : <p className="text-sm text-muted-foreground">Imagem cadastrada, mas não foi possível abrir o arquivo.</p>}<figcaption className="text-xs text-muted-foreground">{image.caption || "Imagem do despiece"} · {statusLabel(image.information_status)}</figcaption></figure>)}
+                  {!(imageQuery.data?.images ?? []).some((image: Row) => image.component_id === selectedPump.id && image.image_type === "exploded_view") && <p className="text-sm text-muted-foreground">{imageQuery.data?.migrationPending ? "O cadastro de imagens será habilitado após a aplicação da migração técnica." : "Imagem original ainda não cadastrada. Não exibimos desenhos genéricos como se fossem o despiece confirmado desta bomba."}</p>}
+                  {imageMessage && <p className="text-xs text-muted-foreground" role="status">{imageMessage}</p>}
                 </div>
                 <div className="rounded-lg border border-border p-4">
                   <h3 className="font-semibold">Documentos e referências</h3>
@@ -265,7 +330,7 @@ function CentralTecnicaPage() {
                       return <tr key={part.id} className="border-t border-border">
                         <td className="p-3 font-semibold tabular-nums">{position}</td>
                         <td className="p-3 font-mono">{part.component_code || "—"}</td>
-                        <td className="p-3">{part.name}<p className="mt-1 text-xs text-muted-foreground">Foto individual ainda não cadastrada</p></td>
+                        <td className="p-3">{part.name}<div className="mt-2 space-y-2">{(imageQuery.data?.images ?? []).filter((image: Row) => image.component_id === part.id && image.image_type === "component_photo").map((image: Row) => image.signedUrl ? <img key={image.id} src={image.signedUrl} alt={image.caption || part.name} className="max-h-24 rounded object-contain" /> : null)}{adminQuery.data && <label className="inline-flex cursor-pointer items-center gap-1 text-xs text-primary underline"><Upload className="size-3" />Adicionar foto<input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" disabled={uploadingImage} onChange={(event) => void handleImageUpload(event, part.id, "component_photo")} /></label>}{!(imageQuery.data?.images ?? []).some((image: Row) => image.component_id === part.id && image.image_type === "component_photo") && <p className="text-xs text-muted-foreground">Foto individual não cadastrada</p>}</div></td>
                         <td className="p-3 text-muted-foreground">Não informada</td>
                         <td className="p-3"><Status value={part.information_status} /></td>
                       </tr>;
