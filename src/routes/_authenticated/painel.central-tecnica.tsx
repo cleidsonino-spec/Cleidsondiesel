@@ -174,7 +174,7 @@ function CentralTecnicaPage() {
                     <h3 className="font-semibold">{area.title}</h3>
                     <p className="text-sm text-muted-foreground">{area.description}</p>
                   </div>
-                </article>
+                </button>
               );
             })}
           </div>
