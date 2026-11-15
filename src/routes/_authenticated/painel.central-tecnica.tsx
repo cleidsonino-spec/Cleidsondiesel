@@ -145,19 +145,7 @@ function PdfFigureViewer({ pageNumber, hotspots, results, onSelect }: { pageNumb
       <canvas ref={canvasRef} className="block h-auto w-full" aria-label={`Página ${pageNumber} do catálogo Bosch`} />
       {viewerLoading ? <div className="absolute inset-0 flex items-center justify-center bg-white/90 p-4 text-sm text-muted-foreground">Carregando página do catálogo...</div> : null}
       {viewerError ? <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white p-4 text-center text-sm text-destructive"><p>Não foi possível alinhar a camada porque a página não foi renderizada.</p><p className="text-xs">{viewerError}</p><a className="text-primary underline" href="https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf" target="_blank" rel="noreferrer">Abrir o PDF original</a></div> : null}
-      {!viewerLoading && !viewerError ? (
-        <div className="pointer-events-none absolute inset-0" aria-label="Áreas de referência da figura">
-          {hotspots.map((hotspot: any) => {
-            const linkedPart = results.find((item) => item.id === hotspot.reference_id);
-            if (!linkedPart || !Number.isFinite(Number(hotspot.x)) || !Number.isFinite(Number(hotspot.y))) return null;
-            const left = Math.max(0, Math.min(100, Number(hotspot.x) * 100));
-            const top = Math.max(0, Math.min(100, Number(hotspot.y) * 100));
-            const width = Math.max(2, Math.min(20, Number(hotspot.width) * 100));
-            const height = Math.max(2, Math.min(12, Number(hotspot.height) * 100));
-            return <button key={hotspot.id} type="button" title={`Posição ${hotspot.catalog_position} — ${linkedPart.code ?? "sem código"}`} aria-label={`Selecionar peça na posição ${hotspot.catalog_position}`} onClick={() => onSelect(linkedPart.id)} className="pointer-events-auto absolute rounded-sm border-2 border-sky-600 bg-sky-400/20 shadow-sm hover:bg-sky-400/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700" style={{ left: `${left}%`, top: `${top}%`, width: `${width}%`, height: `${height}%` }}><span className="sr-only">Posição {hotspot.catalog_position}</span></button>;
-          })}
-        </div>
-      ) : null}
+
     </div>
   );
 }
@@ -414,7 +402,7 @@ function CentralTecnicaPage() {
                     Abrir página da figura no catálogo completo
                   </a>
                 </div>
-                <p className="text-xs text-muted-foreground">Visualização da página física {figurePdfPage ?? "não identificada"} do catálogo Bosch. {figureHotspots.length} áreas de referência carregadas. As marcações azuis acompanham a página renderizada; as coordenadas individuais ainda precisam de calibração visual.</p>
+                <p className="text-xs text-muted-foreground">Visualização da página física {figurePdfPage ?? "não identificada"} do catálogo Bosch. {figureHotspots.length} áreas cadastradas estão em espera; os pontos clicáveis permanecem desativados até a calibração visual.</p>
               </div>
             </article>
           ) : null}
