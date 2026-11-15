@@ -153,7 +153,7 @@ function CentralTecnicaPage() {
           const uniqueRows = new Map<string, any>();
           for (const row of rows) {
             const metadata = catalogMetadata(row.technical_notes);
-            const key = [row.component_code ?? row.name, metadata.position ?? "", metadata.quantity ?? ""].join("|");
+            const key = [row.component_code ?? row.name, metadata.position ?? ""].join("|");
             if (!uniqueRows.has(key)) uniqueRows.set(key, row);
           }
           if (active) setResults([...uniqueRows.values()].map((row: any) => ({
