@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_authenticated/equipe")({
       await supabase.auth.signOut({ scope: "local" });
       throw redirect({ to: "/auth" });
     }
-    const staffRole = roles.includes("mecanico") ? "mecanico" : roles.includes("admin") ? "admin" : roles.includes("secretaria") ? "secretaria" : null;
+    const staffRole = roles.includes("admin") ? "admin" : roles.includes("secretaria") ? "secretaria" : roles.includes("mecanico") ? "mecanico" : null;
     if (!staffRole) throw redirect({ to: "/painel" });
     return { staffRole: staffRole as Role };
   },
