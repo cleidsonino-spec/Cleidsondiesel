@@ -296,9 +296,9 @@ function CentralTecnicaPage() {
                 </div>
                 <div className="overflow-hidden rounded-md border bg-white">
                   <iframe
-                    src="https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf#page=110&zoom=page"
+                    src="https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf#page=110&zoom=175"
                     title="Figura explodida Bosch — página 110 do catálogo VE"
-                    className="h-[760px] w-full bg-white"
+                    className="h-[920px] w-full bg-white"
                     loading="lazy"
                   />
                 </div>
