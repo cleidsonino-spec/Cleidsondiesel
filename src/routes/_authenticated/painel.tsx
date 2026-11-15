@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { CalendarDays, Car, Users, UserCog, ShieldCheck, ClipboardList, Download, ExternalLink, FileText, LogOut, Plus, ShieldAlert, Wallet, Receipt, ClipboardCheck, Menu, BookOpen } from "lucide-react";
+import { CalendarDays, Car, Users, UserCog, ShieldCheck, ClipboardList, Download, ExternalLink, FileText, LogOut, Plus, ShieldAlert, Wallet, Receipt, ClipboardCheck, Menu } from "lucide-react";
 
 import { Logo } from "@/components/site/logo";
 import { Button } from "@/components/ui/button";
@@ -117,7 +117,6 @@ function PainelLayout() {
                       </SheetClose>
                     
                       </>}
-                      <SheetClose asChild><PanelLink to="/painel/central-tecnica" icon={<BookOpen />} label="Central Técnica" /></SheetClose>
                     </nav>
                   </SheetContent>
                 </Sheet>
@@ -145,7 +144,6 @@ function PainelLayout() {
             <Button asChild size="sm" className="ml-auto shrink-0"><Link to="/painel/ordens/nova" search={{}}><Plus /> Nova OS</Link></Button>
           
             </>}
-            <PanelLink to="/painel/central-tecnica" icon={<BookOpen />} label="Central Técnica" />
           </nav>
         )}
       </header>
@@ -163,7 +161,7 @@ function PainelLayout() {
 }
 
 function PanelLink({ to, icon, label, exact }: {
-  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias" | "/painel/financeiro" | "/painel/relatorios" | "/painel/recebimento" | "/painel/cobrancas" | "/painel/funcionarios" | "/painel/central-tecnica" | "/equipe";
+  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias" | "/painel/financeiro" | "/painel/relatorios" | "/painel/recebimento" | "/painel/cobrancas" | "/painel/funcionarios" | "/equipe";
   icon: React.ReactNode;
   label: string;
   exact?: boolean;
