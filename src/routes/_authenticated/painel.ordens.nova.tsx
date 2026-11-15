@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { appointmentQuery } from "@/lib/queries";
 import { todayISO } from "@/lib/schedule";
 import { normalizePlate } from "@/lib/plate";
-import { customersQuery, vehiclesQuery } from "@/lib/registry";
+import { customersQuery } from "@/lib/registry";
 
 type Search = { agendamento?: string; cliente?: string; veiculo?: string };
 type IntakeType = "vehicle" | "pump_injector";
@@ -36,7 +36,7 @@ export const Route = createFileRoute("/_authenticated/painel/ordens/nova")({
     ({ ...(typeof s["agendamento"] === "string" ? { agendamento: s["agendamento"] } : {}), ...(typeof s["cliente"] === "string" ? { cliente: s["cliente"] } : {}), ...(typeof s["veiculo"] === "string" ? { veiculo: s["veiculo"] } : {}) }),
   loaderDeps: ({ search }) => ({ agendamento: search.agendamento }),
   loader: async ({ context, deps }) => {
-    await Promise.all([context.queryClient.ensureQueryData(customersQuery()), context.queryClient.ensureQueryData(vehiclesQuery())]);
+    await context.queryClient.ensureQueryData(customersQuery());
     if (deps.agendamento) await context.queryClient.ensureQueryData(appointmentQuery(deps.agendamento));
   },
   component: NovaOS,
@@ -64,37 +64,35 @@ function FromAppointment({ id }: { id: string }) {
 }
 
 function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormValues> | undefined; appointmentId?: string | undefined }) {
-  const { cliente, veiculo } = Route.useSearch();
+  const { cliente } = Route.useSearch();
   const { data: customers } = useSuspenseQuery(customersQuery());
-  const { data: vehicles } = useSuspenseQuery(vehiclesQuery());
-  const selectedVehicle = vehicles.find((v) => v.id === veiculo);
-  const selectedCustomer = customers.find((c) => c.id === (selectedVehicle?.customer_id ?? cliente));
+  const selectedCustomer = customers.find((c) => c.id === cliente);
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [intakeType, setIntakeType] = useState<IntakeType>("vehicle");
   const [customer, setCustomer] = useState(prefill?.customer_name ?? selectedCustomer?.name ?? "");
-  const [vehicle, setVehicle] = useState(prefill?.vehicle ?? selectedVehicle?.model ?? "");
-  const [plate, setPlate] = useState(prefill?.plate ?? selectedVehicle?.plate ?? "");
+  const [customerId, setCustomerId] = useState(selectedCustomer?.id ?? "");
+  const selectedCustomerRecord = customers.find((item) => item.id === customerId);
+  const [vehicle, setVehicle] = useState(prefill?.vehicle ?? "");
+  const [plate, setPlate] = useState(prefill?.plate ?? "");
   const [towTruck, setTowTruck] = useState("no");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<DeliveredItem[]>([{ description: "", quantity: "1" }]);
   const [savingIntake, setSavingIntake] = useState(false);
   const [intake, setIntake] = useState<IntakeOption | null>(null);
-  const intakeMatchesSelectedCustomer = Boolean(intake && selectedCustomer &&
-    selectedCustomer.name.trim().toLocaleLowerCase("pt-BR") === intake.customer_name.trim().toLocaleLowerCase("pt-BR"));
+  const intakeCustomerRecord = selectedCustomerRecord;
+  const intakeMatchesSelectedCustomer = Boolean(intake && intakeCustomerRecord &&
+    intakeCustomerRecord.name.trim().toLocaleLowerCase("pt-BR") === intake.customer_name.trim().toLocaleLowerCase("pt-BR"));
   const intakeMatchesPrefillCustomer = Boolean(intake && prefill?.customer_name &&
     prefill.customer_name.trim().toLocaleLowerCase("pt-BR") === intake.customer_name.trim().toLocaleLowerCase("pt-BR"));
-  const intakeMatchesSelectedVehicle = Boolean(intake?.intake_type === "vehicle" && selectedVehicle &&
-    normalizePlate(selectedVehicle.plate) === normalizePlate(intake.plate) &&
-    selectedVehicle.model.trim().toLocaleLowerCase("pt-BR") === intake.vehicle.trim().toLocaleLowerCase("pt-BR"));
 
   const initial: OrderFormValues = {
     plate: intake?.plate ?? "",
     customer_name: customer,
     phone: prefill?.phone ?? selectedCustomer?.phone ?? "",
     vehicle: intake?.vehicle ?? vehicle,
-    vehicle_year: selectedVehicle?.year ?? "",
-    mileage: selectedVehicle?.mileage ?? "",
+    vehicle_year: "",
+    mileage: "",
     complaint: prefill?.complaint ?? "",
     diagnosis: "",
     parts: "",
@@ -108,16 +106,15 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
     inspection: { failedItems: "", observations: "" },
     ...prefill,
     ...(selectedCustomer ? { customer_id: selectedCustomer.id, customer_name: selectedCustomer.name, phone: selectedCustomer.phone ?? "" } : {}),
-    ...(selectedVehicle ? { vehicle_id: selectedVehicle.id, plate: selectedVehicle.plate, vehicle: selectedVehicle.model, vehicle_year: selectedVehicle.year ?? "", mileage: selectedVehicle.mileage ?? "" } : {}),
     ...(intake ? {
-      customer_id: intakeMatchesSelectedCustomer ? selectedCustomer?.id ?? "" : "",
+      customer_id: intakeMatchesSelectedCustomer ? intakeCustomerRecord?.id ?? "" : "",
       customer_name: intake.customer_name,
-      phone: intakeMatchesSelectedCustomer ? selectedCustomer?.phone ?? "" : intakeMatchesPrefillCustomer ? prefill?.phone ?? "" : "",
-      vehicle_id: intakeMatchesSelectedVehicle ? selectedVehicle?.id ?? "" : "",
+      phone: intakeMatchesSelectedCustomer ? intakeCustomerRecord?.phone ?? "" : intakeMatchesPrefillCustomer ? prefill?.phone ?? "" : "",
+      vehicle_id: "",
       vehicle: intake.vehicle,
       plate: intake.plate ?? "",
-      vehicle_year: intakeMatchesSelectedVehicle ? selectedVehicle?.year ?? "" : "",
-      mileage: intakeMatchesSelectedVehicle ? selectedVehicle?.mileage ?? "" : "",
+      vehicle_year: "",
+      mileage: "",
     } : {}),
   };
 
@@ -182,7 +179,24 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2"><Label htmlFor="intake-customer">Cliente *</Label><Input id="intake-customer" required minLength={2} maxLength={160} value={customer} onChange={e => setCustomer(e.target.value)} /></div>
+          <div className="space-y-2">
+            <Label htmlFor="intake-customer-record">Selecionar cliente cadastrado</Label>
+            <Select value={customerId || "manual"} onValueChange={(id) => {
+              const record = customers.find((item) => item.id === id);
+              setCustomerId(record?.id ?? "");
+              if (record) setCustomer(record.name);
+            }}>
+              <SelectTrigger id="intake-customer-record"><SelectValue placeholder="Escolha um cliente ou informe manualmente" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="manual">Cliente não cadastrado / informar manualmente</SelectItem>
+                {customers.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2"><Label htmlFor="intake-customer">Cliente *</Label><Input id="intake-customer" required minLength={2} maxLength={160} value={customer} onChange={e => {
+            setCustomer(e.target.value);
+            if (selectedCustomerRecord && e.target.value.trim() !== selectedCustomerRecord.name) setCustomerId("");
+          }} /></div>
           {intakeType === "vehicle" ? (
             <>
               <div className="space-y-2"><Label htmlFor="intake-vehicle">Veículo *</Label><Input id="intake-vehicle" required minLength={2} maxLength={160} value={vehicle} onChange={e => setVehicle(e.target.value)} /></div>

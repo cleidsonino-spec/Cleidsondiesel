@@ -13,7 +13,7 @@ import { formatBRL, ORDER_STATUSES, orderTotal, type OrderStatus } from "@/lib/s
 import { draftPartItems, lineTotal, parseMoney, parseQuantity, partsTotal, type PartDraft } from "@/lib/parts";
 import { writeInspectionData, type InspectionData } from "@/lib/inspection";
 import { useQuery } from "@tanstack/react-query";
-import { customersQuery, vehiclesQuery } from "@/lib/registry";
+import { customersQuery } from "@/lib/registry";
 export { parseMoney } from "@/lib/parts";
 
 export type OrderInput = Database["public"]["Tables"]["service_orders"]["Insert"];
@@ -83,15 +83,9 @@ export function OrderForm({
   const [v, setV] = useState<OrderFormValues>(initial);
   const [saving, setSaving] = useState(false);
   const { data: customers = [] } = useQuery(customersQuery());
-  const { data: vehicles = [] } = useQuery(vehiclesQuery());
   const chooseCustomer = (id: string) => {
     const c = customers.find((item) => item.id === id);
     setV((p) => ({ ...p, customer_id: c?.id ?? "", vehicle_id: "", ...(c ? { customer_name: c.name, phone: c.phone ?? "" } : {}) }));
-  };
-  const chooseVehicle = (id: string) => {
-    const vehicle = vehicles.find((item) => item.id === id);
-    const customer = customers.find((item) => item.id === vehicle?.customer_id);
-    setV((p) => ({ ...p, vehicle_id: vehicle?.id ?? "", ...(vehicle ? { plate: vehicle.plate, vehicle: vehicle.model, vehicle_year: vehicle.year ?? "", mileage: vehicle.mileage ?? "", customer_id: vehicle.customer_id, customer_name: customer?.name ?? p.customer_name, phone: customer?.phone ?? "" } : {}) }));
   };
   const set = <K extends keyof OrderFormValues>(k: K, val: OrderFormValues[K]) => setV((p) => ({ ...p, [k]: val }));
 
@@ -120,8 +114,7 @@ export function OrderForm({
     <form onSubmit={handle} className="space-y-6">
       <Section title="Cliente e veículo">
         <F label="Cliente cadastrado"><Select disabled={intakeLocked} value={v.customer_id || "manual"} onValueChange={(id) => chooseCustomer(id === "manual" ? "" : id)}><SelectTrigger aria-label="Cliente cadastrado"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual">Sem vínculo ao cadastro</SelectItem>{customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></F>
-        <F label="Veículo cadastrado"><Select disabled={intakeLocked || !plateRequired} value={v.vehicle_id || "manual"} onValueChange={(id) => chooseVehicle(id === "manual" ? "" : id)}><SelectTrigger aria-label="Veículo cadastrado"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual">Sem vínculo ao cadastro</SelectItem>{vehicles.filter((vehicle) => !v.customer_id || vehicle.customer_id === v.customer_id).map((vehicle) => <SelectItem key={vehicle.id} value={vehicle.id}>{vehicle.plate} · {vehicle.model}</SelectItem>)}</SelectContent></Select></F>
-        <F label="Placa"><Input value={v.plate} disabled={intakeLocked || !plateRequired} onChange={(e) => { const plate = e.target.value.toUpperCase(); const found = vehicles.find((vehicle) => vehicle.plate === normalizePlate(plate)); if (found) chooseVehicle(found.id); else setV((p) => ({ ...p, plate, vehicle_id: "" })); }} maxLength={8} className="plate" placeholder={plateRequired ? "ABC1D23" : "Não se aplica a bomba/bicos"} /></F>
+        <F label="Placa"><Input value={v.plate} disabled={intakeLocked || !plateRequired} onChange={(e) => set("plate", e.target.value.toUpperCase())} maxLength={8} className="plate" placeholder={plateRequired ? "ABC1D23" : "Não se aplica a bomba/bicos"} /></F>
         <F label="Cliente"><Input value={v.customer_name} disabled={intakeLocked} onChange={(e) => set("customer_name", e.target.value)} /></F>
         <F label="WhatsApp / telefone"><Input value={v.phone} onChange={(e) => set("phone", e.target.value)} type="tel" placeholder="(00) 00000-0000" /></F>
         <F label="Veículo"><Input value={v.vehicle} disabled={intakeLocked} onChange={(e) => set("vehicle", e.target.value)} placeholder="Ex: Hilux 3.0" /></F>
