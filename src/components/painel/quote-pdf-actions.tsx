@@ -62,8 +62,10 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
     const shareData = { files: [file], title: `Orçamento OS ${order.number} — Cleidson Diesel`, text: `Olá, ${order.customer_name}! Segue o orçamento da sua ordem de serviço.` };
     const canShareFiles = typeof navigator.canShare === "function" && navigator.canShare({ files: [file] });
     if (typeof navigator.share !== "function" || !canShareFiles) {
-      downloadQuote(file);
-      toast.info("PDF baixado. Abra a conversa do cliente e anexe o arquivo pelo clipe do WhatsApp.");
+      const result = downloadQuote(file);
+      toast.info(result === "viewer"
+        ? "Orçamento aberto no visualizador. Use a opção de baixar/salvar do navegador e depois anexe no WhatsApp."
+        : "Se o download não iniciar, toque no link 'Baixar orçamento em PDF' que apareceu na tela.");
       return;
     }
     try {
@@ -71,18 +73,24 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") return;
       console.error("Falha ao compartilhar PDF:", error);
-      downloadQuote(file);
-      toast.error("Não foi possível compartilhar o PDF. O arquivo foi baixado; anexe-o manualmente no WhatsApp.");
+      const result = downloadQuote(file);
+      toast.error(result === "viewer"
+        ? "O compartilhamento falhou. O orçamento foi aberto no visualizador para você salvar."
+        : "O compartilhamento falhou. Toque no link 'Baixar orçamento em PDF' que apareceu na tela.");
     }
   }
 
   function sendQuote() {
     if (!file) return;
-    downloadQuote(file);
+    const result = downloadQuote(file);
     const text = [message ?? "", preparedBy ? `Orçamento preparado por: ${preparedBy}` : ""].filter(Boolean).join("\n\n");
     const href = waLink(order.phone, text);
-    if (href) { window.open(href, "_blank", "noopener,noreferrer"); toast.success("PDF aberto em outra aba e WhatsApp do cliente aberto. Anexe o arquivo na conversa."); }
-    else toast.error("PDF aberto em outra aba, mas falta um telefone válido com DDD na ordem de serviço.");
+    if (href) {
+      window.open(href, "_blank", "noopener,noreferrer");
+      toast.info(result === "viewer"
+        ? "O PDF foi aberto em outra aba. Salve-o pelo navegador e anexe na conversa do WhatsApp."
+        : "Toque no link 'Baixar orçamento em PDF' que apareceu na tela; depois anexe na conversa do WhatsApp.");
+    } else toast.error("Falta um telefone válido com DDD na ordem de serviço.");
   }
 
   return <>
