@@ -129,7 +129,7 @@ function CentralTecnicaPage() {
 
     void runSearch();
     return () => { active = false; };
-  }, [normalizedSearch, activeArea]);
+  }, [normalizedSearch, activeArea, pumpFamily, selectedArea]);
 
   const groupedResults = useMemo(() => results, [results]);
 
