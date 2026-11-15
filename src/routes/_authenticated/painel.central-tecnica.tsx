@@ -91,6 +91,7 @@ function CentralTecnicaPage() {
   const [pumpFamily, setPumpFamily] = useState<"todas" | "ve">("todas");
   const [pumpReference, setPumpReference] = useState("");
   const [results, setResults] = useState<TechnicalResult[]>([]);
+  const [identifiedPump, setIdentifiedPump] = useState<{ id: string; name: string; code: string; model: string | null; description: string | null; status: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const normalizedSearch = search.trim();
@@ -106,6 +107,7 @@ function CentralTecnicaPage() {
     let active = true;
     if (selectedArea === "bombas" && pumpFamily === "ve") {
       setResults([]);
+      setIdentifiedPump(null);
       setError(null);
       if (normalizedPumpReferenceDigits.length !== 10) {
         setLoading(false);
@@ -136,6 +138,7 @@ function CentralTecnicaPage() {
             return;
           }
           const pump = matchedPumps[0];
+          if (active) setIdentifiedPump({ id: pump.id, name: pump.name, code: pump.component_code, model: pump.model, description: pump.description, status: pump.information_status });
           const { data: references, error: referencesError } = await (supabase as any)
             .from("technical_references")
             .select("id,reference_code,relation_type,information_status,source_description,source_url,notes")
@@ -274,6 +277,35 @@ function CentralTecnicaPage() {
           {loading ? <p className="text-sm text-muted-foreground">Localizando a referência e suas peças...</p> : null}
           {error ? <div className="rounded-md border border-destructive/30 p-4 text-sm text-destructive">{error}</div> : null}
           {!loading && !error && normalizedPumpReferenceDigits.length === 10 && groupedResults.length === 0 ? <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">Nenhuma peça ou kit específico foi localizado para esta referência. Não exibiremos peças genéricas como se fossem deste modelo.</div> : null}
+          {identifiedPump ? (
+            <article className="space-y-3 rounded-lg border border-primary/30 bg-card p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="font-semibold">Bomba identificada</h3>
+                <span className="rounded-full bg-amber-500/10 px-2 py-1 text-xs text-amber-700 dark:text-amber-300">{statusLabel(identifiedPump.status)}</span>
+              </div>
+              <p className="font-medium">{identifiedPump.name}</p>
+              <dl className="grid grid-cols-2 gap-3 text-sm">
+                <div><dt className="text-xs text-muted-foreground">Referência Bosch</dt><dd>{identifiedPump.code}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">Modelo</dt><dd>{identifiedPump.model ?? "Não informado"}</dd></div>
+              </dl>
+              {identifiedPump.description ? <p className="text-xs text-muted-foreground">{identifiedPump.description}</p> : null}
+              <div className="space-y-2 border-t pt-3">
+                <div>
+                  <h4 className="text-sm font-semibold">Figura explodida — catálogo Bosch 2009/2010, página 110</h4>
+                  <p className="text-xs text-muted-foreground">Documento vinculado a esta bomba. A figura é compartilhada com outras referências do catálogo; confirme sempre o código da bomba e a tabela de peças antes de usar na montagem.</p>
+                </div>
+                <a
+                  href="https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf#page=110"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center rounded-md border px-3 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  Abrir figura explodida na página 110 do catálogo
+                </a>
+                <p className="text-xs text-muted-foreground">Fonte hospedada por terceiro; registro documental ainda pendente de validação. Os pontos clicáveis no desenho serão ativados somente após conferência individual das posições.</p>
+              </div>
+            </article>
+          ) : null}
           <div className="grid gap-3 md:grid-cols-2">
             {groupedResults.map((item) => (
               <article key={`${item.kind}:${item.id}`} className="space-y-2 rounded-lg border border-border bg-card p-4">
