@@ -138,6 +138,8 @@ export function downloadInspectionReport(file: File) {
 
 type NativeFilesystem = {
   writeFile(options: { path: string; data: string; directory: "CACHE" | "DOCUMENTS"; encoding?: "utf8" | "base64"; recursive?: boolean }): Promise<{ uri: string }>;
+  readFile(options: { path: string; directory: "CACHE" | "DOCUMENTS" }): Promise<{ data: string }>;
+  stat(options: { path: string; directory: "CACHE" | "DOCUMENTS" }): Promise<{ size: number; type: string }>;
 };
 type NativeShare = {
   share(options: { title?: string; text?: string; files?: string[]; dialogTitle?: string }): Promise<void>;
@@ -169,6 +171,27 @@ export async function saveInspectionReport(file: File): Promise<void> {
   downloadInspectionReport(file);
 }
 
+async function validateSavedPdf(file: File): Promise<void> {
+  const [metadata, saved] = await Promise.all([
+    NativeFilesystem.stat({ path: file.name, directory: "CACHE" }),
+    NativeFilesystem.readFile({ path: file.name, directory: "CACHE" }),
+  ]);
+
+  if (metadata.type !== "file" || metadata.size !== file.size) {
+    throw new Error("O PDF salvo no Android está incompleto. Gere o relatório novamente.");
+  }
+
+  const binary = atob(saved.data);
+  if (binary.length !== file.size || !binary.startsWith("%PDF-")) {
+    throw new Error("O arquivo gerado não passou na validação de PDF. Gere o relatório novamente.");
+  }
+
+  const tail = binary.slice(-1024).trimEnd();
+  if (!tail.includes("%%EOF")) {
+    throw new Error("O PDF está incompleto e não pode ser compartilhado. Gere o relatório novamente.");
+  }
+}
+
 export async function shareInspectionReport(file: File, title: string, text: string): Promise<void> {
   if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android") {
     const saved = await NativeFilesystem.writeFile({
@@ -178,7 +201,10 @@ export async function shareInspectionReport(file: File, title: string, text: str
       directory: "CACHE",
       recursive: true,
     });
-    await NativeShare.share({ title, text, files: [saved.uri], dialogTitle: "Compartilhar relatório técnico" });
+    await validateSavedPdf(file);
+    // Envie somente o anexo. Misturar EXTRA_TEXT e EXTRA_STREAM pode fazer
+    // alguns destinos tratarem o compartilhamento como texto, não documento.
+    await NativeShare.share({ title, files: [saved.uri], dialogTitle: "Compartilhar relatório técnico" });
     return;
   }
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
