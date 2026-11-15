@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AlertCircle, BookOpen, Boxes, CheckCircle2, Fuel, Gauge, Search, Wrench } from "lucide-react";
 
@@ -88,6 +88,78 @@ function statusLabel(status: string) {
 function positionSortValue(position: string | null) {
   const match = position?.match(/\d+/);
   return match ? Number(match[0]) : Number.MAX_SAFE_INTEGER;
+}
+
+function PdfFigureViewer({ pageNumber, hotspots, results, onSelect }: { pageNumber: number; hotspots: any[]; results: TechnicalResult[]; onSelect: (id: string) => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [viewerError, setViewerError] = useState<string | null>(null);
+  const [viewerLoading, setViewerLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    let renderTask: { cancel: () => void } | null = null;
+    const renderPage = async () => {
+      setViewerLoading(true);
+      setViewerError(null);
+      try {
+        // PDF.js renderiza a página no mesmo elemento que recebe a camada SVG/HTML.
+        // Assim, não dependemos das margens e do zoom internos de um iframe.
+        const pdfJsUrl = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
+        const pdfjs = await import(/* @vite-ignore */ pdfJsUrl);
+        pdfjs.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
+        const loadingTask = pdfjs.getDocument("https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf");
+        const pdf = await loadingTask.promise;
+        if (cancelled) return;
+        const page = await pdf.getPage(pageNumber);
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const baseViewport = page.getViewport({ scale: 1 });
+        const availableWidth = canvas.parentElement?.clientWidth || baseViewport.width;
+        const scale = Math.min(2, Math.max(0.5, availableWidth / baseViewport.width));
+        const viewport = page.getViewport({ scale });
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("Não foi possível preparar a área de desenho.");
+        canvas.width = Math.ceil(viewport.width);
+        canvas.height = Math.ceil(viewport.height);
+        canvas.style.width = "100%";
+        canvas.style.height = "auto";
+        renderTask = page.render({ canvasContext: context, viewport });
+        await (renderTask as any).promise;
+        if (!cancelled) setViewerLoading(false);
+      } catch (error) {
+        if (!cancelled) {
+          setViewerError(error instanceof Error ? error.message : "Não foi possível renderizar a página do catálogo.");
+          setViewerLoading(false);
+        }
+      }
+    };
+    void renderPage();
+    return () => {
+      cancelled = true;
+      renderTask?.cancel();
+    };
+  }, [pageNumber]);
+
+  return (
+    <div className="relative w-full overflow-hidden bg-white">
+      <canvas ref={canvasRef} className="block h-auto w-full" aria-label={`Página ${pageNumber} do catálogo Bosch`} />
+      {viewerLoading ? <div className="absolute inset-0 flex items-center justify-center bg-white/90 p-4 text-sm text-muted-foreground">Carregando página do catálogo...</div> : null}
+      {viewerError ? <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white p-4 text-center text-sm text-destructive"><p>Não foi possível alinhar a camada porque a página não foi renderizada.</p><p className="text-xs">{viewerError}</p><a className="text-primary underline" href="https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf" target="_blank" rel="noreferrer">Abrir o PDF original</a></div> : null}
+      {!viewerLoading && !viewerError ? (
+        <div className="pointer-events-none absolute inset-0" aria-label="Áreas de referência da figura">
+          {hotspots.map((hotspot: any) => {
+            const linkedPart = results.find((item) => item.id === hotspot.reference_id);
+            if (!linkedPart || !Number.isFinite(Number(hotspot.x)) || !Number.isFinite(Number(hotspot.y))) return null;
+            const left = Math.max(0, Math.min(100, Number(hotspot.x) * 100));
+            const top = Math.max(0, Math.min(100, Number(hotspot.y) * 100));
+            const width = Math.max(2, Math.min(20, Number(hotspot.width) * 100));
+            const height = Math.max(2, Math.min(12, Number(hotspot.height) * 100));
+            return <button key={hotspot.id} type="button" title={`Posição ${hotspot.catalog_position} — ${linkedPart.code ?? "sem código"}`} aria-label={`Selecionar peça na posição ${hotspot.catalog_position}`} onClick={() => onSelect(linkedPart.id)} className="pointer-events-auto absolute rounded-sm border-2 border-sky-600 bg-sky-400/20 shadow-sm hover:bg-sky-400/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700" style={{ left: `${left}%`, top: `${top}%`, width: `${width}%`, height: `${height}%` }}><span className="sr-only">Posição {hotspot.catalog_position}</span></button>;
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function CentralTecnicaPage() {
@@ -329,38 +401,8 @@ function CentralTecnicaPage() {
                   <h4 className="text-sm font-semibold">Figura explodida — catálogo Bosch 2009/2010, página 110</h4>
                   <p className="text-xs text-muted-foreground">Documento vinculado a esta bomba. A figura é compartilhada com outras referências do catálogo; confirme sempre o código da bomba e a tabela de peças antes de usar na montagem.</p>
                 </div>
-                <div className="relative overflow-hidden rounded-md border bg-white">
-                  <iframe
-                    src={`https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf#toolbar=0&navpanes=0&page=${figurePdfPage ?? 81}&zoom=page-fit`}
-                    title={`Figura explodida Bosch — página física ${figurePdfPage ?? "não identificada"} do catálogo VE`}
-                    className="h-[920px] w-full bg-white"
-                    loading="lazy"
-                  />
-                  {figureHotspots.length > 0 ? (
-                    <div className="pointer-events-none absolute inset-0" aria-label="Camada de áreas clicáveis da figura">
-                      {figureHotspots.map((hotspot: any) => {
-                        const linkedPart = results.find((item) => item.id === hotspot.reference_id);
-                        if (!linkedPart || !Number.isFinite(Number(hotspot.x)) || !Number.isFinite(Number(hotspot.y))) return null;
-                        const left = Math.max(0, Math.min(100, Number(hotspot.x) * 100));
-                        const top = Math.max(0, Math.min(100, Number(hotspot.y) * 100));
-                        const width = Math.max(2, Math.min(20, Number(hotspot.width) * 100));
-                        const height = Math.max(2, Math.min(12, Number(hotspot.height) * 100));
-                        return (
-                          <button
-                            key={hotspot.id}
-                            type="button"
-                            title={`Posição ${hotspot.catalog_position} — ${linkedPart.code ?? "sem código"}`}
-                            aria-label={`Selecionar peça na posição ${hotspot.catalog_position}`}
-                            onClick={() => setSelectedReferenceId(linkedPart.id)}
-                            className="pointer-events-auto absolute rounded-sm border-2 border-sky-600 bg-sky-400/20 shadow-sm hover:bg-sky-400/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700"
-                            style={{ left: `${left}%`, top: `${top}%`, width: `${width}%`, height: `${height}%` }}
-                          >
-                            <span className="sr-only">Posição {hotspot.catalog_position}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : null}
+                <div className="overflow-hidden rounded-md border bg-white">
+                  <PdfFigureViewer pageNumber={figurePdfPage ?? 81} hotspots={figureHotspots} results={results} onSelect={setSelectedReferenceId} />
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <a
@@ -372,7 +414,7 @@ function CentralTecnicaPage() {
                     Abrir página da figura no catálogo completo
                   </a>
                 </div>
-                <p className="text-xs text-muted-foreground">Visualização da página física {figurePdfPage ?? "não identificada"} do catálogo Bosch. {figureHotspots.length} áreas de referência carregadas. As marcações azuis são provisórias: as coordenadas estão pendentes de calibração visual.</p>
+                <p className="text-xs text-muted-foreground">Visualização da página física {figurePdfPage ?? "não identificada"} do catálogo Bosch. {figureHotspots.length} áreas de referência carregadas. As marcações azuis acompanham a página renderizada; as coordenadas individuais ainda precisam de calibração visual.</p>
               </div>
             </article>
           ) : null}
