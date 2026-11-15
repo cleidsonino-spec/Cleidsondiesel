@@ -85,6 +85,11 @@ function statusLabel(status: string) {
   return status || "Status não informado";
 }
 
+function positionSortValue(position: string | null) {
+  const match = position?.match(/\d+/);
+  return match ? Number(match[0]) : Number.MAX_SAFE_INTEGER;
+}
+
 function CentralTecnicaPage() {
   const [search, setSearch] = useState("");
   const [selectedArea, setSelectedArea] = useState<(typeof areas)[number]["id"]>("bombas");
@@ -92,6 +97,7 @@ function CentralTecnicaPage() {
   const [pumpReference, setPumpReference] = useState("");
   const [results, setResults] = useState<TechnicalResult[]>([]);
   const [identifiedPump, setIdentifiedPump] = useState<{ id: string; name: string; code: string; model: string | null; description: string | null; status: string } | null>(null);
+  const [selectedReferenceId, setSelectedReferenceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const normalizedSearch = search.trim();
@@ -221,6 +227,14 @@ function CentralTecnicaPage() {
   }, [normalizedSearch, normalizedPumpReference, activeArea, pumpFamily, selectedArea]);
 
   const groupedResults = useMemo(() => results, [results]);
+  const positionIndex = useMemo(
+    () => [...results].filter((item) => item.position).sort((a, b) =>
+      positionSortValue(a.position) - positionSortValue(b.position) ||
+      String(a.position).localeCompare(String(b.position), "pt-BR", { numeric: true }) ||
+      String(a.code).localeCompare(String(b.code))
+    ),
+    [results]
+  );
 
   return (
     <div className="space-y-7">
@@ -316,10 +330,34 @@ function CentralTecnicaPage() {
               </div>
             </article>
           ) : null}
+          {identifiedPump && positionIndex.length > 0 ? (
+            <section className="space-y-3 rounded-lg border bg-card p-4" aria-label="Índice de posições do catálogo">
+              <div className="space-y-1">
+                <h3 className="font-semibold">Índice de posições do catálogo</h3>
+                <p className="text-xs text-muted-foreground">Selecione uma posição para localizar a ficha correspondente abaixo. Este índice é textual; os pontos sobre a imagem serão incluídos somente após conferência das coordenadas no desenho original.</p>
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {positionIndex.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setSelectedReferenceId(item.id)}
+                    aria-pressed={selectedReferenceId === item.id}
+                    className={`rounded-md border p-3 text-left transition-colors hover:border-primary ${selectedReferenceId === item.id ? "border-primary bg-primary/10 ring-1 ring-primary" : "border-border"}`}
+                  >
+                    <span className="block text-xs text-muted-foreground">Posição {item.position}</span>
+                    <span className="block text-sm font-semibold">{item.code}</span>
+                    <span className="block text-xs text-muted-foreground">{item.quantity ? `Quantidade: ${item.quantity}` : "Quantidade não informada"}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          ) : null}
           <div className="grid gap-3 md:grid-cols-2">
             {groupedResults.map((item) => (
-              <article key={`${item.kind}:${item.id}`} className="space-y-2 rounded-lg border border-border bg-card p-4">
+              <article key={`${item.kind}:${item.id}`} className={`space-y-2 rounded-lg border bg-card p-4 ${selectedReferenceId === item.id ? "border-primary ring-1 ring-primary" : "border-border"}`}>
                 <div className="flex items-center justify-between gap-2"><span className="text-xs text-muted-foreground">Peça</span><span className="text-xs text-muted-foreground">{statusLabel(item.status)}</span></div>
+                {selectedReferenceId === item.id ? <p className="text-xs font-medium text-primary">Selecionada no índice de posições</p> : null}
                 <h3 className="font-semibold">{item.title}</h3>
                 {item.code ? <p className="text-sm"><span className="text-muted-foreground">Código:</span> {item.code}</p> : null}
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
