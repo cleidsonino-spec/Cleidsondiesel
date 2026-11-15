@@ -1,9 +1,0 @@
-{
-  "name": "cleidson-diesel-cummins-obd-audit",
-  "private": true,
-  "type": "module",
-  "description": "Read-only audit for Cummins ISB6.7 CM2350 B101 OBD fault-code catalog",
-  "dependencies": {
-    "postgres": "^4.1.0"
-  }
-}\n
