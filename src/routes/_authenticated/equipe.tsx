@@ -8,7 +8,7 @@ import { InspectionReportEditor } from "@/components/painel/inspection-report-ed
 import { Input } from "@/components/ui/input";
 import { requestStaffPushPermission, startStaffPushNotifications, unregisterAdminPushDevice } from "@/lib/push-notifications";
 
-type Role = "secretaria" | "mecanico";
+type Role = "admin" | "secretaria" | "mecanico";
 
 export const Route = createFileRoute("/_authenticated/equipe")({
   beforeLoad: async ({ context }) => {
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_authenticated/equipe")({
       await supabase.auth.signOut({ scope: "local" });
       throw redirect({ to: "/auth" });
     }
-    const staffRole = roles.includes("mecanico") ? "mecanico" : roles.includes("secretaria") ? "secretaria" : null;
+    const staffRole = roles.includes("mecanico") ? "mecanico" : roles.includes("admin") ? "admin" : roles.includes("secretaria") ? "secretaria" : null;
     if (!staffRole) throw redirect({ to: "/painel" });
     return { staffRole: staffRole as Role };
   },
@@ -32,6 +32,117 @@ export const Route = createFileRoute("/_authenticated/equipe")({
 function YesNoQuestion({ title, value, onChange }: { title: string; value: boolean | null; onChange: (value: boolean) => void }) { return <fieldset className="space-y-2"><legend className="text-sm font-medium">{title}</legend><div className="flex gap-2"><Button type="button" size="sm" variant={value === true ? "default" : "outline"} aria-pressed={value === true} onClick={() => onChange(true)}>Sim</Button><Button type="button" size="sm" variant={value === false ? "default" : "outline"} aria-pressed={value === false} onClick={() => onChange(false)}>Não</Button></div></fieldset>; }
 
 function StaffDashboard() {
+  const { user, staffRole } = Route.useRouteContext();
+  return staffRole === "mecanico" ? <MechanicDashboard /> : <PerformanceDashboard user={user} />;
+}
+
+type PerformanceRow = { mechanic_user_id: string; mechanic_name: string; completed_orders: number; labor_total: number; labor_average: number };
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+}
+
+function localDateInput(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function PerformanceDashboard({ user }: { user: { email?: string } }) {
+  const now = new Date();
+  const [startDate, setStartDate] = useState(() => localDateInput(new Date(now.getFullYear(), now.getMonth(), 1)));
+  const [endDate, setEndDate] = useState(() => localDateInput(now));
+  const [rows, setRows] = useState<PerformanceRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    if (!startDate || !endDate || startDate > endDate) {
+      setRows([]);
+      setLoading(false);
+      return () => { active = false; };
+    }
+    void (supabase as any).rpc("staff_mechanic_performance", {
+      _start_date: startDate,
+      _end_date: endDate,
+    }).then(({ data, error }: { data: PerformanceRow[] | null; error: { message: string } | null }) => {
+      if (!active) return;
+      if (error) {
+        toast.error(error.message || "Não foi possível carregar o desempenho da equipe.");
+        setRows([]);
+      } else {
+        setRows((data ?? []).map((row) => ({
+          ...row,
+          completed_orders: Number(row.completed_orders ?? 0),
+          labor_total: Number(row.labor_total ?? 0),
+          labor_average: Number(row.labor_average ?? 0),
+        })));
+      }
+      setLoading(false);
+    });
+    return () => { active = false; };
+  }, [startDate, endDate]);
+
+  const completedOrders = rows.reduce((total, row) => total + row.completed_orders, 0);
+  const laborTotal = rows.reduce((total, row) => total + row.labor_total, 0);
+  const laborAverage = completedOrders ? laborTotal / completedOrders : 0;
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    window.location.assign("/auth");
+  }
+
+  return <main className="mx-auto min-h-screen max-w-6xl space-y-6 px-4 py-6">
+    <header className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
+      <div>
+        <p className="text-sm text-muted-foreground">Cleidson Diesel · Gestão da equipe</p>
+        <h1 className="text-2xl font-bold">Desempenho dos mecânicos</h1>
+        <p className="text-sm text-muted-foreground">{user.email}</p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button asChild variant="outline"><a href="/painel">Voltar ao painel</a></Button>
+        <Button variant="outline" onClick={signOut}><LogOut className="mr-2 size-4"/>Sair</Button>
+      </div>
+    </header>
+
+    <section className="rounded-lg border bg-card p-4 space-y-3">
+      <div className="flex items-center gap-2"><CalendarDays className="size-5 text-primary"/><h2 className="font-semibold">Período de apuração</h2></div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="space-y-1 text-sm font-medium">De
+          <input type="date" value={startDate} max={endDate || undefined} onChange={(event) => setStartDate(event.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2"/>
+        </label>
+        <label className="space-y-1 text-sm font-medium">Até
+          <input type="date" value={endDate} min={startDate || undefined} onChange={(event) => setEndDate(event.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2"/>
+        </label>
+      </div>
+      {startDate && endDate && startDate > endDate && <p className="text-sm text-destructive">A data inicial não pode ser posterior à data final.</p>}
+    </section>
+
+    <section className="grid gap-3 sm:grid-cols-3">
+      <article className="rounded-lg border bg-card p-4"><p className="text-sm text-muted-foreground">Ordens concluídas</p><p className="mt-2 text-2xl font-bold tabular-nums">{loading ? "—" : completedOrders}</p></article>
+      <article className="rounded-lg border bg-card p-4"><p className="text-sm text-muted-foreground">Produção em mão de obra</p><p className="mt-2 text-2xl font-bold tabular-nums">{loading ? "—" : formatCurrency(laborTotal)}</p></article>
+      <article className="rounded-lg border bg-card p-4"><p className="text-sm text-muted-foreground">Média por ordem</p><p className="mt-2 text-2xl font-bold tabular-nums">{loading ? "—" : formatCurrency(laborAverage)}</p></article>
+    </section>
+
+    <section className="space-y-3">
+      <div className="flex items-center gap-2"><Users className="size-5"/><h2 className="text-xl font-semibold">Resultado por mecânico</h2></div>
+      {loading ? <p className="rounded-lg border p-6 text-muted-foreground">Carregando desempenho…</p> : rows.length === 0 ? <p className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">Nenhum mecânico ativo encontrado.</p> :
+        <div className="overflow-x-auto rounded-lg border bg-card">
+          <table className="w-full min-w-[620px] text-sm">
+            <thead className="bg-muted/60"><tr className="text-left"><th className="p-3 font-semibold">Mecânico</th><th className="p-3 text-right font-semibold">OS concluídas</th><th className="p-3 text-right font-semibold">Mão de obra</th><th className="p-3 text-right font-semibold">Média por OS</th></tr></thead>
+            <tbody>{rows.map((row) => <tr key={row.mechanic_user_id} className="border-t"><td className="p-3 font-medium">{row.mechanic_name}</td><td className="p-3 text-right tabular-nums">{row.completed_orders}</td><td className="p-3 text-right font-semibold tabular-nums">{formatCurrency(row.labor_total)}</td><td className="p-3 text-right tabular-nums">{formatCurrency(row.labor_average)}</td></tr>)}</tbody>
+            <tfoot className="border-t bg-muted/40"><tr className="font-semibold"><td className="p-3">Total da equipe</td><td className="p-3 text-right tabular-nums">{completedOrders}</td><td className="p-3 text-right tabular-nums">{formatCurrency(laborTotal)}</td><td className="p-3 text-right tabular-nums">{formatCurrency(laborAverage)}</td></tr></tfoot>
+          </table>
+        </div>}
+    </section>
+    <p className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">A produção considera somente a mão de obra, com desconto proporcional aplicado. Cada OS é contada uma única vez e atribuída ao mecânico que registrou a conclusão oficial. Retornos em garantia não entram na produção normal. Registros antigos sem conclusão oficial identificada não são atribuídos por suposição.</p>
+    <div className="rounded-lg border bg-card p-4"><a href="/agenda-equipe" className="font-medium text-primary hover:underline">Abrir agenda da equipe</a></div>
+  </main>;
+}
+
+function MechanicDashboard() {
   const { user, staffRole } = Route.useRouteContext();
   const navigate = useNavigate();
   const [items, setItems] = useState<any[]>([]);
