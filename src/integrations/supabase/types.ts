@@ -311,9 +311,9 @@ export type Database = {
           status: Database["public"]["Enums"]["order_status"]
           system_cleaning: boolean | null
           updated_at: string
-          vehicle_intake_id: string | null
           vehicle: string
           vehicle_id: string | null
+          vehicle_intake_id: string | null
           vehicle_year: string | null
         }
         Insert: {
@@ -339,13 +339,13 @@ export type Database = {
           parts?: string | null
           parts_value?: number
           phone?: string | null
-          plate: string | null
+          plate?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           system_cleaning?: boolean | null
           updated_at?: string
-          vehicle_intake_id?: string | null
           vehicle: string
           vehicle_id?: string | null
+          vehicle_intake_id?: string | null
           vehicle_year?: string | null
         }
         Update: {
@@ -375,19 +375,12 @@ export type Database = {
           status?: Database["public"]["Enums"]["order_status"]
           system_cleaning?: boolean | null
           updated_at?: string
-          vehicle_intake_id?: string | null
           vehicle?: string
           vehicle_id?: string | null
+          vehicle_intake_id?: string | null
           vehicle_year?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "service_orders_vehicle_intake_id_fkey"
-            columns: ["vehicle_intake_id"]
-            isOneToOne: true
-            referencedRelation: "vehicle_intake_records"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "service_orders_appointment_id_fkey"
             columns: ["appointment_id"]
@@ -407,6 +400,13 @@ export type Database = {
             columns: ["vehicle_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_orders_vehicle_intake_id_fkey"
+            columns: ["vehicle_intake_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_intake_records"
             referencedColumns: ["id"]
           },
         ]
@@ -546,7 +546,7 @@ export type Database = {
           customer_name: string
           delivered_items: Json
           id: string
-          intake_type: "vehicle" | "pump_injector"
+          intake_type: string
           notes: string | null
           plate: string | null
           received_at: string
@@ -560,9 +560,9 @@ export type Database = {
           customer_name: string
           delivered_items?: Json
           id?: string
-          intake_type?: "vehicle" | "pump_injector"
+          intake_type?: string
           notes?: string | null
-          plate: string | null
+          plate?: string | null
           received_at?: string
           received_by: string
           received_by_name: string
@@ -574,7 +574,7 @@ export type Database = {
           customer_name?: string
           delivered_items?: Json
           id?: string
-          intake_type?: "vehicle" | "pump_injector"
+          intake_type?: string
           notes?: string | null
           plate?: string | null
           received_at?: string
@@ -726,6 +726,153 @@ export type Database = {
           },
         ]
       }
+      warranty_change_events: {
+        Row: {
+          actor_id: string | null
+          after_data: Json
+          before_data: Json | null
+          event_type: string
+          id: string
+          occurred_at: string
+          warranty_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          after_data: Json
+          before_data?: Json | null
+          event_type: string
+          id?: string
+          occurred_at?: string
+          warranty_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          after_data?: Json
+          before_data?: Json | null
+          event_type?: string
+          id?: string
+          occurred_at?: string
+          warranty_id?: string
+        }
+        Relationships: []
+      }
+      warranty_return_events: {
+        Row: {
+          actor_id: string | null
+          after_data: Json
+          before_data: Json | null
+          event_type: string
+          id: string
+          occurred_at: string
+          warranty_return_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          after_data: Json
+          before_data?: Json | null
+          event_type: string
+          id?: string
+          occurred_at?: string
+          warranty_return_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          after_data?: Json
+          before_data?: Json | null
+          event_type?: string
+          id?: string
+          occurred_at?: string
+          warranty_return_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warranty_return_events_warranty_return_id_fkey"
+            columns: ["warranty_return_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_returns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      warranty_returns: {
+        Row: {
+          closed_at: string | null
+          complaint: string
+          created_by: string
+          customer_update: string
+          diagnosis: string
+          id: string
+          labor_description: string
+          parts_used: string
+          received_at: string
+          resolution: string
+          return_service_order_id: string | null
+          service_order_id: string
+          status: string
+          updated_at: string
+          updated_by: string
+          warranty_id: string
+        }
+        Insert: {
+          closed_at?: string | null
+          complaint: string
+          created_by: string
+          customer_update?: string
+          diagnosis?: string
+          id?: string
+          labor_description?: string
+          parts_used?: string
+          received_at?: string
+          resolution?: string
+          return_service_order_id?: string | null
+          service_order_id: string
+          status?: string
+          updated_at?: string
+          updated_by: string
+          warranty_id: string
+        }
+        Update: {
+          closed_at?: string | null
+          complaint?: string
+          created_by?: string
+          customer_update?: string
+          diagnosis?: string
+          id?: string
+          labor_description?: string
+          parts_used?: string
+          received_at?: string
+          resolution?: string
+          return_service_order_id?: string | null
+          service_order_id?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string
+          warranty_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warranty_returns_return_service_order_id_fkey"
+            columns: ["return_service_order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warranty_returns_service_order_id_fkey"
+            columns: ["service_order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warranty_returns_warranty_id_fkey"
+            columns: ["warranty_id"]
+            isOneToOne: false
+            referencedRelation: "warranties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -840,6 +987,23 @@ export type Database = {
         }[]
       }
       get_staff_invitation_email: { Args: { p_token: string }; Returns: string }
+      get_warranty_return_context: {
+        Args: { _return_order_id: string }
+        Returns: {
+          original_complaint: string
+          original_diagnosis: string
+          original_order_id: string
+          original_order_number: number
+          original_parts: string
+          original_technical_history: Json
+          return_complaint: string
+          return_diagnosis: string
+          return_id: string
+          return_labor_description: string
+          return_parts_used: string
+          return_resolution: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -907,9 +1071,30 @@ export type Database = {
         Returns: undefined
       }
       normalize_plate: { Args: { _p: string }; Returns: string }
+      open_warranty_return_service_order:
+        | { Args: { _return_id: string }; Returns: string }
+        | { Args: { _intake_id: string; _return_id: string }; Returns: string }
+        | {
+            Args: { _legacy_intake: Json; _return_id: string }
+            Returns: string
+          }
       quote_snapshot: {
         Args: { o: Database["public"]["Tables"]["service_orders"]["Row"] }
         Returns: Json
+      }
+      register_warranty_return: {
+        Args: {
+          _complaint: string
+          _customer_update?: string
+          _diagnosis?: string
+          _labor_description?: string
+          _parts_used?: string
+          _resolution?: string
+          _return_id?: string
+          _status?: string
+          _warranty_id: string
+        }
+        Returns: string
       }
       reject_quote_identified: {
         Args: { _cpf: string; _name: string; _token: string }
