@@ -140,17 +140,17 @@ function CentralTecnicaPage() {
   const visibleApplications = applications.filter((item) => {
     const engine = engineById.get(item.engine_id);
     const component = componentById.get(item.component_id);
-    const applicationManufacturerId = component?.manufacturer_id || engine?.manufacturer_id;
+    const applicationManufacturerMatches = manufacturer === "all" || component?.manufacturer_id === manufacturer || engine?.manufacturer_id === manufacturer;
     const linkedCategory = categoryById.get(component?.category_id) || "";
     const linkedComponent = component?.name || component?.component_type || "";
     const areaMatch =
       area === "tudo" ||
-      (area === "bombas" && /bomba|injetora|\\bve\\b|\\bvp\\b/i.test(`${linkedComponent} ${linkedCategory}`)) ||
+      (area === "bombas" && /bomba|injetora|\bve\b|\bvp\b/i.test(`${linkedComponent} ${linkedCategory}`)) ||
       (area === "bicos" && /bico|injetor/i.test(`${linkedComponent} ${linkedCategory}`)) ||
       (area === "common-rail" && /common rail|rail/i.test(`${linkedComponent} ${linkedCategory} ${engine?.fuel_system || ""}`));
-    return (manufacturer === "all" || applicationManufacturerId === manufacturer) &&
+    return applicationManufacturerMatches &&
       (category === "all" || component?.category_id === category) &&
-      matches([item.equipment_type, item.equipment_manufacturer, item.equipment_model, item.application_notes, engine?.model, linkedComponent, linkedCategory, manufacturerById.get(applicationManufacturerId)]) &&
+      matches([item.equipment_type, item.equipment_manufacturer, item.equipment_model, item.application_notes, engine?.model, linkedComponent, linkedCategory, manufacturerById.get(component?.manufacturer_id || engine?.manufacturer_id)]) &&
       areaMatch;
   });
 
