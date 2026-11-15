@@ -120,16 +120,38 @@ function CentralTecnicaPage() {
       area === "common-rail" && /common rail|rail/i.test(`${item.name} ${item.description} ${categoryById.get(item.category_id)}`) ||
       area === "pecas")
   );
-  const visibleDocuments = documents.filter((item) =>
-    (manufacturer === "all" || item.manufacturer_id === manufacturer) &&
-    matches([item.title, item.document_type, item.source_name, item.notes, manufacturerById.get(item.manufacturer_id), engineById.get(item.engine_id)?.model]) &&
-    (area === "tudo" || area === "documentos")
-  );
+  const visibleDocuments = documents.filter((item) => {
+    const engine = engineById.get(item.engine_id);
+    const component = componentById.get(item.component_id);
+    const documentManufacturerId = item.manufacturer_id || engine?.manufacturer_id || component?.manufacturer_id;
+    return (manufacturer === "all" || documentManufacturerId === manufacturer) &&
+      (category === "all" || component?.category_id === category) &&
+      matches([item.title, item.document_type, item.source_name, item.notes, manufacturerById.get(documentManufacturerId), engine?.model, component?.name, categoryById.get(component?.category_id)]) &&
+      (area === "tudo" || area === "documentos");
+  });
   const visibleReferences = references.filter((item) => {
     const component = componentById.get(item.component_id);
     return (manufacturer === "all" || component?.manufacturer_id === manufacturer || item.reference_manufacturer_id === manufacturer) &&
-      matches([item.reference_code, item.relation_type, item.source_description, item.notes, component?.name, manufacturerById.get(item.reference_manufacturer_id)]) &&
+      (category === "all" || component?.category_id === category) &&
+      matches([item.reference_code, item.relation_type, item.source_description, item.notes, component?.name, manufacturerById.get(item.reference_manufacturer_id), categoryById.get(component?.category_id)]) &&
       (area === "tudo" || area === "pecas");
+  });
+
+  const visibleApplications = applications.filter((item) => {
+    const engine = engineById.get(item.engine_id);
+    const component = componentById.get(item.component_id);
+    const applicationManufacturerId = component?.manufacturer_id || engine?.manufacturer_id;
+    const linkedCategory = categoryById.get(component?.category_id) || "";
+    const linkedComponent = component?.name || component?.component_type || "";
+    const areaMatch =
+      area === "tudo" ||
+      (area === "bombas" && /bomba|injetora|\\bve\\b|\\bvp\\b/i.test(`${linkedComponent} ${linkedCategory}`)) ||
+      (area === "bicos" && /bico|injetor/i.test(`${linkedComponent} ${linkedCategory}`)) ||
+      (area === "common-rail" && /common rail|rail/i.test(`${linkedComponent} ${linkedCategory} ${engine?.fuel_system || ""}`));
+    return (manufacturer === "all" || applicationManufacturerId === manufacturer) &&
+      (category === "all" || component?.category_id === category) &&
+      matches([item.equipment_type, item.equipment_manufacturer, item.equipment_model, item.application_notes, engine?.model, linkedComponent, linkedCategory, manufacturerById.get(applicationManufacturerId)]) &&
+      areaMatch;
   });
 
   const totalResults = visibleEngines.length + visibleComponents.length + visibleDocuments.length + visibleReferences.length;
@@ -217,8 +239,8 @@ function CentralTecnicaPage() {
 
           {(area === "tudo" || area === "bombas" || area === "bicos" || area === "common-rail") && (
             <section className="space-y-3">
-              <SectionTitle icon={<CheckCircle2 />} title="Aplicações cadastradas" count={applications.filter((item) => matches([item.equipment_type, item.equipment_manufacturer, item.equipment_model, item.application_notes])).length} />
-              {applications.filter((item) => matches([item.equipment_type, item.equipment_manufacturer, item.equipment_model, item.application_notes])).length ? <div className="divide-y divide-border rounded-lg border border-border bg-card">{applications.filter((item) => matches([item.equipment_type, item.equipment_manufacturer, item.equipment_model, item.application_notes])).map((item) => <div key={item.id} className="p-4"><p className="font-medium">{[item.equipment_manufacturer, item.equipment_model].filter(Boolean).join(" ") || item.equipment_type || "Aplicação sem identificação"}</p><p className="text-sm text-muted-foreground">{item.equipment_type || "Equipamento"}{item.year_start ? ` · ${item.year_start}${item.year_end ? `–${item.year_end}` : "+"}` : ""}</p>{item.application_notes && <p className="mt-1 text-sm">{item.application_notes}</p>}<p className="mt-1 text-xs text-muted-foreground">{item.information_status ? statusLabel(item.information_status) : "Status não informado"}</p></div>)}</div> : <Empty text="Nenhuma aplicação cadastrada corresponde à busca." />}
+              <SectionTitle icon={<CheckCircle2 />} title="Aplicações cadastradas" count={visibleApplications.length} />
+              {visibleApplications.length ? <div className="divide-y divide-border rounded-lg border border-border bg-card">{visibleApplications.map((item) => <div key={item.id} className="p-4"><p className="font-medium">{[item.equipment_manufacturer, item.equipment_model].filter(Boolean).join(" ") || item.equipment_type || "Aplicação sem identificação"}</p><p className="text-sm text-muted-foreground">{item.equipment_type || "Equipamento"}{item.year_start ? ` · ${item.year_start}${item.year_end ? `–${item.year_end}` : "+"}` : ""}</p>{item.application_notes && <p className="mt-1 text-sm">{item.application_notes}</p>}<p className="mt-1 text-xs text-muted-foreground">{item.information_status ? statusLabel(item.information_status) : "Status não informado"}</p></div>)}</div> : <Empty text="Nenhuma aplicação cadastrada corresponde à busca." />}
             </section>
           )}
 
