@@ -125,7 +125,7 @@ function PainelLayout() {
             )}
           </div>
         </div>
-        {(isAdmin || isSecretary) && (
+        {(isAdmin || isSecretary || isMechanic) && (
           <nav className="mx-auto hidden max-w-6xl items-center gap-1 overflow-x-auto px-4 pb-2 md:flex">
             {(isAdmin || isSecretary) && <>
 
