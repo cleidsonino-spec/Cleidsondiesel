@@ -223,7 +223,7 @@ export function InspectionReportEditor({ order, isAdmin, isSecretary }: Props) {
           <h2 className="font-display text-base uppercase">Relatório técnico de inspeção</h2>
           <p className="mt-1 text-sm text-muted-foreground">Documento opcional vinculado à OS nº {order.number}. Não integra o orçamento.</p>
         </div>
-        {record && <span className="rounded-full border px-3 py-1 text-xs font-medium">{statusLabels[record.status]}</span>}
+        {record && <span className="rounded-full border px-3 py-1 text-xs font-medium">Versão {record.version} · {statusLabels[record.status]}</span>}
       </div>
 
       <div className="grid gap-4">
