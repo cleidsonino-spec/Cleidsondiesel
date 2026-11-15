@@ -116,8 +116,8 @@ function CentralTecnicaPage() {
   const pumpParts = selectedPump
     ? components.filter((item) => item.component_type === "pump_component" && item.model === selectedPump.model)
       .sort((a, b) => {
-        const pa = Number((text(a.technical_notes).match(/Posi[cç][aã]o\\s*:\\s*(\\d+)/i) || [])[1] || 999999);
-        const pb = Number((text(b.technical_notes).match(/Posi[cç][aã]o\\s*:\\s*(\\d+)/i) || [])[1] || 999999);
+        const pa = Number((text(a.technical_notes).match(/Posi[cç][aã]o\s*:\s*(\d+)/i) || [])[1] || 999999);
+        const pb = Number((text(b.technical_notes).match(/Posi[cç][aã]o\s*:\s*(\d+)/i) || [])[1] || 999999);
         return pa - pb;
       })
     : [];
@@ -255,7 +255,7 @@ function CentralTecnicaPage() {
                   <table className="w-full min-w-[560px] text-sm">
                     <thead className="bg-muted/60 text-left"><tr><th className="p-3">Posição</th><th className="p-3">Código</th><th className="p-3">Descrição</th><th className="p-3">Quantidade</th><th className="p-3">Status</th></tr></thead>
                     <tbody>{pumpParts.map((part) => {
-                      const position = (text(part.technical_notes).match(/Posi[cç][aã]o\\s*:\\s*(\\d+)/i) || [])[1] || "—";
+                      const position = (text(part.technical_notes).match(/Posi[cç][aã]o\s*:\s*(\d+)/i) || [])[1] || "—";
                       return <tr key={part.id} className="border-t border-border">
                         <td className="p-3 font-semibold tabular-nums">{position}</td>
                         <td className="p-3 font-mono">{part.component_code || "—"}</td>
