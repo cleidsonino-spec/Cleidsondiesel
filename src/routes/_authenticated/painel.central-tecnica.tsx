@@ -138,36 +138,57 @@ function CentralTecnicaPage() {
       const loadPumpParts = async () => {
         setLoading(true);
         try {
-          const { data, error: queryError } = await (supabase as any)
+          // Primeiro identifica a bomba completa pelo código Bosch; depois consulta
+          // exclusivamente as referências relacionadas ao component_id encontrado.
+          const { data: pumps, error: pumpError } = await (supabase as any)
             .from("technical_components")
-            .select("id,name,component_code,model,description,technical_notes,information_status,technical_manufacturers(name),technical_categories(name)")
+            .select("id,name,component_code,model,description,information_status")
             .eq("category_id", "d5f8206a-1002-43e8-bc62-f000fa256ee1")
-            .in("component_type", importantVEComponentTypes)
-            .ilike("model", `%${normalizedPumpReferenceDigits.split("").join("%")}%`)
+            .eq("component_type", "bomba_rotativa_ve_modelo")
             .limit(500);
-          if (queryError) throw queryError;
-          const rows = (data ?? []).filter((row: any) =>
-            matchesPumpReference(row.model, normalizedPumpReferenceDigits)
+          if (pumpError) throw pumpError;
+          const matchedPumps = (pumps ?? []).filter((pump: any) =>
+            matchesPumpReference(pump.component_code, normalizedPumpReferenceDigits)
           );
-          const matchedModels = [...new Set(rows.map((row: any) => row.model).filter(Boolean))];
-          if (matchedModels.length > 1) {
-            if (active) setError("A referência corresponde a mais de um modelo. Digite a referência Bosch completa para identificar a bomba correta.");
+          if (matchedPumps.length !== 1) {
+            if (active) {
+              setResults([]);
+              setError(matchedPumps.length > 1
+                ? "Mais de uma bomba possui essa referência. O cadastro precisa ser revisado antes da consulta."
+                : "Bomba não encontrada. Confira a referência Bosch completa.");
+            }
             return;
           }
-          const uniqueRows = new Map<string, any>();
-          for (const row of rows) {
-            const metadata = catalogMetadata(row.technical_notes);
-            const key = [row.component_code ?? row.name, metadata.position ?? ""].join("|");
-            if (!uniqueRows.has(key)) uniqueRows.set(key, row);
+          const pump = matchedPumps[0];
+          const { data: references, error: referencesError } = await (supabase as any)
+            .from("technical_references")
+            .select("id,reference_code,relation_type,information_status,source_description,source_url,notes")
+            .eq("component_id", pump.id)
+            .order("reference_code", { ascending: true });
+          if (referencesError) throw referencesError;
+
+          const mapped: TechnicalResult[] = (references ?? []).map((reference: any) => {
+            const metadata = catalogMetadata(reference.notes);
+            const designation = reference.notes?.match(/designação traduzida\s*:\s*([^.|\n]+)/i)?.[1]?.trim();
+            return {
+              id: reference.id,
+              title: designation || reference.source_description || "Referência técnica sem descrição",
+              code: reference.reference_code,
+              model: pump.model,
+              manufacturer: "Bosch",
+              category: reference.relation_type,
+              status: reference.information_status,
+              kind: "Componente",
+              detail: reference.notes ?? reference.source_description ?? null,
+              ...metadata,
+            };
+          });
+          if (active) {
+            setResults(mapped);
+            if (mapped.length === 0) {
+              setError("A bomba foi localizada, mas ainda não possui referências de peças vinculadas.");
+            }
           }
-          if (active) setResults([...uniqueRows.values()].map((row: any) => ({
-            id: row.id, title: row.name, code: row.component_code, model: row.model,
-            manufacturer: row.technical_manufacturers?.name ?? null,
-            category: row.technical_categories?.name ?? null,
-            status: row.information_status, kind: "Componente",
-            detail: row.description ?? null,
-            ...catalogMetadata(row.technical_notes),
-          })));
         } catch (cause) {
           if (active) setError(cause instanceof Error ? cause.message : "Não foi possível localizar as peças desta referência.");
         } finally {
