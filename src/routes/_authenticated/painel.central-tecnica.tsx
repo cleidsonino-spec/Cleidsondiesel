@@ -76,12 +76,16 @@ function statusLabel(status: string) {
 function CentralTecnicaPage() {
   const [search, setSearch] = useState("");
   const [selectedArea, setSelectedArea] = useState<(typeof areas)[number]["id"]>("bombas");
+  const [pumpFamily, setPumpFamily] = useState<"todas" | "ve">("todas");
   const [results, setResults] = useState<TechnicalResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const normalizedSearch = search.trim();
 
   const activeArea = areas.find((area) => area.id === selectedArea) ?? areas[0];
+  const activeCategoryIds = selectedArea === "bombas" && pumpFamily === "ve"
+    ? ["d5f8206a-1002-43e8-bc62-f000fa256ee1"]
+    : [...activeArea.categoryIds];
 
   useEffect(() => {
     let active = true;
@@ -99,7 +103,7 @@ function CentralTecnicaPage() {
         const { data, error: queryError } = await (supabase as any)
           .from("technical_components")
           .select("id,name,component_code,model,information_status,technical_manufacturers(name),technical_categories(name)")
-          .in("category_id", [...activeArea.categoryIds])
+          .in("category_id", activeCategoryIds)
           .or(`name.ilike.%${normalizedSearch}%,component_code.ilike.%${normalizedSearch}%,model.ilike.%${normalizedSearch}%`)
           .limit(40);
 
@@ -159,6 +163,14 @@ function CentralTecnicaPage() {
         </p>
       </section>
 
+      {selectedArea === "bombas" ? (
+        <section className="flex flex-wrap items-center gap-2" aria-label="Família de bombas">
+          <span className="text-sm font-medium">Família:</span>
+          <button type="button" onClick={() => { setPumpFamily("todas"); setSearch(""); }} aria-pressed={pumpFamily === "todas"} className={`rounded-full border px-3 py-1.5 text-sm ${pumpFamily === "todas" ? "border-primary bg-primary/10 text-primary" : "border-border"}`}>Todas as bombas</button>
+          <button type="button" onClick={() => { setPumpFamily("ve"); setSearch(""); }} aria-pressed={pumpFamily === "ve"} className={`rounded-full border px-3 py-1.5 text-sm ${pumpFamily === "ve" ? "border-primary bg-primary/10 text-primary" : "border-border"}`}>Rotativa VE</button>
+        </section>
+      ) : null}
+
       {normalizedSearch.length < 2 ? (
         <section className="space-y-3" aria-labelledby="technical-areas-title">
           <h2 id="technical-areas-title" className="text-lg font-semibold">Escolha uma área técnica</h2>
@@ -182,7 +194,7 @@ function CentralTecnicaPage() {
       ) : (
         <section className="space-y-3" aria-live="polite">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold">{activeArea.title}</h2>
+            <h2 className="text-lg font-semibold">{activeArea.title}{selectedArea === "bombas" && pumpFamily === "ve" ? " — Rotativa VE" : ""}</h2>
             <span className="text-xs text-muted-foreground">{groupedResults.length} encontrados</span>
           </div>
           {loading ? <p className="text-sm text-muted-foreground">Consultando a base técnica...</p> : null}
