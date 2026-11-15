@@ -125,8 +125,8 @@ function PainelLayout() {
             <PanelLink to="/painel" icon={<ClipboardList />} label="Visão geral" exact />
             <PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" />
             {(isAdmin || isSecretary) && <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />}
-            {(isAdmin || isSecretary) && <PanelLink to="/painel/relatorios" icon={<ClipboardCheck />} label="Relatórios" />
-            <PanelLink to="/equipe" icon={<Users />} label="Desempenho" />}
+            {(isAdmin || isSecretary) && <PanelLink to="/painel/relatorios" icon={<ClipboardCheck />} label="Relatórios" />}
+            {(isAdmin || isSecretary) && <PanelLink to="/equipe" icon={<Users />} label="Desempenho" />}
             {(isAdmin || isSecretary) && <PanelLink to="/painel/recebimento" icon={<ClipboardCheck />} label="Recebimento" />}
             <PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" />
             {isAdmin && <PanelLink to="/painel/funcionarios" icon={<UserCog />} label="Funcionário" />}
