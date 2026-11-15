@@ -98,6 +98,8 @@ function CentralTecnicaPage() {
   const [results, setResults] = useState<TechnicalResult[]>([]);
   const [identifiedPump, setIdentifiedPump] = useState<{ id: string; name: string; code: string; model: string | null; description: string | null; status: string } | null>(null);
   const [selectedReferenceId, setSelectedReferenceId] = useState<string | null>(null);
+  const [figurePdfPage, setFigurePdfPage] = useState<number | null>(null);
+  const [figureHotspots, setFigureHotspots] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const normalizedSearch = search.trim();
@@ -128,9 +130,7 @@ function CentralTecnicaPage() {
           const { data: pumps, error: pumpError } = await (supabase as any)
             .from("technical_components")
             .select("id,name,component_code,model,description,information_status")
-            .eq("category_id", "d5f8206a-1002-43e8-bc62-f000fa256ee1")
-            .eq("component_type", "bomba_rotativa_ve_modelo")
-            .limit(500);
+            .limit(2000);
           if (pumpError) throw pumpError;
           const matchedPumps = (pumps ?? []).filter((pump: any) =>
             matchesPumpReference(pump.component_code, normalizedPumpReferenceDigits)
@@ -148,13 +148,27 @@ function CentralTecnicaPage() {
           if (active) setIdentifiedPump({ id: pump.id, name: pump.name, code: pump.component_code, model: pump.model, description: pump.description, status: pump.information_status });
           const { data: references, error: referencesError } = await (supabase as any)
             .from("technical_references")
-            .select("id,reference_code,relation_type,information_status,source_description,source_url,notes")
+            .select("id,reference_code,relation_type,information_status,source_description,source_url,notes,catalog_position,catalog_quantity")
             .eq("component_id", pump.id)
             .order("reference_code", { ascending: true });
           if (referencesError) throw referencesError;
 
+          const { data: hotspots, error: hotspotsError } = await (supabase as any)
+            .from("technical_figure_hotspots")
+            .select("id,document_id,reference_id,catalog_position,pdf_page_number,printed_page_number,x,y,width,height,shape,information_status,is_active")
+            .eq("component_id", pump.id)
+            .eq("is_active", true)
+            .order("catalog_position", { ascending: true });
+          if (hotspotsError) throw hotspotsError;
+          const activeHotspots = hotspots ?? [];
+          if (active) {
+            setFigureHotspots(activeHotspots);
+            const page = activeHotspots.find((item: any) => Number.isInteger(item.pdf_page_number))?.pdf_page_number;
+            setFigurePdfPage(typeof page === "number" ? page : null);
+          }
+
           const mapped: TechnicalResult[] = (references ?? []).map((reference: any) => {
-            const metadata = catalogMetadata(reference.notes);
+            const metadata = { position: reference.catalog_position ?? null, quantity: reference.catalog_quantity == null ? null : String(reference.catalog_quantity) };
             const designation = reference.notes?.match(/designação traduzida\s*:\s*([^.|\n]+)/i)?.[1]?.trim();
             return {
               id: reference.id,
@@ -315,23 +329,23 @@ function CentralTecnicaPage() {
                 </div>
                 <div className="overflow-hidden rounded-md border bg-white">
                   <iframe
-                    src="https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf#page=110&zoom=175"
-                    title="Figura explodida Bosch — página 110 do catálogo VE"
+                    src={`https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf#page=${figurePdfPage ?? 81}&zoom=175`}
+                    title={`Figura explodida Bosch — página física ${figurePdfPage ?? "não identificada"} do catálogo VE`}
                     className="h-[920px] w-full bg-white"
                     loading="lazy"
                   />
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <a
-                    href="https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf#page=110"
+                    href={`https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf#page=${figurePdfPage ?? 81}`}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center rounded-md border px-3 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
                   >
-                    Abrir página 110 do catálogo completo
+                    Abrir página da figura no catálogo completo
                   </a>
                 </div>
-                <p className="text-xs text-muted-foreground">Visualização da página original do catálogo Bosch. A figura é compartilhada por várias referências; os códigos e quantidades devem ser conferidos na tabela específica da bomba. Os pontos clicáveis serão adicionados após validação das posições.</p>
+                <p className="text-xs text-muted-foreground">Visualização da página física {figurePdfPage ?? "não identificada"} do catálogo Bosch. A página impressa e a página física do PDF são tratadas separadamente. Os hotspots ainda passam por validação antes de serem usados como áreas definitivas de clique.</p>
               </div>
             </article>
           ) : null}
