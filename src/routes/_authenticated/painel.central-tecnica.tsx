@@ -88,6 +88,7 @@ const importantVEComponentTypes = [
   "jogo_reparo",
   "ve_jogo_reparo",
   "ve_jogo_roletes",
+  "ve_rolete",
   "ve_yoke_anel_roletes",
   "ve_pino_guia_anel_roletes",
 ];
