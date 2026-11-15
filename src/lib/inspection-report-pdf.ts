@@ -223,13 +223,16 @@ async function validateSavedPdf(file: File, directory: "CACHE" | "DATA"): Promis
 
 export async function shareInspectionReport(file: File, title: string, text: string): Promise<void> {
   if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android") {
+    // O Share do Android só aceita arquivos dentro das raízes declaradas
+    // pelo FileProvider. O diretório CACHE é incluído pelo plugin Share;
+    // DATA/files não é uma raiz compartilhável e causa "Failed to find configured root".
     const saved = await NativeFilesystem.writeFile({
       path: file.name,
       data: await fileToBase64(file),
-      directory: "DATA",
+      directory: "CACHE",
       recursive: true,
     });
-    await validateSavedPdf(file, "DATA");
+    await validateSavedPdf(file, "CACHE");
     // Envie somente o anexo. Misturar EXTRA_TEXT e EXTRA_STREAM pode fazer
     // alguns destinos tratarem o compartilhamento como texto, não documento.
     await NativeShare.share({ title, files: [saved.uri], dialogTitle: "Compartilhar relatório técnico" });
