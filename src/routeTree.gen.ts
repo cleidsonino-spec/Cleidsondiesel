@@ -203,7 +203,6 @@ export interface FileRoutesByFullPath {
   '/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/painel/clientes': typeof AuthenticatedPainelClientesRoute
   '/painel/central-tecnica': typeof AuthenticatedPainelCentralTecnicaRoute
-  '/painel/central-tecnica': typeof AuthenticatedPainelCentralTecnicaRoute
   '/painel/cobrancas': typeof AuthenticatedPainelCobrancasRoute
   '/painel/financeiro': typeof AuthenticatedPainelFinanceiroRoute
   '/painel/funcionarios': typeof AuthenticatedPainelFuncionariosRoute
@@ -230,6 +229,7 @@ export interface FileRoutesByTo {
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/painel/clientes': typeof AuthenticatedPainelClientesRoute
+  '/painel/central-tecnica': typeof AuthenticatedPainelCentralTecnicaRoute
   '/painel/cobrancas': typeof AuthenticatedPainelCobrancasRoute
   '/painel/financeiro': typeof AuthenticatedPainelFinanceiroRoute
   '/painel/funcionarios': typeof AuthenticatedPainelFuncionariosRoute
@@ -288,6 +288,7 @@ export interface FileRouteTypes {
     | '/orcamento/$token'
     | '/painel/agendamentos'
     | '/painel/clientes'
+    | '/painel/central-tecnica'
     | '/painel/cobrancas'
     | '/painel/financeiro'
     | '/painel/funcionarios'
@@ -314,6 +315,7 @@ export interface FileRouteTypes {
     | '/orcamento/$token'
     | '/painel/agendamentos'
     | '/painel/clientes'
+    | '/painel/central-tecnica'
     | '/painel/cobrancas'
     | '/painel/financeiro'
     | '/painel/funcionarios'
@@ -341,6 +343,7 @@ export interface FileRouteTypes {
     | '/orcamento/$token'
     | '/_authenticated/painel/agendamentos'
     | '/_authenticated/painel/clientes'
+    | '/_authenticated/painel/central-tecnica'
     | '/_authenticated/painel/cobrancas'
     | '/_authenticated/painel/financeiro'
     | '/_authenticated/painel/funcionarios'
@@ -465,6 +468,13 @@ declare module '@tanstack/react-router' {
       path: '/clientes'
       fullPath: '/painel/clientes'
       preLoaderRoute: typeof AuthenticatedPainelClientesRouteImport
+      parentRoute: typeof AuthenticatedPainelRoute
+    }
+    '/_authenticated/painel/central-tecnica': {
+      id: '/_authenticated/painel/central-tecnica'
+      path: '/central-tecnica'
+      fullPath: '/painel/central-tecnica'
+      preLoaderRoute: typeof AuthenticatedPainelCentralTecnicaRouteImport
       parentRoute: typeof AuthenticatedPainelRoute
     }
     '/_authenticated/painel/cobrancas': {
