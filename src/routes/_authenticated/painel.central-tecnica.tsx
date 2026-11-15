@@ -15,9 +15,44 @@ export const Route = createFileRoute("/_authenticated/painel/central-tecnica")({
 });
 
 const areas = [
-  { id: "bombas", title: "Bombas injetoras", description: "Modelos, componentes e referências cadastrados.", icon: Fuel },
-  { id: "bicos", title: "Bicos injetores", description: "Componentes e referências cadastrados.", icon: Gauge },
-  { id: "common-rail", title: "Common Rail", description: "Componentes e sistemas cadastrados.", icon: Boxes },
+  {
+    id: "bombas",
+    title: "Bombas injetoras",
+    description: "Bombas em linha, rotativas VE e outros modelos cadastrados.",
+    icon: Fuel,
+    categoryIds: [
+      "d40982ec-2f50-41d7-8d8b-7718a36232f7",
+      "a11ea631-fbfa-41ef-8742-adef242f410c",
+      "d5f8206a-1002-43e8-bc62-f000fa256ee1",
+      "2d05ad12-1fe2-4bba-97e1-a5e5628af23e",
+    ],
+  },
+  {
+    id: "bicos",
+    title: "Bicos injetores",
+    description: "Bicos mecânicos e conjuntos injetores cadastrados.",
+    icon: Gauge,
+    categoryIds: [
+      "cf766f5e-93fa-4845-9351-3bfb8dcc7846",
+      "405610f8-ecf5-4f98-a0e1-8ce9be13ccb6",
+      "0873ba46-0ff2-48c2-898f-716242996a6b",
+      "8111033a-905e-4ede-8da0-81c8c407c3b5",
+    ],
+  },
+  {
+    id: "common-rail",
+    title: "Sistema Common Rail",
+    description: "Bombas de alta pressão, injetores, rail e componentes do sistema.",
+    icon: Boxes,
+    categoryIds: [
+      "5fcfa32a-2385-46ec-86fc-5570547fb616",
+      "c33c6f15-bd6d-4c42-bbd0-4dba6c389211",
+      "744003e3-c98b-406d-9e3e-664a3a34cbbf",
+      "ed6944d6-20e5-47fa-b94b-827dbda4d8ed",
+      "7a5a1c18-cac9-41ad-b20a-38db419fa855",
+      "d8a84d98-191c-4f03-b201-0a1cba74cb60",
+    ],
+  },
 ] as const;
 
 type TechnicalResult = {
@@ -28,7 +63,7 @@ type TechnicalResult = {
   manufacturer: string | null;
   category: string | null;
   status: string;
-  kind: "Componente" | "Referência" | "Motor" | "Fabricante";
+  kind: "Componente";
   detail: string | null;
 };
 
@@ -40,10 +75,13 @@ function statusLabel(status: string) {
 
 function CentralTecnicaPage() {
   const [search, setSearch] = useState("");
+  const [selectedArea, setSelectedArea] = useState<(typeof areas)[number]["id"]>("bombas");
   const [results, setResults] = useState<TechnicalResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const normalizedSearch = search.trim();
+
+  const activeArea = areas.find((area) => area.id === selectedArea) ?? areas[0];
 
   useEffect(() => {
     let active = true;
@@ -57,22 +95,16 @@ function CentralTecnicaPage() {
     const runSearch = async () => {
       setLoading(true);
       setError(null);
-      const db = supabase as any;
-      const pattern = `%${normalizedSearch}%`;
       try {
-        const [byName, byCode, byModel, references, engines, manufacturers] = await Promise.all([
-          db.from("technical_components").select("id,name,component_code,model,information_status,technical_manufacturers(name),technical_categories(name)").ilike("name", pattern).limit(12),
-          db.from("technical_components").select("id,name,component_code,model,information_status,technical_manufacturers(name),technical_categories(name)").ilike("component_code", pattern).limit(12),
-          db.from("technical_components").select("id,name,component_code,model,information_status,technical_manufacturers(name),technical_categories(name)").ilike("model", pattern).limit(12),
-          db.from("technical_references").select("id,reference_code,relation_type,information_status,source_description,technical_components(name,component_code,model)").ilike("reference_code", pattern).limit(12),
-          db.from("technical_engines").select("id,model,engine_code,family,information_status,technical_manufacturers(name)").or(`model.ilike.${pattern},engine_code.ilike.${pattern},family.ilike.${pattern}`).limit(12),
-          db.from("technical_manufacturers").select("id,name").ilike("name", pattern).eq("is_active", true).limit(8),
-        ]);
-        const failures = [byName, byCode, byModel, references, engines, manufacturers].find((response) => response.error);
-        if (failures?.error) throw failures.error;
+        const { data, error: queryError } = await (supabase as any)
+          .from("technical_components")
+          .select("id,name,component_code,model,information_status,technical_manufacturers(name),technical_categories(name)")
+          .in("category_id", [...activeArea.categoryIds])
+          .or(`name.ilike.%${normalizedSearch}%,component_code.ilike.%${normalizedSearch}%,model.ilike.%${normalizedSearch}%`)
+          .limit(40);
 
-        const componentRows = [...(byName.data ?? []), ...(byCode.data ?? []), ...(byModel.data ?? [])];
-        const mappedComponents: TechnicalResult[] = componentRows.map((row: any) => ({
+        if (queryError) throw queryError;
+        const mapped: TechnicalResult[] = (data ?? []).map((row: any) => ({
           id: row.id,
           title: row.name,
           code: row.component_code,
@@ -83,44 +115,7 @@ function CentralTecnicaPage() {
           kind: "Componente",
           detail: null,
         }));
-        const mappedReferences: TechnicalResult[] = (references.data ?? []).map((row: any) => ({
-          id: row.id,
-          title: row.technical_components?.name ?? "Componente relacionado não identificado",
-          code: row.reference_code,
-          model: row.technical_components?.model ?? null,
-          manufacturer: null,
-          category: null,
-          status: row.information_status,
-          kind: "Referência",
-          detail: row.source_description ?? row.relation_type,
-        }));
-        const mappedEngines: TechnicalResult[] = (engines.data ?? []).map((row: any) => ({
-          id: row.id,
-          title: row.model,
-          code: row.engine_code,
-          model: row.family,
-          manufacturer: row.technical_manufacturers?.name ?? null,
-          category: null,
-          status: row.information_status,
-          kind: "Motor",
-          detail: null,
-        }));
-        const mappedManufacturers: TechnicalResult[] = (manufacturers.data ?? []).map((row: any) => ({
-          id: row.id,
-          title: row.name,
-          code: null,
-          model: null,
-          manufacturer: null,
-          category: null,
-          status: "documented",
-          kind: "Fabricante",
-          detail: null,
-        }));
-        const unique = new Map<string, TechnicalResult>();
-        [...mappedComponents, ...mappedReferences, ...mappedEngines, ...mappedManufacturers].forEach((item) => {
-          unique.set(`${item.kind}:${item.id}`, item);
-        });
-        if (active) setResults([...unique.values()]);
+        if (active) setResults(mapped);
       } catch (cause) {
         if (active) setError(cause instanceof Error ? cause.message : "Não foi possível consultar o catálogo técnico.");
       } finally {
@@ -130,7 +125,7 @@ function CentralTecnicaPage() {
 
     void runSearch();
     return () => { active = false; };
-  }, [normalizedSearch]);
+  }, [normalizedSearch, activeArea]);
 
   const groupedResults = useMemo(() => results, [results]);
 
@@ -143,7 +138,7 @@ function CentralTecnicaPage() {
         </div>
         <h1 className="text-3xl font-semibold tracking-tight">Central Técnica</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Consulte os cadastros existentes de bombas injetoras, bicos, motores, componentes e referências.
+          Consulte somente bombas injetoras, bicos injetores e sistemas Common Rail.
         </p>
       </header>
 
@@ -155,23 +150,23 @@ function CentralTecnicaPage() {
             id="technical-search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Digite código, fabricante, modelo ou componente"
+            placeholder="Digite código, modelo ou nome do componente"
             className="h-12 pl-10"
           />
         </div>
         <p className="text-xs text-muted-foreground">
-          Digite pelo menos 2 caracteres. A busca consulta diretamente os cadastros técnicos existentes.
+          Digite pelo menos 2 caracteres. A busca consulta somente a área selecionada no catálogo técnico.
         </p>
       </section>
 
       {normalizedSearch.length < 2 ? (
         <section className="space-y-3" aria-labelledby="technical-areas-title">
-          <h2 id="technical-areas-title" className="text-lg font-semibold">Áreas técnicas</h2>
+          <h2 id="technical-areas-title" className="text-lg font-semibold">Escolha uma área técnica</h2>
           <div className="grid gap-3 md:grid-cols-3">
             {areas.map((area) => {
               const Icon = area.icon;
               return (
-                <article key={area.id} className="flex min-h-36 flex-col gap-3 rounded-lg border border-border bg-card p-4">
+                <button type="button" key={area.id} onClick={() => { setSelectedArea(area.id); setSearch(""); }} aria-pressed={selectedArea === area.id} className={`flex min-h-36 flex-col gap-3 rounded-lg border bg-card p-4 text-left transition-colors hover:border-primary ${selectedArea === area.id ? "border-primary ring-1 ring-primary" : "border-border"}`}>
                   <div className="flex size-10 items-center justify-center rounded-md bg-primary/10 text-primary">
                     <Icon className="size-5" />
                   </div>
@@ -187,7 +182,7 @@ function CentralTecnicaPage() {
       ) : (
         <section className="space-y-3" aria-live="polite">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold">Resultados da busca</h2>
+            <h2 className="text-lg font-semibold">{activeArea.title}</h2>
             <span className="text-xs text-muted-foreground">{groupedResults.length} encontrados</span>
           </div>
           {loading ? <p className="text-sm text-muted-foreground">Consultando a base técnica...</p> : null}
@@ -228,7 +223,7 @@ function CentralTecnicaPage() {
 
       <p className="flex items-center gap-2 text-xs text-muted-foreground">
         <Wrench className="size-3.5" />
-        Registros pendentes de validação são identificados como tal e não devem ser tratados como informação confirmada.
+        A consulta fica limitada à área selecionada. Registros pendentes de validação não são apresentados como informação confirmada.
       </p>
     </div>
   );
