@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { CalendarDays, Car, Users, UserCog, ShieldCheck, ClipboardList, Download, ExternalLink, FileText, LogOut, Plus, ShieldAlert, Wallet, Receipt, ClipboardCheck, Menu } from "lucide-react";
+import { CalendarDays, Car, Users, UserCog, ShieldCheck, ClipboardList, Download, ExternalLink, FileText, LogOut, Plus, ShieldAlert, Wallet, Receipt, ClipboardCheck, Menu, BookOpen } from "lucide-react";
 
 import { Logo } from "@/components/site/logo";
 import { Button } from "@/components/ui/button";
@@ -37,13 +37,13 @@ export const Route = createFileRoute("/_authenticated/painel")({
       await supabase.auth.signOut({ scope: "local" });
       throw redirect({ to: "/auth" });
     }
-    return { isAdmin: roles.includes("admin"), isSecretary: roles.includes("secretaria") };
+    return { isAdmin: roles.includes("admin"), isSecretary: roles.includes("secretaria"), isMechanic: roles.includes("mecanico") };
   },
   component: PainelLayout,
 });
 
 function PainelLayout() {
-  const { isAdmin, isSecretary, user } = Route.useRouteContext();
+  const { isAdmin, isSecretary, isMechanic, user } = Route.useRouteContext();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -80,7 +80,7 @@ function PainelLayout() {
             </Button>
             <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex"><Link to="/"><ExternalLink /> Ver site</Link></Button>
             <Button variant="ghost" size="sm" onClick={signOut} aria-label="Sair"><LogOut /> <span className="hidden sm:inline">Sair</span></Button>
-            {(isAdmin || isSecretary) && (
+            {(isAdmin || isSecretary || isMechanic) && (
               <div className="md:hidden">
                 <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                   <SheetTrigger asChild>
@@ -92,6 +92,8 @@ function PainelLayout() {
                       <SheetDescription>Acesso rápido às áreas do painel.</SheetDescription>
                     </SheetHeader>
                     <nav className="mt-6 grid gap-1">
+                      {(isAdmin || isSecretary) && <>
+
                       <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Operação</p>
                       <SheetClose asChild><PanelLink to="/painel" icon={<ClipboardList />} label="Visão geral" exact /></SheetClose>
                       <SheetClose asChild><PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" /></SheetClose>
@@ -113,6 +115,9 @@ function PainelLayout() {
                           <Plus className="size-4" /> Nova ordem de serviço
                         </Link>
                       </SheetClose>
+                    
+                      </>}
+                      <SheetClose asChild><PanelLink to="/painel/central-tecnica" icon={<BookOpen />} label="Central Técnica" /></SheetClose>
                     </nav>
                   </SheetContent>
                 </Sheet>
@@ -122,6 +127,8 @@ function PainelLayout() {
         </div>
         {(isAdmin || isSecretary) && (
           <nav className="mx-auto hidden max-w-6xl items-center gap-1 overflow-x-auto px-4 pb-2 md:flex">
+            {(isAdmin || isSecretary) && <>
+
             <PanelLink to="/painel" icon={<ClipboardList />} label="Visão geral" exact />
             <PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" />
             {(isAdmin || isSecretary) && <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />}
@@ -136,11 +143,14 @@ function PainelLayout() {
             {(isAdmin || isSecretary) && <PanelLink to="/painel/cobrancas" icon={<Receipt />} label="Cobranças" /> }
             {isAdmin && <NotificationBell />}
             <Button asChild size="sm" className="ml-auto shrink-0"><Link to="/painel/ordens/nova" search={{}}><Plus /> Nova OS</Link></Button>
+          
+            </>}
+            <PanelLink to="/painel/central-tecnica" icon={<BookOpen />} label="Central Técnica" />
           </nav>
         )}
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6 md:py-8">
-        {(isAdmin || isSecretary) ? <Outlet /> : (
+        {(isAdmin || isSecretary || isMechanic) ? <Outlet /> : (
           <div className="mx-auto max-w-md rounded-md border border-border bg-card p-8 text-center">
             <ShieldAlert className="mx-auto size-10 text-warning" />
             <h1 className="mt-4 text-xl">Acesso aguardando liberação</h1>
@@ -153,7 +163,7 @@ function PainelLayout() {
 }
 
 function PanelLink({ to, icon, label, exact }: {
-  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias" | "/painel/financeiro" | "/painel/relatorios" | "/painel/recebimento" | "/painel/cobrancas" | "/painel/funcionarios" | "/equipe";
+  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias" | "/painel/financeiro" | "/painel/relatorios" | "/painel/recebimento" | "/painel/cobrancas" | "/painel/funcionarios" | "/painel/central-tecnica" | "/equipe";
   icon: React.ReactNode;
   label: string;
   exact?: boolean;
