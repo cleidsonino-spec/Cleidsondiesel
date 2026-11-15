@@ -295,14 +295,30 @@ function CentralTecnicaPage() {
                   <p className="text-xs text-muted-foreground">Documento vinculado a esta bomba. A figura é compartilhada com outras referências do catálogo; confirme sempre o código da bomba e a tabela de peças antes de usar na montagem.</p>
                 </div>
                 <a
-                  href="https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf#page=110"
+                  href="https://image.slidesharecdn.com/boschdieselbombasve20092010-160112114713/85/Bosch-diesel-bombas-VE-2009_2010-81-320.jpg"
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center rounded-md border px-3 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                  className="block overflow-hidden rounded-md border bg-white"
+                  aria-label="Abrir a figura explodida original em tamanho disponível"
                 >
-                  Abrir figura explodida na página 110 do catálogo
+                  <img
+                    src="https://image.slidesharecdn.com/boschdieselbombasve20092010-160112114713/85/Bosch-diesel-bombas-VE-2009_2010-81-320.jpg"
+                    alt="Figura explodida Bosch da página 110 do catálogo de bombas rotativas VE, incluindo a referência 0 460 426 436"
+                    className="mx-auto h-auto max-h-[760px] w-full object-contain"
+                    loading="lazy"
+                  />
                 </a>
-                <p className="text-xs text-muted-foreground">Fonte hospedada por terceiro; registro documental ainda pendente de validação. Os pontos clicáveis no desenho serão ativados somente após conferência individual das posições.</p>
+                <div className="flex flex-wrap gap-3">
+                  <a
+                    href="https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf#page=110"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center rounded-md border px-3 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                  >
+                    Abrir página 110 do catálogo completo
+                  </a>
+                </div>
+                <p className="text-xs text-muted-foreground">Imagem de consulta hospedada por terceiro e em resolução reduzida. A figura é compartilhada por várias referências; os códigos e quantidades devem ser conferidos na tabela específica da bomba. Os pontos clicáveis serão adicionados após validação das posições.</p>
               </div>
             </article>
           ) : null}
