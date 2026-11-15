@@ -84,6 +84,7 @@ function OrdemPage() {
     queryKey: ["vehicle-intake", intakeId],
     enabled: Boolean(intakeId),
     queryFn: async () => {
+      if (!intakeId) return null;
       const { data, error } = await supabase.from("vehicle_intake_records")
         .select("intake_type,arrived_on_tow_truck,delivered_items,plate,vehicle,customer_name")
         .eq("id", intakeId).single();

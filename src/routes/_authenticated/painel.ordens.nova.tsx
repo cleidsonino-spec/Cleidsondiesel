@@ -134,7 +134,7 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
         toast.error("Sua sessão expirou. Entre novamente para registrar o recebimento.");
         return;
       }
-      const receivedByName = String(auth.user?.user_metadata?.full_name ?? auth.user?.user_metadata?.name ?? auth.user?.email ?? "Administração").trim();
+      const receivedByName = String(auth.user?.user_metadata?.["full_name"] ?? auth.user?.user_metadata?.["name"] ?? auth.user?.email ?? "Administração").trim();
       const intakeVehicle = intakeType === "vehicle" ? vehicle.trim() : "Bomba/bicos injetores";
       const payload = {
         intake_type: intakeType,
@@ -242,7 +242,7 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
               const { data: auth } = await supabase.auth.getUser();
               const { data, error } = await supabase
                 .from("service_orders")
-                .insert({ ...input, plate: intake.intake_type === "vehicle" ? input.plate : null, vehicle_intake_id: intake.id, appointment_id: appointmentId ?? null, created_by: auth.user?.id ?? null })
+                .insert({ ...input, plate: intake.intake_type === "vehicle" ? input.plate ?? null : null, vehicle_intake_id: intake.id, appointment_id: appointmentId ?? null, created_by: auth.user?.id ?? null })
                 .select("id, number")
                 .single();
               if (error) {

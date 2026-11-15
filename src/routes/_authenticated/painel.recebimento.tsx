@@ -63,7 +63,7 @@ function VehicleIntakePage() {
     setSaving(true);
     try {
       const { data: auth } = await supabase.auth.getUser();
-      const receivedByName = String(auth.user?.user_metadata?.full_name ?? auth.user?.user_metadata?.name ?? auth.user?.email ?? "Administração").trim();
+      const receivedByName = String(auth.user?.user_metadata?.["full_name"] ?? auth.user?.user_metadata?.["name"] ?? auth.user?.email ?? "Administração").trim();
       const { error } = await (supabase as any).from("vehicle_intake_records").insert({
         intake_type: type,
         customer_name: customer.trim(),

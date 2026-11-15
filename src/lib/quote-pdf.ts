@@ -201,35 +201,9 @@ export function downloadQuote(file: File) {
   const a = document.createElement("a");
   a.href = url;
   a.download = file.name;
-  a.textContent = "⬇ Baixar orçamento em PDF";
-  a.setAttribute("role", "button");
-  a.setAttribute("aria-label", "Baixar orçamento em PDF");
-  a.style.position = "fixed";
-  a.style.left = "12px";
-  a.style.right = "12px";
-  a.style.bottom = "16px";
-  a.style.zIndex = "2147483647";
-  a.style.display = "block";
-  a.style.padding = "16px";
-  a.style.background = "#17212b";
-  a.style.color = "#ffffff";
-  a.style.border = "2px solid #ffffff";
-  a.style.borderRadius = "10px";
-  a.style.fontSize = "16px";
-  a.style.fontWeight = "600";
-  a.style.textAlign = "center";
-  a.style.textDecoration = "none";
-  a.style.boxShadow = "0 2px 12px rgba(0,0,0,.3)";
-  a.addEventListener("click", () => {
-    // Mantém o Blob disponível enquanto o navegador inicia o download.
-    window.setTimeout(() => {
-      a.remove();
-      URL.revokeObjectURL(url);
-    }, 60_000);
-  }, { once: true });
   document.body.appendChild(a);
-
-  // Não abre uma aba em branco nem simula um download. O usuário toca
-  // neste link real, visível e associado diretamente ao arquivo PDF.
-  return "link" as const;
+  a.click();
+  a.remove();
+  // Mantém o arquivo disponível durante a leitura assíncrona pelo navegador.
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
