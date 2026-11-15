@@ -99,7 +99,6 @@ function PainelLayout() {
                       <SheetClose asChild><PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" /></SheetClose>
                       <SheetClose asChild><PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" /></SheetClose>
                       <SheetClose asChild><PanelLink to="/painel/relatorios" icon={<ClipboardCheck />} label="Relatórios" />
-            <PanelLink to="/painel/central-tecnica" icon={<BookOpen />} label="Central Técnica" /></SheetClose>
                       <SheetClose asChild><PanelLink to="/painel/central-tecnica" icon={<BookOpen />} label="Central Técnica" /></SheetClose>
                       <SheetClose asChild><PanelLink to="/equipe" icon={<Users />} label="Desempenho" /></SheetClose>
                       <SheetClose asChild><PanelLink to="/painel/recebimento" icon={<ClipboardCheck />} label="Recebimento de veículos" /></SheetClose>
@@ -134,6 +133,7 @@ function PainelLayout() {
             <PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" />
             {(isAdmin || isSecretary) && <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />}
             {(isAdmin || isSecretary) && <PanelLink to="/painel/relatorios" icon={<ClipboardCheck />} label="Relatórios" />}
+            <PanelLink to="/painel/central-tecnica" icon={<BookOpen />} label="Central Técnica" />
             {(isAdmin || isSecretary) && <PanelLink to="/equipe" icon={<Users />} label="Desempenho" />}
             {(isAdmin || isSecretary) && <PanelLink to="/painel/recebimento" icon={<ClipboardCheck />} label="Recebimento" />}
             <PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" />
