@@ -457,8 +457,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPainelClientesRouteImport
       parentRoute: typeof AuthenticatedPainelRoute
     }
-      parentRoute: typeof AuthenticatedPainelRoute
-    }
     '/_authenticated/painel/cobrancas': {
       id: '/_authenticated/painel/cobrancas'
       path: '/cobrancas'
