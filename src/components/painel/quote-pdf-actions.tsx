@@ -60,11 +60,10 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
   async function shareWithCustomer() {
     if (!file) return;
     const shareData = { files: [file], title: `Orçamento OS ${order.number} — Cleidson Diesel`, text: `Olá, ${order.customer_name}! Segue o orçamento da sua ordem de serviço.` };
-    const canShareFiles = typeof navigator.canShare !== "function" || navigator.canShare({ files: [file] });
+    const canShareFiles = typeof navigator.canShare === "function" && navigator.canShare({ files: [file] });
     if (typeof navigator.share !== "function" || !canShareFiles) {
-      // Sem compartilhamento nativo de arquivos, encaminha para o fluxo do WhatsApp:
-      // baixa o PDF e abre a conversa do cliente para que o arquivo seja anexado.
-      sendQuote();
+      downloadQuote(file);
+      toast.info("PDF baixado. Abra a conversa do cliente e anexe o arquivo pelo clipe do WhatsApp.");
       return;
     }
     try {
@@ -72,7 +71,8 @@ export function QuotePdfActions({ order, message }: { order: Order; message?: st
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") return;
       console.error("Falha ao compartilhar PDF:", error);
-      sendQuote();
+      downloadQuote(file);
+      toast.error("Não foi possível compartilhar o PDF. O arquivo foi baixado; anexe-o manualmente no WhatsApp.");
     }
   }
 
