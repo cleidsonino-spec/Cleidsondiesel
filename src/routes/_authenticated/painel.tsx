@@ -92,7 +92,8 @@ function PainelLayout() {
                       <SheetDescription>Acesso rápido às áreas do painel.</SheetDescription>
                     </SheetHeader>
                     <nav className="mt-6 grid gap-1">
-                      {(isAdmin || isSecretary) && <>\n
+                      {(isAdmin || isSecretary) && <>
+
                       <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Operação</p>
                       <SheetClose asChild><PanelLink to="/painel" icon={<ClipboardList />} label="Visão geral" exact /></SheetClose>
                       <SheetClose asChild><PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" /></SheetClose>
@@ -114,7 +115,10 @@ function PainelLayout() {
                           <Plus className="size-4" /> Nova ordem de serviço
                         </Link>
                       </SheetClose>
-                    \n                      </>}\n                      <SheetClose asChild><PanelLink to="/painel/central-tecnica" icon={<BookOpen />} label="Central Técnica" /></SheetClose>\n                    </nav>
+                    
+                      </>}
+                      <SheetClose asChild><PanelLink to="/painel/central-tecnica" icon={<BookOpen />} label="Central Técnica" /></SheetClose>
+                    </nav>
                   </SheetContent>
                 </Sheet>
               </div>
@@ -123,7 +127,8 @@ function PainelLayout() {
         </div>
         {(isAdmin || isSecretary) && (
           <nav className="mx-auto hidden max-w-6xl items-center gap-1 overflow-x-auto px-4 pb-2 md:flex">
-            {(isAdmin || isSecretary) && <>\n
+            {(isAdmin || isSecretary) && <>
+
             <PanelLink to="/painel" icon={<ClipboardList />} label="Visão geral" exact />
             <PanelLink to="/painel/agendamentos" icon={<CalendarDays />} label="Agendamentos" />
             {(isAdmin || isSecretary) && <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />}
@@ -138,7 +143,10 @@ function PainelLayout() {
             {(isAdmin || isSecretary) && <PanelLink to="/painel/cobrancas" icon={<Receipt />} label="Cobranças" /> }
             {isAdmin && <NotificationBell />}
             <Button asChild size="sm" className="ml-auto shrink-0"><Link to="/painel/ordens/nova" search={{}}><Plus /> Nova OS</Link></Button>
-          \n            </>}\n            <PanelLink to="/painel/central-tecnica" icon={<BookOpen />} label="Central Técnica" />\n          </nav>
+          
+            </>}
+            <PanelLink to="/painel/central-tecnica" icon={<BookOpen />} label="Central Técnica" />
+          </nav>
         )}
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6 md:py-8">
