@@ -70,36 +70,12 @@ type TechnicalResult = {
   quantity: string | null;
 };
 
-const importantVEComponentTypes = [
-  "bomba_alimentadora",
-  "ve_bomba_alimentadora_palhetas",
-  "ve_cabecote_distribuidor",
-  "ve_embuolo_distribuidor",
-  "ve_placa_cames",
-  "ve_anel_roletes",
-  "ve_dispositivo_avanco",
-  "ve_valvula_recalque",
-  "ve_restritor_retorno",
-  "ve_valvula_reguladora_pressao",
-  "ve_valvula_eletromagnetica_corte",
-  "anel_vedacao",
-  "oring",
-  "retentor_eixo",
-  "arruela_vedacao",
-  "junta",
-  "tampa_vedacao",
-  "jogo_reparo",
-  "ve_jogo_reparo",
-  "ve_jogo_roletes",
-  "ve_rolete",
-  "ve_yoke_anel_roletes",
-  "ve_pino_guia_anel_roletes",
-];
+
 
 function catalogMetadata(notes: string | null) {
   return {
-    position: notes?.match(/Posição\s*:?\s*([^|\n]+)/i)?.[1]?.trim() ?? null,
-    quantity: notes?.match(/Quantidade\s*:?\s*([^|\n]+)/i)?.[1]?.trim() ?? null,
+    position: notes?.match(/Posição(?: no catálogo)?\s*:?\s*([^;|\n]+)/i)?.[1]?.trim() ?? null,
+    quantity: notes?.match(/Quantidade(?: indicada)?\s*:?\s*([^;|\n]+)/i)?.[1]?.trim() ?? null,
   };
 }
 
