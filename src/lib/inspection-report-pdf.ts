@@ -137,9 +137,9 @@ export function downloadInspectionReport(file: File) {
 
 
 type NativeFilesystem = {
-  writeFile(options: { path: string; data: string; directory: "CACHE" | "DOCUMENTS"; encoding?: "utf8" | "base64"; recursive?: boolean }): Promise<{ uri: string }>;
-  readFile(options: { path: string; directory: "CACHE" | "DOCUMENTS" }): Promise<{ data: string }>;
-  stat(options: { path: string; directory: "CACHE" | "DOCUMENTS" }): Promise<{ size: number; type: string }>;
+  writeFile(options: { path: string; data: string; directory: "CACHE" | "DATA"; encoding?: "utf8" | "base64"; recursive?: boolean }): Promise<{ uri: string }>;
+  readFile(options: { path: string; directory: "CACHE" | "DATA" }): Promise<{ data: string }>;
+  stat(options: { path: string; directory: "CACHE" | "DATA" }): Promise<{ size: number; type: string }>;
 };
 type NativeShare = {
   share(options: { title?: string; text?: string; files?: string[]; dialogTitle?: string }): Promise<void>;
@@ -163,18 +163,19 @@ export async function saveInspectionReport(file: File): Promise<void> {
       path: file.name,
       data: await fileToBase64(file),
       encoding: "base64",
-      directory: "DOCUMENTS",
+      directory: "DATA",
       recursive: true,
     });
+    await validateSavedPdf(file, "DATA");
     return;
   }
   downloadInspectionReport(file);
 }
 
-async function validateSavedPdf(file: File): Promise<void> {
+async function validateSavedPdf(file: File, directory: "CACHE" | "DATA"): Promise<void> {
   const [metadata, saved] = await Promise.all([
-    NativeFilesystem.stat({ path: file.name, directory: "CACHE" }),
-    NativeFilesystem.readFile({ path: file.name, directory: "CACHE" }),
+    NativeFilesystem.stat({ path: file.name, directory }),
+    NativeFilesystem.readFile({ path: file.name, directory }),
   ]);
 
   if (metadata.type !== "file" || metadata.size !== file.size) {
@@ -198,10 +199,10 @@ export async function shareInspectionReport(file: File, title: string, text: str
       path: file.name,
       data: await fileToBase64(file),
       encoding: "base64",
-      directory: "CACHE",
+      directory: "DATA",
       recursive: true,
     });
-    await validateSavedPdf(file);
+    await validateSavedPdf(file, "DATA");
     // Envie somente o anexo. Misturar EXTRA_TEXT e EXTRA_STREAM pode fazer
     // alguns destinos tratarem o compartilhamento como texto, não documento.
     await NativeShare.share({ title, files: [saved.uri], dialogTitle: "Compartilhar relatório técnico" });

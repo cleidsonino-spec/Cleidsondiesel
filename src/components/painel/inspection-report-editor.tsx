@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Capacitor } from "@capacitor/core";
-import { Download, FileText, Loader2, Save, Send, Share2, CheckCircle2, RotateCcw } from "lucide-react";
+import { FileText, Loader2, Save, Send, Share2, CheckCircle2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -166,7 +166,7 @@ export function InspectionReportEditor({ order, isAdmin, isSecretary }: Props) {
       stage = share ? "preparação do compartilhamento no Android" : "gravação do PDF no Android";
       setPdfFeedback(share
         ? "Etapa 3/3: preparando o compartilhamento..."
-        : "Etapa 3/3: salvando o PDF na pasta Documentos...");
+        : "Etapa 3/3: salvando o PDF no espaço privado do aplicativo...");
       if (share) {
         await shareInspectionReport(file, title, message);
         setPdfFeedback("Compartilhamento concluído. Selecione o aplicativo para enviar o PDF.");
@@ -272,7 +272,7 @@ export function InspectionReportEditor({ order, isAdmin, isSecretary }: Props) {
         <div className="space-y-3 border-t pt-4">
           <div className="flex flex-wrap gap-2">
             <Button type="button" onClick={() => emitPdf(false)} disabled={busy}>
-              {busy ? <Loader2 className="animate-spin" /> : <Download />} Gerar / baixar PDF
+              {busy ? <Loader2 className="animate-spin" /> : <Save />} Salvar no aplicativo
             </Button>
             <Button type="button" variant="outline" onClick={() => emitPdf(true)} disabled={busy}>
               <Share2 /> Compartilhar PDF
