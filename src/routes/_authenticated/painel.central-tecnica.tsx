@@ -154,7 +154,7 @@ function CentralTecnicaPage() {
       areaMatch;
   });
 
-  const totalResults = visibleEngines.length + visibleComponents.length + visibleDocuments.length + visibleReferences.length;
+  const totalResults = visibleEngines.length + visibleComponents.length + visibleDocuments.length + visibleReferences.length + visibleApplications.length;
   const stats = [
     { label: "Fabricantes", value: manufacturers.length, icon: Building2 },
     { label: "Motores", value: engines.length, icon: Gauge },
