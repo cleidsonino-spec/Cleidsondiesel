@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AlertCircle, BookOpen, Boxes, CheckCircle2, Fuel, Gauge, Search, Wrench } from "lucide-react";
 
@@ -90,6 +90,66 @@ function positionSortValue(position: string | null) {
   return match ? Number(match[0]) : Number.MAX_SAFE_INTEGER;
 }
 
+function PdfFigureViewer({ pageNumber, hotspots, results, onSelect }: { pageNumber: number; hotspots: any[]; results: TechnicalResult[]; onSelect: (id: string) => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [viewerError, setViewerError] = useState<string | null>(null);
+  const [viewerLoading, setViewerLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    let renderTask: { cancel: () => void } | null = null;
+    const renderPage = async () => {
+      setViewerLoading(true);
+      setViewerError(null);
+      try {
+        // PDF.js renderiza a página no mesmo elemento que recebe a camada SVG/HTML.
+        // Assim, não dependemos das margens e do zoom internos de um iframe.
+        const pdfJsUrl = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
+        const pdfjs = await import(/* @vite-ignore */ pdfJsUrl);
+        pdfjs.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
+        const loadingTask = pdfjs.getDocument("https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf");
+        const pdf = await loadingTask.promise;
+        if (cancelled) return;
+        const page = await pdf.getPage(pageNumber);
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const baseViewport = page.getViewport({ scale: 1 });
+        const availableWidth = canvas.parentElement?.clientWidth || baseViewport.width;
+        const scale = Math.min(2, Math.max(0.5, availableWidth / baseViewport.width));
+        const viewport = page.getViewport({ scale });
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("Não foi possível preparar a área de desenho.");
+        canvas.width = Math.ceil(viewport.width);
+        canvas.height = Math.ceil(viewport.height);
+        canvas.style.width = "100%";
+        canvas.style.height = "auto";
+        renderTask = page.render({ canvasContext: context, viewport });
+        await (renderTask as any).promise;
+        if (!cancelled) setViewerLoading(false);
+      } catch (error) {
+        if (!cancelled) {
+          setViewerError(error instanceof Error ? error.message : "Não foi possível renderizar a página do catálogo.");
+          setViewerLoading(false);
+        }
+      }
+    };
+    void renderPage();
+    return () => {
+      cancelled = true;
+      renderTask?.cancel();
+    };
+  }, [pageNumber]);
+
+  return (
+    <div className="relative w-full overflow-hidden bg-white">
+      <canvas ref={canvasRef} className="block h-auto w-full" aria-label={`Página ${pageNumber} do catálogo Bosch`} />
+      {viewerLoading ? <div className="absolute inset-0 flex items-center justify-center bg-white/90 p-4 text-sm text-muted-foreground">Carregando página do catálogo...</div> : null}
+      {viewerError ? <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white p-4 text-center text-sm text-destructive"><p>Não foi possível alinhar a camada porque a página não foi renderizada.</p><p className="text-xs">{viewerError}</p><a className="text-primary underline" href="https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf" target="_blank" rel="noreferrer">Abrir o PDF original</a></div> : null}
+
+    </div>
+  );
+}
+
 function CentralTecnicaPage() {
   const [search, setSearch] = useState("");
   const [selectedArea, setSelectedArea] = useState<(typeof areas)[number]["id"]>("bombas");
@@ -98,6 +158,8 @@ function CentralTecnicaPage() {
   const [results, setResults] = useState<TechnicalResult[]>([]);
   const [identifiedPump, setIdentifiedPump] = useState<{ id: string; name: string; code: string; model: string | null; description: string | null; status: string } | null>(null);
   const [selectedReferenceId, setSelectedReferenceId] = useState<string | null>(null);
+  const [figurePdfPage, setFigurePdfPage] = useState<number | null>(null);
+  const [figureHotspots, setFigureHotspots] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const normalizedSearch = search.trim();
@@ -115,6 +177,8 @@ function CentralTecnicaPage() {
       setResults([]);
       setIdentifiedPump(null);
       setSelectedReferenceId(null);
+      setFigureHotspots([]);
+      setFigurePdfPage(null);
       setError(null);
       if (normalizedPumpReferenceDigits.length !== 10) {
         setLoading(false);
@@ -128,9 +192,7 @@ function CentralTecnicaPage() {
           const { data: pumps, error: pumpError } = await (supabase as any)
             .from("technical_components")
             .select("id,name,component_code,model,description,information_status")
-            .eq("category_id", "d5f8206a-1002-43e8-bc62-f000fa256ee1")
-            .eq("component_type", "bomba_rotativa_ve_modelo")
-            .limit(500);
+            .limit(2000);
           if (pumpError) throw pumpError;
           const matchedPumps = (pumps ?? []).filter((pump: any) =>
             matchesPumpReference(pump.component_code, normalizedPumpReferenceDigits)
@@ -148,13 +210,27 @@ function CentralTecnicaPage() {
           if (active) setIdentifiedPump({ id: pump.id, name: pump.name, code: pump.component_code, model: pump.model, description: pump.description, status: pump.information_status });
           const { data: references, error: referencesError } = await (supabase as any)
             .from("technical_references")
-            .select("id,reference_code,relation_type,information_status,source_description,source_url,notes")
+            .select("id,reference_code,relation_type,information_status,source_description,source_url,notes,catalog_position,catalog_quantity")
             .eq("component_id", pump.id)
             .order("reference_code", { ascending: true });
           if (referencesError) throw referencesError;
 
+          const { data: hotspots, error: hotspotsError } = await (supabase as any)
+            .from("technical_figure_hotspots")
+            .select("id,document_id,reference_id,catalog_position,pdf_page_number,printed_page_number,x,y,width,height,shape,information_status,is_active")
+            .eq("component_id", pump.id)
+            .eq("is_active", true)
+            .order("catalog_position", { ascending: true });
+          if (hotspotsError) throw hotspotsError;
+          const activeHotspots = hotspots ?? [];
+          if (active) {
+            setFigureHotspots(activeHotspots);
+            const page = activeHotspots.find((item: any) => Number.isInteger(item.pdf_page_number))?.pdf_page_number;
+            setFigurePdfPage(typeof page === "number" ? page : null);
+          }
+
           const mapped: TechnicalResult[] = (references ?? []).map((reference: any) => {
-            const metadata = catalogMetadata(reference.notes);
+            const metadata = { position: reference.catalog_position ?? null, quantity: reference.catalog_quantity == null ? null : String(reference.catalog_quantity) };
             const designation = reference.notes?.match(/designação traduzida\s*:\s*([^.|\n]+)/i)?.[1]?.trim();
             return {
               id: reference.id,
@@ -314,24 +390,19 @@ function CentralTecnicaPage() {
                   <p className="text-xs text-muted-foreground">Documento vinculado a esta bomba. A figura é compartilhada com outras referências do catálogo; confirme sempre o código da bomba e a tabela de peças antes de usar na montagem.</p>
                 </div>
                 <div className="overflow-hidden rounded-md border bg-white">
-                  <iframe
-                    src="https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf#page=110&zoom=175"
-                    title="Figura explodida Bosch — página 110 do catálogo VE"
-                    className="h-[920px] w-full bg-white"
-                    loading="lazy"
-                  />
+                  <PdfFigureViewer pageNumber={figurePdfPage ?? 81} hotspots={figureHotspots} results={results} onSelect={setSelectedReferenceId} />
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <a
-                    href="https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf#page=110"
+                    href={`https://images.canaldapeca.com.br/catalogos/Bosch_catalogo_catalogo_bombas_ve_2009_2010.pdf#page=${figurePdfPage ?? 81}`}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center rounded-md border px-3 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
                   >
-                    Abrir página 110 do catálogo completo
+                    Abrir página da figura no catálogo completo
                   </a>
                 </div>
-                <p className="text-xs text-muted-foreground">Visualização da página original do catálogo Bosch. A figura é compartilhada por várias referências; os códigos e quantidades devem ser conferidos na tabela específica da bomba. Os pontos clicáveis serão adicionados após validação das posições.</p>
+                <p className="text-xs text-muted-foreground">Visualização da página física {figurePdfPage ?? "não identificada"} do catálogo Bosch. {figureHotspots.length} áreas cadastradas estão em espera; os pontos clicáveis permanecem desativados até a calibração visual.</p>
               </div>
             </article>
           ) : null}
