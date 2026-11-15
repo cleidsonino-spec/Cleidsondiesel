@@ -11,6 +11,7 @@ on:
     paths:
       - "capacitor.config.ts"
       - ".github/workflows/build-android-apk.yml"
+      - ".github/workflows/build-android-release.yml"
       - "package.json"
       - "src/lib/inspection-report-pdf.ts"
       - "src/components/painel/inspection-report-editor.tsx"
