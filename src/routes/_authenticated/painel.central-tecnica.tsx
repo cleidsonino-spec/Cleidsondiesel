@@ -117,6 +117,8 @@ function CentralTecnicaPage() {
       setResults([]);
       setIdentifiedPump(null);
       setSelectedReferenceId(null);
+      setFigureHotspots([]);
+      setFigurePdfPage(null);
       setError(null);
       if (normalizedPumpReferenceDigits.length !== 10) {
         setLoading(false);
@@ -345,7 +347,7 @@ function CentralTecnicaPage() {
                     Abrir página da figura no catálogo completo
                   </a>
                 </div>
-                <p className="text-xs text-muted-foreground">Visualização da página física {figurePdfPage ?? "não identificada"} do catálogo Bosch. A página impressa e a página física do PDF são tratadas separadamente. Os hotspots ainda passam por validação antes de serem usados como áreas definitivas de clique.</p>
+                <p className="text-xs text-muted-foreground">Visualização da página física {figurePdfPage ?? "não identificada"} do catálogo Bosch. {figureHotspots.length} áreas de referência carregadas para esta bomba; todas permanecem sujeitas à validação das coordenadas antes de habilitar o clique direto.</p>
               </div>
             </article>
           ) : null}
