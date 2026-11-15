@@ -194,14 +194,41 @@ export async function createQuotePdf(o: Order, preparedBy = "", options: QuotePd
 
 export function downloadQuote(file: File) {
   const url = URL.createObjectURL(file);
+
+  // Primeiro abre o PDF no visualizador do navegador. Em celulares,
+  // isso oferece uma forma visível de conferir e salvar o arquivo quando
+  // o download automático por link Blob não é suportado.
+  const viewer = window.open(url, "_blank");
+  if (viewer) {
+    window.setTimeout(() => URL.revokeObjectURL(url), 5 * 60_000);
+    return "viewer" as const;
+  }
+
+  // Se o navegador bloquear a nova aba, tenta o download por um link
+  // anexado ao documento (não usar display:none: alguns navegadores móveis
+  // ignoram cliques em links totalmente ocultos).
   const a = document.createElement("a");
   a.href = url;
   a.download = file.name;
-  a.style.display = "none";
+  a.textContent = "Baixar orçamento em PDF";
+  a.style.position = "fixed";
+  a.style.left = "12px";
+  a.style.bottom = "12px";
+  a.style.zIndex = "2147483647";
+  a.style.padding = "12px 16px";
+  a.style.background = "#17212b";
+  a.style.color = "#ffffff";
+  a.style.borderRadius = "8px";
+  a.style.fontSize = "14px";
+  a.style.textDecoration = "none";
   document.body.appendChild(a);
   a.click();
-  a.remove();
 
-  // Mantém a URL viva enquanto o navegador inicia o download.
-  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  // Mantém um link visível por tempo suficiente para o usuário tocar nele
+  // caso o clique programático seja bloqueado pelo navegador.
+  window.setTimeout(() => {
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, 5 * 60_000);
+  return "link" as const;
 }
