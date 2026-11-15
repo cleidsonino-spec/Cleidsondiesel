@@ -65,7 +65,16 @@ type TechnicalResult = {
   status: string;
   kind: "Componente";
   detail: string | null;
+  position: string | null;
+  quantity: string | null;
 };
+
+function catalogMetadata(notes: string | null) {
+  return {
+    position: notes?.match(/Posição\\s*:?\\s*([^|\\n]+)/i)?.[1]?.trim() ?? null,
+    quantity: notes?.match(/Quantidade\\s*:?\\s*([^|\\n]+)/i)?.[1]?.trim() ?? null,
+  };
+}
 
 function statusLabel(status: string) {
   if (status === "documented") return "Documentado";
@@ -120,6 +129,7 @@ function CentralTecnicaPage() {
             category: row.technical_categories?.name ?? null,
             status: row.information_status, kind: "Componente",
             detail: [row.description, row.technical_notes].filter(Boolean).join(" "),
+            ...catalogMetadata(row.technical_notes),
           })));
         } catch (cause) {
           if (active) setError(cause instanceof Error ? cause.message : "Não foi possível localizar as peças desta referência.");
@@ -159,6 +169,7 @@ function CentralTecnicaPage() {
           status: row.information_status,
           kind: "Componente",
           detail: [row.description, row.technical_notes].filter(Boolean).join(" "),
+          ...catalogMetadata(row.technical_notes),
         }));
         if (active) setResults(mapped);
       } catch (cause) {
@@ -235,6 +246,10 @@ function CentralTecnicaPage() {
                 <div className="flex items-center justify-between gap-2"><span className="text-xs text-muted-foreground">Peça</span><span className="text-xs text-muted-foreground">{statusLabel(item.status)}</span></div>
                 <h3 className="font-semibold">{item.title}</h3>
                 {item.code ? <p className="text-sm"><span className="text-muted-foreground">Código:</span> {item.code}</p> : null}
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  {item.position ? <span>Posição: {item.position}</span> : null}
+                  {item.quantity ? <span>Quantidade: {item.quantity}</span> : null}
+                </div>
                 {item.model ? <p className="text-xs text-muted-foreground">{item.model}</p> : null}
                 {item.detail ? <p className="text-xs text-muted-foreground">{item.detail}</p> : null}
               </article>
