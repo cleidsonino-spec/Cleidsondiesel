@@ -4,7 +4,7 @@ import { AlertCircle, BookOpen, Boxes, CheckCircle2, Fuel, Gauge, Search, Wrench
 
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { normalizePumpReference, matchesPumpReference } from "@/lib/technical-reference";
+import { normalizePumpReference, matchesPumpReference, matchesTechnicalSearch } from "@/lib/technical-reference";
 
 export const Route = createFileRoute("/_authenticated/painel/central-tecnica")({
   head: () => ({ meta: [
@@ -130,6 +130,8 @@ function CentralTecnicaPage() {
   const [figurePdfPage, setFigurePdfPage] = useState<number | null>(null);
   const [figureHotspots, setFigureHotspots] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [sheetId, setSheetId] = useState<string | null>(null);
+  const [sheet, setSheet] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const normalizedSearch = search.trim();
   const normalizedPumpReference = pumpReference.trim();
@@ -240,23 +242,30 @@ function CentralTecnicaPage() {
       setLoading(true);
       setError(null);
       try {
-        const { data, error: queryError } = await (supabase as any)
-          .from("technical_components")
-          .select("id,name,component_code,model,description,technical_notes,information_status,technical_manufacturers(name),technical_categories(name)")
-          .in("category_id", activeCategoryIds)
-          .or(`name.ilike.%${normalizedSearch}%,component_code.ilike.%${normalizedSearch}%,model.ilike.%${normalizedSearch}%`)
-          .limit(40);
-
-        if (queryError) throw queryError;
-        const mapped: TechnicalResult[] = (data ?? []).map((row: any) => ({
-          id: row.id,
-          title: row.name,
-          code: row.component_code,
-          model: row.model,
-          manufacturer: row.technical_manufacturers?.name ?? null,
-          category: row.technical_categories?.name ?? null,
-          status: row.information_status,
-          kind: "Componente",
+        const sb = supabase as any;
+        const pageAll = async (build: (from: number) => any) => {
+          const out: any[] = [];
+          for (let from = 0; ; from += 1000) {
+            const { data, error: e } = await build(from);
+            if (e) throw e;
+            out.push(...(data ?? []));
+            if (!data || data.length < 1000) return out;
+          }
+        };
+        const [comps, refs, apps] = await Promise.all([
+          pageAll((f) => sb.from("technical_components").select("id,name,component_code,model,description,technical_notes,information_status,component_type,technical_manufacturers(name),technical_categories(name)").in("category_id", activeCategoryIds).range(f, f + 999)),
+          pageAll((f) => sb.from("technical_references").select("component_id,reference_code,technical_manufacturers(name)").range(f, f + 999)),
+          pageAll((f) => sb.from("technical_applications").select("component_id,equipment_manufacturer,equipment_model,technical_engines(model,family,engine_code,technical_manufacturers(name))").range(f, f + 999)),
+        ]);
+        const extra = new Map<string, string[]>();
+        const push = (id: string, ...v: any[]) => { if (!id) return; const l = extra.get(id) ?? []; l.push(...v.filter(Boolean)); extra.set(id, l); };
+        refs.forEach((r: any) => push(r.component_id, r.reference_code, r.technical_manufacturers?.name));
+        apps.forEach((a: any) => push(a.component_id, a.equipment_manufacturer, a.equipment_model, a.technical_engines?.model, a.technical_engines?.family, a.technical_engines?.engine_code, a.technical_engines?.technical_manufacturers?.name));
+        const data = comps.filter((c: any) => matchesTechnicalSearch([c.name, c.component_code, c.model, c.description, c.component_type, c.technical_manufacturers?.name, c.technical_categories?.name, ...(extra.get(c.id) ?? [])], normalizedSearch)).slice(0, 60);
+        const mapped: TechnicalResult[] = data.map((row: any) => ({
+          id: row.id, title: row.name, code: row.component_code, model: row.model,
+          manufacturer: row.technical_manufacturers?.name ?? null, category: row.technical_categories?.name ?? null,
+          status: row.information_status, kind: "Componente",
           detail: [row.description, row.technical_notes].filter(Boolean).join(" "),
           ...catalogMetadata(row.technical_notes),
         }));
@@ -273,6 +282,54 @@ function CentralTecnicaPage() {
   }, [normalizedSearch, normalizedPumpReference, activeArea, pumpFamily, selectedArea]);
 
   const groupedResults = useMemo(() => results, [results]);
+
+  useEffect(() => {
+    if (!sheetId) { setSheet(null); return; }
+    let active = true;
+    const sb = supabase as any;
+    void (async () => {
+      const [c, r, a, d] = await Promise.all([
+        sb.from("technical_components").select("id,name,component_code,model,description,technical_notes,technical_manufacturers(name),technical_categories(name)").eq("id", sheetId).maybeSingle(),
+        sb.from("technical_references").select("id,reference_code,relation_type,catalog_position,catalog_quantity,source_description,source_url,technical_manufacturers(name)").eq("component_id", sheetId).limit(200),
+        sb.from("technical_applications").select("id,equipment_type,equipment_manufacturer,equipment_model,year_start,year_end,application_notes,source_url,technical_engines(id,model,family,technical_manufacturers(name))").eq("component_id", sheetId),
+        sb.from("technical_documents").select("id,title,source_name,source_url").eq("component_id", sheetId).eq("is_active", true),
+      ]);
+      const codes = (r.data ?? []).map((x: any) => x.reference_code).filter(Boolean).slice(0, 100);
+      const rel = codes.length ? await sb.from("technical_references").select("technical_components(id,name,component_code)").in("reference_code", codes).neq("component_id", sheetId).limit(200) : { data: [] };
+      const engineIds = (a.data ?? []).map((x: any) => x.technical_engines?.id).filter(Boolean);
+      const ed = engineIds.length ? await sb.from("technical_documents").select("id,title,source_name,source_url").in("engine_id", engineIds).eq("is_active", true).limit(50) : { data: [] };
+      const related = new Map<string, any>();
+      (rel.data ?? []).forEach((x: any) => x.technical_components && related.set(x.technical_components.id, x.technical_components));
+      const docs = new Map<string, any>();
+      [...(d.data ?? []), ...(ed.data ?? [])].forEach((x: any) => docs.set(x.id, x));
+      if (active) setSheet({ component: c.data, refs: r.data ?? [], apps: a.data ?? [], related: [...related.values()], docs: [...docs.values()] });
+    })();
+    return () => { active = false; };
+  }, [sheetId]);
+
+  const sheetView = sheetId ? (
+    <section className="space-y-4 rounded-lg border border-primary bg-card p-4" aria-label="Ficha técnica">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs text-muted-foreground">Ficha técnica</p>
+          <h2 className="text-lg font-semibold">{sheet?.component?.name ?? "Carregando..."}</h2>
+          {sheet?.component ? <p className="text-sm text-muted-foreground">{[sheet.component.component_code, sheet.component.model, sheet.component.technical_manufacturers?.name, sheet.component.technical_categories?.name].filter(Boolean).join(" · ")}</p> : null}
+        </div>
+        <button type="button" onClick={() => setSheetId(null)} className="rounded-md border px-3 py-1 text-sm">Fechar</button>
+      </div>
+      {sheet ? (<>
+        {sheet.component?.description ? <p className="text-sm">{sheet.component.description}</p> : null}
+        <div><h3 className="font-semibold">Referências ({sheet.refs.length})</h3>
+          {sheet.refs.length ? <ul className="mt-1 grid gap-1 text-sm sm:grid-cols-2">{sheet.refs.map((x: any) => <li key={x.id}><span className="font-medium">{x.reference_code}</span> {x.technical_manufacturers?.name ? `· ${x.technical_manufacturers.name}` : ""} {x.relation_type === "original" ? "· original" : ""}{x.catalog_position ? ` · pos. ${x.catalog_position}` : ""}</li>)}</ul> : <p className="text-sm text-muted-foreground">Nenhuma referência cadastrada.</p>}</div>
+        <div><h3 className="font-semibold">Componentes relacionados ({sheet.related.length})</h3>
+          {sheet.related.length ? <ul className="mt-1 flex flex-wrap gap-2 text-sm">{sheet.related.map((x: any) => <li key={x.id}><button type="button" className="rounded-md border px-2 py-1 hover:border-primary" onClick={() => setSheetId(x.id)}>{x.name}{x.component_code ? ` (${x.component_code})` : ""}</button></li>)}</ul> : <p className="text-sm text-muted-foreground">Nenhum componente relacionado.</p>}</div>
+        <div><h3 className="font-semibold">Aplicações ({sheet.apps.length})</h3>
+          {sheet.apps.length ? <ul className="mt-1 space-y-1 text-sm">{sheet.apps.map((x: any) => <li key={x.id}>{[x.technical_engines?.technical_manufacturers?.name, x.technical_engines?.model, x.equipment_manufacturer, x.equipment_model, x.year_start ? `${x.year_start}${x.year_end ? `–${x.year_end}` : ""}` : null].filter(Boolean).join(" · ")}{x.application_notes ? ` — ${x.application_notes}` : ""}</li>)}</ul> : <p className="text-sm text-muted-foreground">Nenhuma aplicação cadastrada.</p>}</div>
+        <div><h3 className="font-semibold">Fontes ({sheet.docs.length})</h3>
+          {sheet.docs.length ? <ul className="mt-1 space-y-1 text-sm">{sheet.docs.map((x: any) => <li key={x.id}><a className="text-primary underline" href={x.source_url} target="_blank" rel="noreferrer">{x.title}</a> · {x.source_name}</li>)}</ul> : <p className="text-sm text-muted-foreground">Nenhuma fonte cadastrada.</p>}</div>
+      </>) : null}
+    </section>
+  ) : null;
   const positionIndex = useMemo(
     () => [...results].filter((item) => item.position).sort((a, b) =>
       positionSortValue(a.position) - positionSortValue(b.position) ||
@@ -472,7 +529,7 @@ function CentralTecnicaPage() {
           ) : null}
           <div className="grid gap-3 md:grid-cols-2">
             {groupedResults.map((item) => (
-              <article key={`${item.kind}:${item.id}`} className="space-y-2 rounded-lg border border-border bg-card p-4">
+              <article key={`${item.kind}:${item.id}`} role="button" tabIndex={0} onClick={() => setSheetId(item.id)} onKeyDown={(e) => { if (e.key === "Enter") setSheetId(item.id); }} className="cursor-pointer space-y-2 rounded-lg border border-border bg-card p-4 hover:border-primary">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-xs font-medium text-muted-foreground">{item.kind}</span>
                   <span className={item.status === "documented" ? "inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-xs text-emerald-700 dark:text-emerald-300" : "inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-1 text-xs text-amber-700 dark:text-amber-300"}>
@@ -494,6 +551,7 @@ function CentralTecnicaPage() {
         </section>
       )}
 
+      {sheetView}
       <p className="flex items-center gap-2 text-xs text-muted-foreground">
         <Wrench className="size-3.5" />
         A consulta fica limitada à área selecionada. Registros pendentes de validação não são apresentados como informação confirmada.
