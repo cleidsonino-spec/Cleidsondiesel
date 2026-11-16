@@ -186,6 +186,38 @@ export type Database = {
           },
         ]
       }
+      service_order_completions: {
+        Row: {
+          completed_at: string
+          description: string
+          id: string
+          mechanic_user_id: string
+          service_order_id: string
+        }
+        Insert: {
+          completed_at?: string
+          description: string
+          id?: string
+          mechanic_user_id: string
+          service_order_id: string
+        }
+        Update: {
+          completed_at?: string
+          description?: string
+          id?: string
+          mechanic_user_id?: string
+          service_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_order_completions_service_order_id_fkey"
+            columns: ["service_order_id"]
+            isOneToOne: true
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_order_inspection_reports: {
         Row: {
           created_at: string
@@ -203,6 +235,7 @@ export type Database = {
           submitted_at: string | null
           submitted_by: string | null
           updated_at: string
+          version: number
         }
         Insert: {
           created_at?: string
@@ -220,6 +253,7 @@ export type Database = {
           submitted_at?: string | null
           submitted_by?: string | null
           updated_at?: string
+          version?: number
         }
         Update: {
           created_at?: string
@@ -237,12 +271,13 @@ export type Database = {
           submitted_at?: string | null
           submitted_by?: string | null
           updated_at?: string
+          version?: number
         }
         Relationships: [
           {
             foreignKeyName: "service_order_inspection_reports_service_order_id_fkey"
             columns: ["service_order_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "service_orders"
             referencedColumns: ["id"]
           },
@@ -473,6 +508,621 @@ export type Database = {
           used_at?: string | null
         }
         Relationships: []
+      }
+      technical_applications: {
+        Row: {
+          application_notes: string | null
+          component_id: string | null
+          created_at: string
+          created_by: string | null
+          engine_id: string | null
+          equipment_manufacturer: string | null
+          equipment_model: string | null
+          equipment_type: string | null
+          id: string
+          information_status: string
+          source_description: string | null
+          source_url: string | null
+          updated_at: string
+          year_end: number | null
+          year_start: number | null
+        }
+        Insert: {
+          application_notes?: string | null
+          component_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          engine_id?: string | null
+          equipment_manufacturer?: string | null
+          equipment_model?: string | null
+          equipment_type?: string | null
+          id?: string
+          information_status?: string
+          source_description?: string | null
+          source_url?: string | null
+          updated_at?: string
+          year_end?: number | null
+          year_start?: number | null
+        }
+        Update: {
+          application_notes?: string | null
+          component_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          engine_id?: string | null
+          equipment_manufacturer?: string | null
+          equipment_model?: string | null
+          equipment_type?: string | null
+          id?: string
+          information_status?: string
+          source_description?: string | null
+          source_url?: string | null
+          updated_at?: string
+          year_end?: number | null
+          year_start?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technical_applications_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "technical_components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technical_applications_engine_id_fkey"
+            columns: ["engine_id"]
+            isOneToOne: false
+            referencedRelation: "technical_engines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      technical_categories: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technical_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "technical_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      technical_components: {
+        Row: {
+          category_id: string | null
+          component_code: string | null
+          component_type: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          information_status: string
+          manufacturer_id: string | null
+          model: string | null
+          name: string
+          technical_notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          component_code?: string | null
+          component_type: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          information_status?: string
+          manufacturer_id?: string | null
+          model?: string | null
+          name: string
+          technical_notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          component_code?: string | null
+          component_type?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          information_status?: string
+          manufacturer_id?: string | null
+          model?: string | null
+          name?: string
+          technical_notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technical_components_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "technical_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technical_components_manufacturer_id_fkey"
+            columns: ["manufacturer_id"]
+            isOneToOne: false
+            referencedRelation: "technical_manufacturers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      technical_documents: {
+        Row: {
+          access_type: string
+          component_id: string | null
+          copyright_notes: string | null
+          created_at: string
+          created_by: string | null
+          document_type: string
+          engine_id: string | null
+          id: string
+          information_status: string
+          is_active: boolean
+          last_checked_at: string | null
+          manufacturer_id: string | null
+          notes: string | null
+          publication_date: string | null
+          source_name: string
+          source_url: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          access_type?: string
+          component_id?: string | null
+          copyright_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_type: string
+          engine_id?: string | null
+          id?: string
+          information_status?: string
+          is_active?: boolean
+          last_checked_at?: string | null
+          manufacturer_id?: string | null
+          notes?: string | null
+          publication_date?: string | null
+          source_name: string
+          source_url: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          access_type?: string
+          component_id?: string | null
+          copyright_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_type?: string
+          engine_id?: string | null
+          id?: string
+          information_status?: string
+          is_active?: boolean
+          last_checked_at?: string | null
+          manufacturer_id?: string | null
+          notes?: string | null
+          publication_date?: string | null
+          source_name?: string
+          source_url?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technical_documents_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "technical_components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technical_documents_engine_id_fkey"
+            columns: ["engine_id"]
+            isOneToOne: false
+            referencedRelation: "technical_engines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technical_documents_manufacturer_id_fkey"
+            columns: ["manufacturer_id"]
+            isOneToOne: false
+            referencedRelation: "technical_manufacturers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      technical_engines: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          cylinder_configuration: string | null
+          displacement: string | null
+          engine_code: string | null
+          family: string | null
+          fuel_system: string | null
+          id: string
+          information_status: string
+          manufacturer_id: string
+          model: string
+          serial_number_range: string | null
+          technical_notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          cylinder_configuration?: string | null
+          displacement?: string | null
+          engine_code?: string | null
+          family?: string | null
+          fuel_system?: string | null
+          id?: string
+          information_status?: string
+          manufacturer_id: string
+          model: string
+          serial_number_range?: string | null
+          technical_notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          cylinder_configuration?: string | null
+          displacement?: string | null
+          engine_code?: string | null
+          family?: string | null
+          fuel_system?: string | null
+          id?: string
+          information_status?: string
+          manufacturer_id?: string
+          model?: string
+          serial_number_range?: string | null
+          technical_notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technical_engines_manufacturer_id_fkey"
+            columns: ["manufacturer_id"]
+            isOneToOne: false
+            referencedRelation: "technical_manufacturers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      technical_fault_code_documents: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          document_id: string
+          fault_code_id: string
+          id: string
+          reference_notes: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          document_id: string
+          fault_code_id: string
+          id?: string
+          reference_notes?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          document_id?: string
+          fault_code_id?: string
+          id?: string
+          reference_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technical_fault_code_documents_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "technical_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technical_fault_code_documents_fault_code_id_fkey"
+            columns: ["fault_code_id"]
+            isOneToOne: false
+            referencedRelation: "technical_fault_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      technical_fault_codes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          diagnostic_procedure: string | null
+          document_id: string | null
+          engine_id: string
+          fault_code: string
+          fault_name: string | null
+          id: string
+          information_status: string
+          notes: string | null
+          possible_causes: string | null
+          repair_procedure: string | null
+          source_section: string | null
+          symptoms: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          diagnostic_procedure?: string | null
+          document_id?: string | null
+          engine_id: string
+          fault_code: string
+          fault_name?: string | null
+          id?: string
+          information_status?: string
+          notes?: string | null
+          possible_causes?: string | null
+          repair_procedure?: string | null
+          source_section?: string | null
+          symptoms?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          diagnostic_procedure?: string | null
+          document_id?: string | null
+          engine_id?: string
+          fault_code?: string
+          fault_name?: string | null
+          id?: string
+          information_status?: string
+          notes?: string | null
+          possible_causes?: string | null
+          repair_procedure?: string | null
+          source_section?: string | null
+          symptoms?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technical_fault_codes_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "technical_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technical_fault_codes_engine_id_fkey"
+            columns: ["engine_id"]
+            isOneToOne: false
+            referencedRelation: "technical_engines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      technical_figure_hotspots: {
+        Row: {
+          catalog_position: string
+          component_id: string
+          created_at: string
+          document_id: string
+          height: number
+          id: string
+          information_status: string
+          is_active: boolean
+          notes: string | null
+          pdf_page_number: number
+          printed_page_number: number | null
+          reference_id: string | null
+          shape: string
+          updated_at: string
+          width: number
+          x: number
+          y: number
+        }
+        Insert: {
+          catalog_position: string
+          component_id: string
+          created_at?: string
+          document_id: string
+          height: number
+          id?: string
+          information_status?: string
+          is_active?: boolean
+          notes?: string | null
+          pdf_page_number: number
+          printed_page_number?: number | null
+          reference_id?: string | null
+          shape?: string
+          updated_at?: string
+          width: number
+          x: number
+          y: number
+        }
+        Update: {
+          catalog_position?: string
+          component_id?: string
+          created_at?: string
+          document_id?: string
+          height?: number
+          id?: string
+          information_status?: string
+          is_active?: boolean
+          notes?: string | null
+          pdf_page_number?: number
+          printed_page_number?: number | null
+          reference_id?: string | null
+          shape?: string
+          updated_at?: string
+          width?: number
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technical_figure_hotspots_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "technical_components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technical_figure_hotspots_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "technical_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technical_figure_hotspots_reference_id_fkey"
+            columns: ["reference_id"]
+            isOneToOne: false
+            referencedRelation: "technical_references"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      technical_manufacturers: {
+        Row: {
+          country: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          manufacturer_type: string
+          name: string
+          notes: string | null
+          official_website: string | null
+          updated_at: string
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          manufacturer_type?: string
+          name: string
+          notes?: string | null
+          official_website?: string | null
+          updated_at?: string
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          manufacturer_type?: string
+          name?: string
+          notes?: string | null
+          official_website?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      technical_references: {
+        Row: {
+          catalog_position: string | null
+          catalog_quantity: number | null
+          component_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          information_status: string
+          notes: string | null
+          reference_code: string
+          reference_manufacturer_id: string | null
+          relation_type: string
+          source_description: string | null
+          source_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          catalog_position?: string | null
+          catalog_quantity?: number | null
+          component_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          information_status?: string
+          notes?: string | null
+          reference_code: string
+          reference_manufacturer_id?: string | null
+          relation_type?: string
+          source_description?: string | null
+          source_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          catalog_position?: string | null
+          catalog_quantity?: number | null
+          component_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          information_status?: string
+          notes?: string | null
+          reference_code?: string
+          reference_manufacturer_id?: string | null
+          relation_type?: string
+          source_description?: string | null
+          source_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technical_references_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "technical_components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technical_references_reference_manufacturer_id_fkey"
+            columns: ["reference_manufacturer_id"]
+            isOneToOne: false
+            referencedRelation: "technical_manufacturers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       technical_service_logs: {
         Row: {
@@ -1059,6 +1709,10 @@ export type Database = {
             }
             Returns: undefined
           }
+      mechanic_complete_service: {
+        Args: { _description: string; _order_id: string }
+        Returns: string
+      }
       mechanic_start_diagnosis: {
         Args: { _order_id: string }
         Returns: undefined
@@ -1111,6 +1765,26 @@ export type Database = {
       staff_assign_service_order: {
         Args: { _mechanic_user_id: string; _service_order_id: string }
         Returns: string
+      }
+      staff_mechanic_labor_summary: {
+        Args: { _from_date?: string; _to_date?: string }
+        Returns: {
+          completed_orders: number
+          labor_average: number
+          labor_total: number
+          mechanic_name: string
+          mechanic_user_id: string
+        }[]
+      }
+      staff_mechanic_performance: {
+        Args: { _end_date: string; _start_date: string }
+        Returns: {
+          completed_orders: number
+          labor_average: number
+          labor_total: number
+          mechanic_name: string
+          mechanic_user_id: string
+        }[]
       }
       staff_mechanic_service_counts: {
         Args: never
