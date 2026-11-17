@@ -64,6 +64,7 @@ function FromAppointment({ id }: { id: string }) {
 }
 
 function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormValues> | undefined; appointmentId?: string | undefined }) {
+  const { user, isAdmin } = Route.useRouteContext();
   const { cliente } = Route.useSearch();
   const { data: customers } = useSuspenseQuery(customersQuery());
   const selectedCustomer = customers.find((c) => c.id === cliente);
@@ -234,6 +235,8 @@ function NovaOSForm({ prefill, appointmentId }: { prefill?: Partial<OrderFormVal
           </section>
           <OrderForm
             key={intake.id}
+            technicalUserId={user.id}
+            isAdmin={isAdmin}
             initial={initial}
             plateRequired={intake.intake_type === "vehicle"}
             intakeLocked
