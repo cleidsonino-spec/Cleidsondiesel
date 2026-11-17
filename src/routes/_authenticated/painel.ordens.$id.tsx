@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { formatPlate } from "@/lib/plate";
-import { readPartItems } from "@/lib/parts";
+import { readPartItems, readPartMetadata } from "@/lib/parts";
 import { readInspectionData } from "@/lib/inspection";
 import { orderQuery } from "@/lib/queries";
 import { formatDateBR } from "@/lib/schedule";
@@ -64,7 +64,7 @@ function toForm(o: Order): OrderFormValues {
     parts: o.parts ?? "",
     part_items: o.part_items == null
       ? (Number(o.parts_value) ? [{ description: o.parts || "Peças (valor anterior)", quantity: "1", unit_value: money(o.parts_value) }] : [{ description: "", quantity: "1", unit_value: "" }])
-      : readPartItems(o.part_items).map((item) => ({ description: item.description, quantity: String(item.quantity), unit_value: money(item.unit_value) })),
+      : readPartItems(o.part_items).map((item) => ({ ...readPartMetadata(item), description: item.description, quantity: String(item.quantity), unit_value: money(item.unit_value) })),
     labor_value: money(o.labor_value),
     discount_percent: String(Number(o.discount_percent ?? 0)),
     status: o.status,
@@ -76,7 +76,7 @@ function toForm(o: Order): OrderFormValues {
 }
 
 function OrdemPage() {
-  const { isAdmin, isSecretary } = Route.useRouteContext();
+  const { isAdmin, isSecretary, user } = Route.useRouteContext();
   const { id } = Route.useParams();
   const { data: order } = useSuspenseQuery(orderQuery(id));
   const intakeId = order?.vehicle_intake_id;
@@ -184,6 +184,8 @@ function OrdemPage() {
         <OrderForm
           key={order.updated_at}
           initial={toForm(order)}
+          technicalUserId={user.id}
+          isAdmin={isAdmin}
           plateRequired={Boolean(order.plate)}
           submitLabel="Salvar alterações"
           onSubmit={async (input) => {
