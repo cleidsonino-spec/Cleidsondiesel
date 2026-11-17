@@ -43,8 +43,11 @@ export function TechnicalCatalogBrowser({userId,isAdmin=false,onAdd}: {userId:st
   const matches = pumpRecords.filter(c=>search.trim() && matchesTechnicalSearch([c.name,c.model,c.component_code,c.description,c.component_type,c.technical_manufacturers?.name,c.technical_categories?.name,...(extras.get(c.id)??[])],search));
   const component = data.components.find(c=>c.id===componentId);
   const refs = data.references.filter(r=>r.component_id===componentId);
-  const filteredRefs = refs.filter(r=>!partSearch.trim() || [referenceDescription(r),r.catalog_position,r.reference_code,r.technical_manufacturers?.name].filter(Boolean).join(' ').toLocaleLowerCase('pt-BR').includes(partSearch.trim().toLocaleLowerCase('pt-BR')));
   const rawHotspots = data.hotspots.filter(h=>h.component_id===componentId);
+  const filteredRefs = refs.filter(r=>!partSearch.trim() || matchesTechnicalSearch([
+    referenceDescription(r), r.catalog_position, r.reference_code, r.technical_manufacturers?.name,
+    ...rawHotspots.filter(h=>h.reference_id===r.id).map(h=>h.catalog_position),
+  ],partSearch));
   const apps = data.applications.filter(a=>a.component_id===componentId);
   const docs = data.documents.filter(d=>d.component_id===componentId || rawHotspots.some(h=>h.document_id===d.id) || apps.some(a=>a.engine_id===d.engine_id&&Boolean(a.engine_id)));
   const figureDocs = docs.filter(d=>d.component_id===componentId&&d.is_active);
