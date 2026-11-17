@@ -66,18 +66,8 @@ export async function saveMaterialList(listId: string) {
 }
 
 export async function finalizeMaterialList(listId: string) {
-  const db = supabase as any;
-  const { count, error: countError } = await db
-    .from("material_list_items")
-    .select("id", { count: "exact", head: true })
-    .eq("list_id", listId);
-  if (countError) throw countError;
-  if (!count) throw new Error("Adicione pelo menos uma peça antes de finalizar.");
-
-  const { error } = await db
-    .from("material_lists")
-    .update({ status: "finalized", finalized_at: new Date().toISOString() })
-    .eq("id", listId)
-    .eq("status", "draft");
+  const { error } = await (supabase as any).rpc("finalize_material_list", {
+    _list_id: listId,
+  });
   if (error) throw error;
 }
