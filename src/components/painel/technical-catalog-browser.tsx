@@ -31,7 +31,13 @@ export function TechnicalCatalogBrowser({userId,isAdmin=false,onAdd}: {userId:st
     return map;
   },[data]);
   // A consulta começa exclusivamente por bombas completas; componentes avulsos nunca aparecem na busca inicial.
-  const isCompletePump = (type: string) => /bomba|injection_pump|denso_hp3/i.test(type);
+  const completePumpTypes = new Set([
+    "bomba_rotativa_ve", "bomba_injetora_np_ve", "bomba_rotativa_delphi_dp210",
+    "bomba_injetora_ve", "injection_pump", "bomba_em_linha_p7100",
+    "bomba_injetora_np_vrz", "bomba_rotativa_ve_modelo",
+    "bomba_injetora_completa_hyundai", "denso_hp3",
+  ]);
+  const isCompletePump = (type: string) => completePumpTypes.has(type);
   const pumpRecords = data.components.filter(c => isCompletePump(c.component_type));
   const matches = pumpRecords.filter(c=>search.trim() && matchesTechnicalSearch([c.name,c.model,c.component_code,c.description,c.component_type,c.technical_manufacturers?.name,c.technical_categories?.name,...(extras.get(c.id)??[])],search));
   const component = data.components.find(c=>c.id===componentId);
