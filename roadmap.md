@@ -1,5 +1,7 @@
 # Roadmap — Cleidson Diesel
 
+- [ ] Central Técnica: pesquisa geral, figuras por documento, validação individual e metadados de peças na OS
+
 - [ ] Cadastro de clientes e veículos integrado às ordens de serviço
 - [ ] Emissão, consulta e impressão de garantias com prazo definido pela oficina
 

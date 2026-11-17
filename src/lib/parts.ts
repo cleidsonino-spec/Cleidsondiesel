@@ -1,14 +1,39 @@
-export type PartItem = {
+export type PartMetadata = {
+  code?: string;
+  manufacturer?: string;
+  technical_reference_id?: string;
+  technical_component_id?: string;
+  catalog_position?: string;
+  technical_document_id?: string;
+  source_url?: string;
+};
+export type PartItem = PartMetadata & {
   description: string;
   quantity: number;
   unit_value: number;
   value: number;
 };
-export type PartDraft = {
+export type PartDraft = PartMetadata & {
   description: string;
   quantity: string;
   unit_value: string;
 };
+
+export function readPartMetadata(item: Record<string, unknown>): PartMetadata {
+  const out: PartMetadata = {};
+  for (const key of ["code", "manufacturer", "catalog_position", "source_url", "technical_reference_id", "technical_component_id", "technical_document_id"] as const) {
+    const value = item[key];
+    if (typeof value !== "string" || !value.trim()) continue;
+    if (key.endsWith("_id") && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) continue;
+    if (key === "source_url" && !/^https:\/\//i.test(value)) continue;
+    out[key] = value.trim();
+  }
+  return out;
+}
+
+export function partCaption(item: PartMetadata): string {
+  return [item.code, item.manufacturer, item.catalog_position ? `Pos. ${item.catalog_position}` : null].filter(Boolean).join(" · ");
+}
 
 /** Aceita reais com vírgula ou ponto decimal. */
 export function parseMoney(s: string): number {
@@ -46,7 +71,7 @@ export function readPartItems(value: unknown): PartItem[] {
     const value = typeof item['value'] === "number" && Number.isFinite(item['value']) && item['quantity'] == null
       ? item['value']
       : lineTotal(quantity, unitValue);
-    return [{ description: item['description'], quantity, unit_value: unitValue, value }];
+    return [{ ...readPartMetadata(item), description: item['description'], quantity, unit_value: unitValue, value }];
   });
 }
 
@@ -56,6 +81,6 @@ export function draftPartItems(items: PartDraft[]): PartItem[] {
     .map((item) => {
       const quantity = parseQuantity(item.quantity);
       const unit_value = parseMoney(item.unit_value);
-      return { description: item.description.trim(), quantity, unit_value, value: lineTotal(quantity, unit_value) };
+      return { ...readPartMetadata(item), description: item.description.trim(), quantity, unit_value, value: lineTotal(quantity, unit_value) };
     });
 }
