@@ -25,11 +25,14 @@ CREATE TABLE public.material_list_items (
   notes text,
   created_by uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT DEFAULT auth.uid(),
   created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT material_list_items_list_reference_unique UNIQUE (list_id, technical_reference_id)
 );
 
 CREATE INDEX material_lists_status_created_idx ON public.material_lists(status, created_at DESC);
 CREATE INDEX material_list_items_list_idx ON public.material_list_items(list_id);
+
+-- A mesma referência pode ser necessária para bombas diferentes: manter linhas separadas.
+CREATE UNIQUE INDEX material_list_items_list_reference_pump_unique
+  ON public.material_list_items (list_id, technical_reference_id, (COALESCE(pump_code, '')));
 
 CREATE TRIGGER material_lists_updated_at
   BEFORE UPDATE ON public.material_lists
@@ -149,6 +152,9 @@ BEGIN
   IF auth.uid() IS NULL OR NOT public.material_list_staff_access() THEN
     RAISE EXCEPTION 'Acesso não autorizado à lista de materiais';
   END IF;
+  IF _technical_reference_id IS NULL THEN
+    RAISE EXCEPTION 'A peça precisa estar vinculada a uma referência técnica';
+  END IF;
   IF _quantity IS NULL OR _quantity < 1 OR _quantity > 100000 THEN
     RAISE EXCEPTION 'Quantidade inválida';
   END IF;
@@ -181,7 +187,7 @@ BEGIN
     trim(_reference_code), trim(_description), _manufacturer, _pump_code,
     _catalog_position, _quantity, auth.uid()
   )
-  ON CONFLICT (list_id, technical_reference_id)
+  ON CONFLICT (list_id, technical_reference_id, (COALESCE(pump_code, '')))
   DO UPDATE SET quantity_needed =
     public.material_list_items.quantity_needed + EXCLUDED.quantity_needed;
 
