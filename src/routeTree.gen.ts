@@ -209,7 +209,6 @@ export interface FileRoutesByFullPath {
   '/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/painel/central-tecnica': typeof AuthenticatedPainelCentralTecnicaRoute
   '/painel/materiais': typeof AuthenticatedPainelMateriaisRoute
-  '/painel/materiais': typeof AuthenticatedPainelMateriaisRoute
   '/painel/clientes': typeof AuthenticatedPainelClientesRoute
   '/painel/cobrancas': typeof AuthenticatedPainelCobrancasRoute
   '/painel/financeiro': typeof AuthenticatedPainelFinanceiroRoute
@@ -237,6 +236,7 @@ export interface FileRoutesByTo {
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/painel/central-tecnica': typeof AuthenticatedPainelCentralTecnicaRoute
+  '/painel/materiais': typeof AuthenticatedPainelMateriaisRoute
   '/painel/clientes': typeof AuthenticatedPainelClientesRoute
   '/painel/cobrancas': typeof AuthenticatedPainelCobrancasRoute
   '/painel/financeiro': typeof AuthenticatedPainelFinanceiroRoute
@@ -326,6 +326,7 @@ export interface FileRouteTypes {
     | '/orcamento/$token'
     | '/painel/agendamentos'
     | '/painel/central-tecnica'
+    | '/painel/materiais'
     | '/painel/clientes'
     | '/painel/cobrancas'
     | '/painel/financeiro'
