@@ -47,4 +47,5 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION public.finalize_material_list(uuid) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.finalize_material_list(uuid) FROM anon;
 GRANT EXECUTE ON FUNCTION public.finalize_material_list(uuid) TO authenticated;
