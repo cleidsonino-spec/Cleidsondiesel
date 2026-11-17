@@ -16,7 +16,6 @@ export function TechnicalCatalogBrowser({userId,isAdmin=false,onAdd}: {userId:st
   const {data} = useSuspenseQuery(query);
   const qc = useQueryClient();
   const [search,setSearch] = useState('');
-  const [family,setFamily] = useState('');
   const [componentId,setComponentId] = useState('');
   const [referenceId,setReferenceId] = useState('');
   const [hotspotId,setHotspotId] = useState<string|null>(null);
@@ -24,7 +23,6 @@ export function TechnicalCatalogBrowser({userId,isAdmin=false,onAdd}: {userId:st
   const [page,setPage] = useState(1);
   const [pageCount,setPageCount] = useState<number|null>(null);
   const [review,setReview] = useState(false);
-  const [limit,setLimit] = useState(60);
   const extras = useMemo(()=>{
     const map = new Map<string,string[]>();
     const add = (id:string|null, values:(string|null|undefined)[]) => {if(id) map.set(id,[...(map.get(id)??[]),...values.filter((v):v is string=>Boolean(v))]);};
@@ -32,8 +30,10 @@ export function TechnicalCatalogBrowser({userId,isAdmin=false,onAdd}: {userId:st
     data.applications.forEach(a=>add(a.component_id,[a.equipment_model,a.equipment_manufacturer,a.technical_engines?.model,a.technical_engines?.family,a.technical_engines?.engine_code]));
     return map;
   },[data]);
-  const families = [...new Set(data.components.map(c=>c.component_type))].sort();
-  const matches = data.components.filter(c=>(!family||c.component_type===family)&&(!search.trim()||matchesTechnicalSearch([c.name,c.model,c.component_code,c.description,c.component_type,c.technical_manufacturers?.name,c.technical_categories?.name,...(extras.get(c.id)??[])],search)));
+  // A consulta começa exclusivamente por bombas completas; componentes avulsos nunca aparecem na busca inicial.
+  const isCompletePump = (type: string) => /bomba|injection_pump|denso_hp3/i.test(type);
+  const pumpRecords = data.components.filter(c => isCompletePump(c.component_type));
+  const matches = pumpRecords.filter(c=>search.trim() && matchesTechnicalSearch([c.name,c.model,c.component_code,c.description,c.component_type,c.technical_manufacturers?.name,c.technical_categories?.name,...(extras.get(c.id)??[])],search));
   const component = data.components.find(c=>c.id===componentId);
   const refs = data.references.filter(r=>r.component_id===componentId);
   const rawHotspots = data.hotspots.filter(h=>h.component_id===componentId);
@@ -64,9 +64,9 @@ export function TechnicalCatalogBrowser({userId,isAdmin=false,onAdd}: {userId:st
   }
   return <div className="space-y-5">
     <header className="flex items-center gap-2"><BookOpen/><h1 className="text-2xl">Central Técnica</h1></header>
-    <div className="grid gap-3 sm:grid-cols-[1fr_230px]">
-      <Input aria-label="Busca técnica" placeholder="Código, referência, modelo, fabricante ou família" value={search} onChange={e=>{setSearch(e.target.value);setLimit(60);}}/>
-      <select aria-label="Família ou tipo" className="min-w-0 rounded-md border bg-background p-2" value={family} onChange={e=>{setFamily(e.target.value);setLimit(60);}}><option value="">Todas as famílias e componentes</option>{families.map(f=><option key={f} value={f}>{f.replaceAll('_',' ')}</option>)}</select>
+    <div className="space-y-2">
+      <Input aria-label="Número ou código da bomba" placeholder="Digite o número ou código da bomba (ex.: Bosch 9 460 613 532)" value={search} onChange={e=>setSearch(e.target.value)}/>
+      <p className="text-xs text-muted-foreground">Digite o código ou modelo da bomba. As peças só aparecem depois que você abrir uma bomba encontrada.</p>
     </div>
     {component ? <section className="space-y-4" aria-label="Ficha técnica">
       <div className="flex items-start justify-between gap-2"><div><h2 className="text-xl">{component.name}</h2><p className="text-sm text-muted-foreground">{[component.component_code,component.model,component.technical_manufacturers?.name,component.component_type.replaceAll('_',' ')].filter(Boolean).join(' · ')}</p></div><Button variant="ghost" size="icon" title="Fechar ficha" aria-label="Fechar ficha" onClick={()=>setComponentId('')}><X/></Button></div>
@@ -89,10 +89,11 @@ export function TechnicalCatalogBrowser({userId,isAdmin=false,onAdd}: {userId:st
       <h3>Fontes ({docs.length})</h3>{docs.map(d=><div key={d.id} className="text-sm">{safeSource(d.source_url)?<a className="text-primary underline" href={safeSource(d.source_url)} target="_blank" rel="noreferrer">{d.title}</a>:d.title} · {d.source_name} · {d.access_type} · {d.information_status}{d.copyright_notes&&<p className="text-xs text-muted-foreground">{d.copyright_notes}</p>}</div>)}
       {isAdmin&&review&&<TechnicalHotspotEditor key={componentId} componentId={componentId} references={refs} documents={docs} hotspots={rawHotspots} onSaved={()=>{void qc.invalidateQueries({queryKey:query.queryKey});}}/>}
     </section> : <>
-      <p className="text-sm text-muted-foreground">{matches.length} registros</p>
-      {!matches.length&&<p role="status">Nenhum registro encontrado.</p>}
-      <div className="grid gap-3 md:grid-cols-2">{matches.slice(0,limit).map(c=><Button key={c.id} variant="outline" onClick={()=>open(c.id)} className="h-auto min-h-28 flex-col items-start whitespace-normal text-left p-4"><strong>{c.name}</strong><span className="text-sm text-muted-foreground">{[c.component_code,c.model,c.technical_manufacturers?.name,c.component_type.replaceAll('_',' ')].filter(Boolean).join(' · ')}</span><span className="text-xs text-warning">{coverageLabel(data.references.filter(r=>r.component_id===c.id),data.documents.filter(d=>d.component_id===c.id),data.hotspots.filter(h=>h.component_id===c.id))}</span></Button>)}</div>
-      {matches.length>limit&&<Button variant="outline" onClick={()=>setLimit(p=>p+60)}>Carregar mais</Button>}
+      {!search.trim() ? <p className="text-sm text-muted-foreground">Aguardando o número ou código da bomba.</p> : <>
+        <p className="text-sm text-muted-foreground">{matches.length} bombas encontradas</p>
+        {!matches.length&&<p role="status">Nenhuma bomba encontrada para esse número ou código.</p>}
+        <div className="grid gap-3 md:grid-cols-2">{matches.map(c=><Button key={c.id} variant="outline" onClick={()=>open(c.id)} className="h-auto min-h-28 flex-col items-start whitespace-normal text-left p-4"><strong>{c.name}</strong><span className="text-sm text-muted-foreground">{[c.component_code,c.model,c.technical_manufacturers?.name,c.component_type.replaceAll('_',' ')].filter(Boolean).join(' · ')}</span><span className="text-xs text-warning">{coverageLabel(data.references.filter(r=>r.component_id===c.id),data.documents.filter(d=>d.component_id===c.id),data.hotspots.filter(h=>h.component_id===c.id))}</span></Button>)}</div>
+      </>}
     </>}
   </div>;
 }
