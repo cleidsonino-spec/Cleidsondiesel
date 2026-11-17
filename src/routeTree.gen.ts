@@ -23,6 +23,7 @@ import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
 import { Route as AuthenticatedPainelIndexRouteImport } from './routes/_authenticated/painel.index'
 import { Route as AuthenticatedPainelAgendamentosRouteImport } from './routes/_authenticated/painel.agendamentos'
 import { Route as AuthenticatedPainelCentralTecnicaRouteImport } from './routes/_authenticated/painel.central-tecnica'
+import { Route as AuthenticatedPainelMateriaisRouteImport } from './routes/_authenticated/painel.materiais'
 import { Route as AuthenticatedPainelClientesRouteImport } from './routes/_authenticated/painel.clientes'
 import { Route as AuthenticatedPainelCobrancasRouteImport } from './routes/_authenticated/painel.cobrancas'
 import { Route as AuthenticatedPainelFinanceiroRouteImport } from './routes/_authenticated/painel.financeiro'
@@ -108,6 +109,11 @@ const AuthenticatedPainelCentralTecnicaRoute =
   AuthenticatedPainelCentralTecnicaRouteImport.update({
     id: '/central-tecnica',
     path: '/central-tecnica',
+    getParentRoute: () => AuthenticatedPainelRoute,
+  } as any)
+const AuthenticatedPainelMateriaisRoute = AuthenticatedPainelMateriaisRouteImport.update({
+    id: '/materiais',
+    path: '/materiais',
     getParentRoute: () => AuthenticatedPainelRoute,
   } as any)
 const AuthenticatedPainelClientesRoute =
@@ -202,6 +208,8 @@ export interface FileRoutesByFullPath {
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/painel/central-tecnica': typeof AuthenticatedPainelCentralTecnicaRoute
+  '/painel/materiais': typeof AuthenticatedPainelMateriaisRoute
+  '/painel/materiais': typeof AuthenticatedPainelMateriaisRoute
   '/painel/clientes': typeof AuthenticatedPainelClientesRoute
   '/painel/cobrancas': typeof AuthenticatedPainelCobrancasRoute
   '/painel/financeiro': typeof AuthenticatedPainelFinanceiroRoute
@@ -258,6 +266,7 @@ export interface FileRoutesById {
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/_authenticated/painel/agendamentos': typeof AuthenticatedPainelAgendamentosRoute
   '/_authenticated/painel/central-tecnica': typeof AuthenticatedPainelCentralTecnicaRoute
+  '/_authenticated/painel/materiais': typeof AuthenticatedPainelMateriaisRoute
   '/_authenticated/painel/clientes': typeof AuthenticatedPainelClientesRoute
   '/_authenticated/painel/cobrancas': typeof AuthenticatedPainelCobrancasRoute
   '/_authenticated/painel/financeiro': typeof AuthenticatedPainelFinanceiroRoute
@@ -288,6 +297,8 @@ export interface FileRouteTypes {
     | '/orcamento/$token'
     | '/painel/agendamentos'
     | '/painel/central-tecnica'
+    | '/painel/materiais'
+    | '/painel/materiais'
     | '/painel/clientes'
     | '/painel/cobrancas'
     | '/painel/financeiro'
@@ -343,6 +354,7 @@ export interface FileRouteTypes {
     | '/orcamento/$token'
     | '/_authenticated/painel/agendamentos'
     | '/_authenticated/painel/central-tecnica'
+    | '/_authenticated/painel/materiais'
     | '/_authenticated/painel/clientes'
     | '/_authenticated/painel/cobrancas'
     | '/_authenticated/painel/financeiro'
@@ -470,6 +482,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPainelCentralTecnicaRouteImport
       parentRoute: typeof AuthenticatedPainelRoute
     }
+    '/_authenticated/painel/materiais': {
+      id: '/_authenticated/painel/materiais'
+      path: '/materiais'
+      fullPath: '/painel/materiais'
+      preLoaderRoute: typeof AuthenticatedPainelMateriaisRouteImport
+      parentRoute: typeof AuthenticatedPainelRoute
+    }
     '/_authenticated/painel/clientes': {
       id: '/_authenticated/painel/clientes'
       path: '/clientes'
@@ -584,6 +603,7 @@ const AuthenticatedPainelGarantiasRouteWithChildren =
 interface AuthenticatedPainelRouteChildren {
   AuthenticatedPainelAgendamentosRoute: typeof AuthenticatedPainelAgendamentosRoute
   AuthenticatedPainelCentralTecnicaRoute: typeof AuthenticatedPainelCentralTecnicaRoute
+  AuthenticatedPainelMateriaisRoute: typeof AuthenticatedPainelMateriaisRoute
   AuthenticatedPainelClientesRoute: typeof AuthenticatedPainelClientesRoute
   AuthenticatedPainelCobrancasRoute: typeof AuthenticatedPainelCobrancasRoute
   AuthenticatedPainelFinanceiroRoute: typeof AuthenticatedPainelFinanceiroRoute
