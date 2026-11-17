@@ -25,27 +25,6 @@ export type MaterialList = {
   material_list_items: MaterialListItem[];
 };
 
-async function getOrCreateDraftList() {
-  const db = supabase as any;
-  const { data: existing, error: readError } = await db
-    .from("material_lists")
-    .select("id")
-    .eq("status", "draft")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (readError) throw readError;
-  if (existing?.id) return existing.id as string;
-
-  const { data, error } = await db
-    .from("material_lists")
-    .insert({ title: "Lista de materiais", status: "draft" })
-    .select("id")
-    .single();
-  if (error) throw error;
-  return data.id as string;
-}
-
 export async function addPartToMaterialList(part: PartDraft, pumpCode: string, quantity: number) {
   if (!part.description.trim() || !part.code?.trim()) {
     throw new Error("A peça precisa ter descrição e código para entrar na lista.");
@@ -54,42 +33,18 @@ export async function addPartToMaterialList(part: PartDraft, pumpCode: string, q
     throw new Error("Informe uma quantidade válida.");
   }
 
-  const db = supabase as any;
-  const listId = await getOrCreateDraftList();
-  const referenceId = part.technical_reference_id || null;
-
-  if (referenceId) {
-    const { data: existing, error: findError } = await db
-      .from("material_list_items")
-      .select("id,quantity_needed")
-      .eq("list_id", listId)
-      .eq("technical_reference_id", referenceId)
-      .maybeSingle();
-    if (findError) throw findError;
-
-    if (existing?.id) {
-      const { error } = await db
-        .from("material_list_items")
-        .update({ quantity_needed: Number(existing.quantity_needed) + quantity })
-        .eq("id", existing.id);
-      if (error) throw error;
-      return listId;
-    }
-  }
-
-  const { error } = await db.from("material_list_items").insert({
-    list_id: listId,
-    technical_reference_id: referenceId,
-    technical_component_id: part.technical_component_id || null,
-    reference_code: part.code.trim(),
-    description: part.description.trim(),
-    manufacturer: part.manufacturer || null,
-    pump_code: pumpCode || null,
-    catalog_position: part.catalog_position || null,
-    quantity_needed: quantity,
+  const { data, error } = await (supabase as any).rpc("add_material_list_item", {
+    _technical_reference_id: part.technical_reference_id || null,
+    _technical_component_id: part.technical_component_id || null,
+    _reference_code: part.code.trim(),
+    _description: part.description.trim(),
+    _manufacturer: part.manufacturer || null,
+    _pump_code: pumpCode || null,
+    _catalog_position: part.catalog_position || null,
+    _quantity: quantity,
   });
   if (error) throw error;
-  return listId;
+  return data as string;
 }
 
 export async function fetchMaterialLists(): Promise<MaterialList[]> {
