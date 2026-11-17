@@ -50,6 +50,9 @@ LANGUAGE plpgsql
 SET search_path = public
 AS $$
 BEGIN
+  IF NEW.created_by IS DISTINCT FROM OLD.created_by THEN
+    RAISE EXCEPTION 'Criador da lista não pode ser alterado';
+  END IF;
   IF OLD.status = 'finalized' THEN
     RAISE EXCEPTION 'Lista finalizada não pode ser alterada';
   END IF;
@@ -116,3 +119,75 @@ CREATE POLICY material_list_items_staff_delete_draft
     public.material_list_staff_access()
     AND EXISTS (SELECT 1 FROM public.material_lists l WHERE l.id = list_id AND l.status = 'draft')
   );
+
+
+-- Garante um único rascunho compartilhado, mesmo com acessos simultâneos.
+CREATE UNIQUE INDEX material_lists_single_draft_idx
+  ON public.material_lists ((status))
+  WHERE status = 'draft';
+
+-- Inclusão atômica: serializa a obtenção do rascunho e soma quantidades
+-- sem depender de uma sequência vulnerável de SELECT/UPDATE no navegador.
+CREATE OR REPLACE FUNCTION public.add_material_list_item(
+  _technical_reference_id uuid,
+  _technical_component_id uuid,
+  _reference_code text,
+  _description text,
+  _manufacturer text,
+  _pump_code text,
+  _catalog_position text,
+  _quantity integer
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  _list_id uuid;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.material_list_staff_access() THEN
+    RAISE EXCEPTION 'Acesso não autorizado à lista de materiais';
+  END IF;
+  IF _quantity IS NULL OR _quantity < 1 OR _quantity > 100000 THEN
+    RAISE EXCEPTION 'Quantidade inválida';
+  END IF;
+  IF NULLIF(trim(_reference_code), '') IS NULL
+     OR NULLIF(trim(_description), '') IS NULL THEN
+    RAISE EXCEPTION 'Código e descrição da peça são obrigatórios';
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(hashtext('cleidson_diesel_shared_material_draft'), 1);
+
+  SELECT id INTO _list_id
+  FROM public.material_lists
+  WHERE status = 'draft'
+  ORDER BY created_at DESC
+  LIMIT 1
+  FOR UPDATE;
+
+  IF _list_id IS NULL THEN
+    INSERT INTO public.material_lists (title, status, created_by)
+    VALUES ('Lista de materiais', 'draft', auth.uid())
+    RETURNING id INTO _list_id;
+  END IF;
+
+  INSERT INTO public.material_list_items (
+    list_id, technical_reference_id, technical_component_id,
+    reference_code, description, manufacturer, pump_code,
+    catalog_position, quantity_needed, created_by
+  ) VALUES (
+    _list_id, _technical_reference_id, _technical_component_id,
+    trim(_reference_code), trim(_description), _manufacturer, _pump_code,
+    _catalog_position, _quantity, auth.uid()
+  )
+  ON CONFLICT (list_id, technical_reference_id)
+  DO UPDATE SET quantity_needed =
+    public.material_list_items.quantity_needed + EXCLUDED.quantity_needed;
+
+  RETURN _list_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.add_material_list_item(uuid, uuid, text, text, text, text, text, integer) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.add_material_list_item(uuid, uuid, text, text, text, text, text, integer) TO authenticated;
