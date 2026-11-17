@@ -14,6 +14,7 @@ import { draftPartItems, lineTotal, parseMoney, parseQuantity, partsTotal, type 
 import { writeInspectionData, type InspectionData } from "@/lib/inspection";
 import { useQuery } from "@tanstack/react-query";
 import { customersQuery } from "@/lib/registry";
+import { TechnicalCatalogBrowser } from "@/components/painel/technical-catalog-browser";
 export { parseMoney } from "@/lib/parts";
 
 export type OrderInput = Database["public"]["Tables"]["service_orders"]["Insert"];
@@ -72,6 +73,8 @@ export function OrderForm({
   extraActions,
   plateRequired = true,
   intakeLocked = false,
+  technicalUserId,
+  isAdmin = false,
 }: {
   initial: OrderFormValues;
   onSubmit: (v: OrderInput) => Promise<void>;
@@ -79,9 +82,12 @@ export function OrderForm({
   extraActions?: ReactNode;
   plateRequired?: boolean;
   intakeLocked?: boolean;
+  technicalUserId: string;
+  isAdmin?: boolean;
 }) {
   const [v, setV] = useState<OrderFormValues>(initial);
   const [saving, setSaving] = useState(false);
+  const [showTechnicalCatalog, setShowTechnicalCatalog] = useState(false);
   const { data: customers = [] } = useQuery(customersQuery());
   const chooseCustomer = (id: string) => {
     const c = customers.find((item) => item.id === id);
@@ -128,6 +134,9 @@ export function OrderForm({
 
       <Section title="Peças e valores">
         <div className="space-y-3 sm:col-span-2 lg:col-span-3">
+          <Button type="button" variant="outline" onClick={() => setShowTechnicalCatalog((open) => !open)}>{showTechnicalCatalog ? "Fechar Central Técnica" : "Buscar peça na Central Técnica"}</Button>
+          {showTechnicalCatalog && <div className="rounded-md border p-3"><TechnicalCatalogBrowser userId={technicalUserId} isAdmin={isAdmin} onAdd={(part) => { set("part_items", [...v.part_items.filter((item) => item.description.trim()), part]); toast.success("Peça adicionada à OS com referência técnica."); setShowTechnicalCatalog(false); }} /></div>}
+
           {v.part_items.map((item, index) => (
             <div key={index} className="grid grid-cols-2 gap-3 rounded-md border border-border p-3 sm:grid-cols-[minmax(0,2fr)_minmax(85px,0.7fr)_minmax(110px,1fr)_minmax(110px,1fr)_40px] sm:items-end">
               <div className="col-span-2 space-y-2 sm:col-span-1"><Label htmlFor={"part-" + index}>Peça {index + 1}</Label><Input id={"part-" + index} value={item.description} onChange={(e) => updatePart(index, "description", e.target.value)} placeholder="Nome da peça" /></div>
