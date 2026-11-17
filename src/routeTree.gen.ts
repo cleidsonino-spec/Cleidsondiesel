@@ -622,6 +622,7 @@ const AuthenticatedPainelRouteChildren: AuthenticatedPainelRouteChildren = {
   AuthenticatedPainelAgendamentosRoute: AuthenticatedPainelAgendamentosRoute,
   AuthenticatedPainelCentralTecnicaRoute:
     AuthenticatedPainelCentralTecnicaRoute,
+  AuthenticatedPainelMateriaisRoute: AuthenticatedPainelMateriaisRoute,
   AuthenticatedPainelClientesRoute: AuthenticatedPainelClientesRoute,
   AuthenticatedPainelCobrancasRoute: AuthenticatedPainelCobrancasRoute,
   AuthenticatedPainelFinanceiroRoute: AuthenticatedPainelFinanceiroRoute,
