@@ -11,7 +11,7 @@ import type { PartDraft } from '@/lib/parts';
 import { TechnicalFigureViewer } from './technical-figure-viewer';
 import { TechnicalHotspotEditor } from './technical-hotspot-editor';
 
-export function TechnicalCatalogBrowser({userId,isAdmin=false,onAdd}: {userId:string;isAdmin?:boolean;onAdd?:(part:PartDraft)=>void}) {
+export function TechnicalCatalogBrowser({userId,isAdmin=false,onAdd,onAddToMaterialList}: {userId:string;isAdmin?:boolean;onAdd?:(part:PartDraft)=>void;onAddToMaterialList?:(part:PartDraft,quantity:number,pumpCode:string)=>void|Promise<void>}) {
   const query = technicalCatalogQuery(userId);
   const {data} = useSuspenseQuery(query);
   const qc = useQueryClient();
@@ -24,6 +24,7 @@ export function TechnicalCatalogBrowser({userId,isAdmin=false,onAdd}: {userId:st
   const [page,setPage] = useState(1);
   const [pageCount,setPageCount] = useState<number|null>(null);
   const [review,setReview] = useState(false);
+  const [materialQuantity,setMaterialQuantity] = useState('1');
   const extras = useMemo(()=>{
     const map = new Map<string,string[]>();
     const add = (id:string|null, values:(string|null|undefined)[]) => {if(id) map.set(id,[...(map.get(id)??[]),...values.filter((v):v is string=>Boolean(v))]);};
@@ -59,6 +60,7 @@ export function TechnicalCatalogBrowser({userId,isAdmin=false,onAdd}: {userId:st
   function selectHotspot(h:TechnicalHotspot) {setReferenceId(h.reference_id??'');setHotspotId(h.id);}
   function selectRef(id:string) {
     setReferenceId(id);
+    setMaterialQuantity('1');
     const h = displayedHotspots.find(h=>h.reference_id===id);
     setHotspotId(h?.id??null);
     if(h) {setDocumentId(h.document_id);setPage(h.pdf_page_number);setPageCount(null);}
@@ -99,7 +101,7 @@ export function TechnicalCatalogBrowser({userId,isAdmin=false,onAdd}: {userId:st
         {[...filteredRefs].sort((a,b)=>(a.catalog_position??'').localeCompare(b.catalog_position??'','pt-BR',{numeric:true})).map(r=><Button key={r.id} variant="outline" className={`h-auto min-h-20 flex-col items-start whitespace-normal text-left ${r.id===referenceId?'border-primary bg-primary/10':''}`} onClick={()=>selectRef(r.id)}><span className="text-sm font-semibold leading-snug text-white">{referenceDescription(r)}</span><span className="text-xs text-muted-foreground">{[r.catalog_position?`Pos. ${r.catalog_position}`:null,r.reference_code].filter(Boolean).join(' · ')}</span><span className="text-xs text-muted-foreground">{r.information_status==='documented'?'Documentado':'Pendente de validação'}</span></Button>)}
         {!filteredRefs.length&&<p className="text-sm text-muted-foreground">Nenhuma peça encontrada com esse nome, posição ou código.</p>}
       </div>
-      {selected&&<article className="space-y-2 border-l-2 border-primary pl-3" aria-label="Peça selecionada"><h4 className="text-lg font-semibold leading-snug text-white">{referenceDescription(selected)}</h4><p>{[selected.reference_code,selected.technical_manufacturers?.name,`Posição ${selectedHotspot?.catalog_position??selected.catalog_position??'não informada'}`,`Quantidade ${selected.catalog_quantity??'não informada'}`].filter(Boolean).join(' · ')}</p><p className="text-sm text-muted-foreground">{selected.information_status==='documented'?'Documentado':'Pendente de validação'}{selectedHotspot?` · página física ${selectedHotspot.pdf_page_number}${selectedHotspot.printed_page_number?` · impressa ${selectedHotspot.printed_page_number}`:''}`:''}</p>{selected.notes&&<p className="text-sm">{selected.notes}</p>}<div className="flex flex-wrap gap-2"><Button variant="outline" onClick={copy}><Copy/>Copiar peça com metadados</Button>{onAdd&&<Button onClick={()=>onAdd(referencePart(selected,component,docs.find(d=>d.id===selectedHotspot?.document_id)))}><Plus/>Adicionar à OS / orçamento</Button>}</div></article>}
+      {selected&&<article className="space-y-2 border-l-2 border-primary pl-3" aria-label="Peça selecionada"><h4 className="text-lg font-semibold leading-snug text-white">{referenceDescription(selected)}</h4><p>{[selected.reference_code,selected.technical_manufacturers?.name,`Posição ${selectedHotspot?.catalog_position??selected.catalog_position??'não informada'}`,`Quantidade ${selected.catalog_quantity??'não informada'}`].filter(Boolean).join(' · ')}</p><p className="text-sm text-muted-foreground">{selected.information_status==='documented'?'Documentado':'Pendente de validação'}{selectedHotspot?` · página física ${selectedHotspot.pdf_page_number}${selectedHotspot.printed_page_number?` · impressa ${selectedHotspot.printed_page_number}`:''}`:''}</p>{selected.notes&&<p className="text-sm">{selected.notes}</p>}<div className="flex flex-wrap gap-2"><Button variant="outline" onClick={copy}><Copy/>Copiar peça com metadados</Button>{onAddToMaterialList&&<div className="flex flex-wrap items-center gap-2"><label className="text-sm" htmlFor="material-quantity">Quantidade necessária</label><Input id="material-quantity" aria-label="Quantidade necessária para compra" className="w-24" type="number" min={1} step={1} value={materialQuantity} onChange={e=>setMaterialQuantity(e.target.value)}/><Button onClick={()=>{const quantity=Number(materialQuantity);if(!Number.isInteger(quantity)||quantity<1){toast.error('Informe uma quantidade válida.');return;}void Promise.resolve(onAddToMaterialList(referencePart(selected,component,docs.find(d=>d.id===selectedHotspot?.document_id)),quantity,component.component_code||component.name));}}><Plus/>Adicionar à lista de materiais</Button></div>}{onAdd&&<Button onClick={()=>onAdd(referencePart(selected,component,docs.find(d=>d.id===selectedHotspot?.document_id)))}><Plus/>Adicionar à OS / orçamento</Button>}</div></article>}
       <h3>Aplicações ({apps.length})</h3>{apps.length?apps.map(a=><p key={a.id} className="text-sm">{[a.technical_engines?.model,a.technical_engines?.family,a.equipment_manufacturer,a.equipment_model,a.application_notes].filter(Boolean).join(' · ')}</p>):<p className="text-sm text-muted-foreground">Nenhuma aplicação cadastrada.</p>}
       <h3>Fontes ({docs.length})</h3>{docs.map(d=><div key={d.id} className="text-sm">{safeSource(d.source_url)?<a className="text-primary underline" href={safeSource(d.source_url)} target="_blank" rel="noreferrer">{d.title}</a>:d.title} · {d.source_name} · {d.access_type} · {d.information_status}{d.copyright_notes&&<p className="text-xs text-muted-foreground">{d.copyright_notes}</p>}</div>)}
       {isAdmin&&review&&<TechnicalHotspotEditor key={componentId} componentId={componentId} references={refs} documents={docs} hotspots={rawHotspots} onSaved={()=>{void qc.invalidateQueries({queryKey:query.queryKey});}}/>}

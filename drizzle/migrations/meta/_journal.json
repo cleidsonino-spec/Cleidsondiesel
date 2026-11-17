@@ -78,6 +78,20 @@
       "when": 1794536100000,
       "tag": "0010_warranty_starts_on_delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794929729445,
+      "tag": "0011_material_lists",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794929729446,
+      "tag": "0012_finalize_material_list_atomically",
+      "breakpoints": true
     }
   ]
 }

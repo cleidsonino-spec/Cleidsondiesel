@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { CalendarDays, Car, Users, UserCog, ShieldCheck, ClipboardList, Download, ExternalLink, FileText, LogOut, Plus, ShieldAlert, Wallet, Receipt, ClipboardCheck, Menu, BookOpen } from "lucide-react";
+import { CalendarDays, Car, Users, UserCog, ShieldCheck, ClipboardList, Download, ExternalLink, FileText, LogOut, Plus, ShieldAlert, Wallet, Receipt, ClipboardCheck, Menu, BookOpen, ShoppingCart } from "lucide-react";
 
 import { Logo } from "@/components/site/logo";
 import { Button } from "@/components/ui/button";
@@ -100,6 +100,7 @@ function PainelLayout() {
                       <SheetClose asChild><PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" /></SheetClose>
                       <SheetClose asChild><PanelLink to="/painel/relatorios" icon={<ClipboardCheck />} label="Relatórios" /></SheetClose>
                       <SheetClose asChild><PanelLink to="/painel/central-tecnica" icon={<BookOpen />} label="Central Técnica" /></SheetClose>
+                      <SheetClose asChild><PanelLink to="/painel/materiais" icon={<ShoppingCart />} label="Lista de materiais" /></SheetClose>
                       <SheetClose asChild><PanelLink to="/equipe" icon={<Users />} label="Desempenho" /></SheetClose>
                       <SheetClose asChild><PanelLink to="/painel/recebimento" icon={<ClipboardCheck />} label="Recebimento de veículos" /></SheetClose>
                       <p className="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cadastros</p>
@@ -134,6 +135,7 @@ function PainelLayout() {
             {(isAdmin || isSecretary) && <PanelLink to="/painel/orcamentos" icon={<FileText />} label="Orçamentos" />}
             {(isAdmin || isSecretary) && <PanelLink to="/painel/relatorios" icon={<ClipboardCheck />} label="Relatórios" />}
             <PanelLink to="/painel/central-tecnica" icon={<BookOpen />} label="Central Técnica" />
+            {(isAdmin || isSecretary) && <PanelLink to="/painel/materiais" icon={<ShoppingCart />} label="Lista de materiais" />}
             {(isAdmin || isSecretary) && <PanelLink to="/equipe" icon={<Users />} label="Desempenho" />}
             {(isAdmin || isSecretary) && <PanelLink to="/painel/recebimento" icon={<ClipboardCheck />} label="Recebimento" />}
             <PanelLink to="/painel/clientes" icon={<Users />} label="Clientes" />
@@ -163,7 +165,7 @@ function PainelLayout() {
 }
 
 function PanelLink({ to, icon, label, exact }: {
-  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias" | "/painel/financeiro" | "/painel/relatorios" | "/painel/central-tecnica" | "/painel/recebimento" | "/painel/cobrancas" | "/painel/funcionarios" | "/equipe";
+  to: "/painel" | "/painel/agendamentos" | "/painel/orcamentos" | "/painel/clientes" | "/painel/veiculos" | "/painel/garantias" | "/painel/financeiro" | "/painel/relatorios" | "/painel/central-tecnica" | "/painel/materiais" | "/painel/recebimento" | "/painel/cobrancas" | "/painel/funcionarios" | "/equipe";
   icon: React.ReactNode;
   label: string;
   exact?: boolean;
