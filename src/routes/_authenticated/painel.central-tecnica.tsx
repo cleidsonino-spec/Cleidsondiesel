@@ -14,4 +14,4 @@ export const Route = createFileRoute('/_authenticated/painel/central-tecnica')({
   loader: async ({context}) => {await context.queryClient.ensureQueryData(technicalCatalogQuery(context.user.id));},
   component: Page,
 });
-function Page() {const {user,isAdmin,isSecretary}=Route.useRouteContext();return <TechnicalCatalogBrowser userId={user.id} isAdmin={isAdmin} onAddToMaterialList={async (part,quantity,pumpCode)=>{try{await addPartToMaterialList(part,pumpCode,quantity);toast.success('Peça salva na lista de materiais.');}catch(error){toast.error(error instanceof Error?error.message:'Não foi possível adicionar a peça.');}}}/>;}
+function Page() {const {user,isAdmin,isSecretary}=Route.useRouteContext();return <TechnicalCatalogBrowser userId={user.id} isAdmin={isAdmin} onAddToMaterialList={isAdmin||isSecretary?async (part,quantity,pumpCode)=>{try{await addPartToMaterialList(part,pumpCode,quantity);toast.success('Peça salva na lista de materiais.');}catch(error){toast.error(error instanceof Error?error.message:'Não foi possível adicionar a peça.');}}:undefined}/>;}
