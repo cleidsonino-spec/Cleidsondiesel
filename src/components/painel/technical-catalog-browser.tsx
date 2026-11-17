@@ -16,6 +16,7 @@ export function TechnicalCatalogBrowser({userId,isAdmin=false,onAdd}: {userId:st
   const {data} = useSuspenseQuery(query);
   const qc = useQueryClient();
   const [search,setSearch] = useState('');
+  const [partSearch,setPartSearch] = useState('');
   const [componentId,setComponentId] = useState('');
   const [referenceId,setReferenceId] = useState('');
   const [hotspotId,setHotspotId] = useState<string|null>(null);
@@ -42,6 +43,7 @@ export function TechnicalCatalogBrowser({userId,isAdmin=false,onAdd}: {userId:st
   const matches = pumpRecords.filter(c=>search.trim() && matchesTechnicalSearch([c.name,c.model,c.component_code,c.description,c.component_type,c.technical_manufacturers?.name,c.technical_categories?.name,...(extras.get(c.id)??[])],search));
   const component = data.components.find(c=>c.id===componentId);
   const refs = data.references.filter(r=>r.component_id===componentId);
+  const filteredRefs = refs.filter(r=>!partSearch.trim() || [referenceDescription(r),r.catalog_position,r.reference_code,r.technical_manufacturers?.name].filter(Boolean).join(' ').toLocaleLowerCase('pt-BR').includes(partSearch.trim().toLocaleLowerCase('pt-BR')));
   const rawHotspots = data.hotspots.filter(h=>h.component_id===componentId);
   const apps = data.applications.filter(a=>a.component_id===componentId);
   const docs = data.documents.filter(d=>d.component_id===componentId || rawHotspots.some(h=>h.document_id===d.id) || apps.some(a=>a.engine_id===d.engine_id&&Boolean(a.engine_id)));
@@ -85,9 +87,14 @@ export function TechnicalCatalogBrowser({userId,isAdmin=false,onAdd}: {userId:st
         {document&&<TechnicalFigureViewer document={document} page={page} hotspots={displayedHotspots} selectedId={hotspotId} onSelect={selectHotspot} onPageCount={setPageCount}/>}
         {isAdmin&&review&&<p className="text-sm text-warning">Prévia administrativa: posições pendentes não são informação confirmada.</p>}
       </> : <p className="text-sm text-muted-foreground">{refs.length?'Referências disponíveis, figura não mapeada.':'Aguardando documentação.'}</p>}
-      <h3>Referências / posições ({refs.length})</h3>
+      <div className="space-y-2">
+        <h3>Buscar peça nesta bomba ({filteredRefs.length} de {refs.length})</h3>
+        <Input aria-label="Buscar peça por nome, posição ou código" placeholder="Digite o nome da peça, posição ou código" value={partSearch} onChange={e=>setPartSearch(e.target.value)}/>
+        <p className="text-xs text-muted-foreground">Pesquise pelo nome da peça ou pela posição indicada na figura. Selecione o resultado para localizar a posição e consultar o código.</p>
+      </div>
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 max-h-96 overflow-y-auto">
-        {[...refs].sort((a,b)=>(a.catalog_position??'').localeCompare(b.catalog_position??'','pt-BR',{numeric:true})).map(r=><Button key={r.id} variant="outline" className={`h-auto min-h-20 flex-col items-start whitespace-normal text-left ${r.id===referenceId?'border-primary bg-primary/10':''}`} onClick={()=>selectRef(r.id)}><span>{r.catalog_position?`Pos. ${r.catalog_position} · `:''}{r.reference_code}</span><span className="text-xs text-muted-foreground">{referenceDescription(r)}</span><span className="text-xs text-muted-foreground">{r.information_status==='documented'?'Documentado':'Pendente de validação'}</span></Button>)}
+        {[...filteredRefs].sort((a,b)=>(a.catalog_position??'').localeCompare(b.catalog_position??'','pt-BR',{numeric:true})).map(r=><Button key={r.id} variant="outline" className={`h-auto min-h-20 flex-col items-start whitespace-normal text-left ${r.id===referenceId?'border-primary bg-primary/10':''}`} onClick={()=>selectRef(r.id)}><span>{r.catalog_position?`Pos. ${r.catalog_position} · `:''}{r.reference_code}</span><span className="text-xs text-muted-foreground">{referenceDescription(r)}</span><span className="text-xs text-muted-foreground">{r.information_status==='documented'?'Documentado':'Pendente de validação'}</span></Button>)}
+        {!filteredRefs.length&&<p className="text-sm text-muted-foreground">Nenhuma peça encontrada com esse nome, posição ou código.</p>}
       </div>
       {selected&&<article className="space-y-2 border-l-2 border-primary pl-3" aria-label="Peça selecionada"><h4>{referenceDescription(selected)}</h4><p>{[selected.reference_code,selected.technical_manufacturers?.name,`Posição ${selectedHotspot?.catalog_position??selected.catalog_position??'não informada'}`,`Quantidade ${selected.catalog_quantity??'não informada'}`].filter(Boolean).join(' · ')}</p><p className="text-sm text-muted-foreground">{selected.information_status==='documented'?'Documentado':'Pendente de validação'}{selectedHotspot?` · página física ${selectedHotspot.pdf_page_number}${selectedHotspot.printed_page_number?` · impressa ${selectedHotspot.printed_page_number}`:''}`:''}</p>{selected.notes&&<p className="text-sm">{selected.notes}</p>}<div className="flex flex-wrap gap-2"><Button variant="outline" onClick={copy}><Copy/>Copiar peça com metadados</Button>{onAdd&&<Button onClick={()=>onAdd(referencePart(selected,component,docs.find(d=>d.id===selectedHotspot?.document_id)))}><Plus/>Adicionar à OS / orçamento</Button>}</div></article>}
       <h3>Aplicações ({apps.length})</h3>{apps.length?apps.map(a=><p key={a.id} className="text-sm">{[a.technical_engines?.model,a.technical_engines?.family,a.equipment_manufacturer,a.equipment_model,a.application_notes].filter(Boolean).join(' · ')}</p>):<p className="text-sm text-muted-foreground">Nenhuma aplicação cadastrada.</p>}
