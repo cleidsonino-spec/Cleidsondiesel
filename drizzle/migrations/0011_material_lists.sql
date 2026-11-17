@@ -24,7 +24,7 @@ CREATE TABLE public.material_list_items (
   quantity_needed integer NOT NULL DEFAULT 1 CHECK (quantity_needed > 0),
   notes text,
   created_by uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT DEFAULT auth.uid(),
-  created_at timestamptz NOT NULL DEFAULT now(),
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE INDEX material_lists_status_created_idx ON public.material_lists(status, created_at DESC);
