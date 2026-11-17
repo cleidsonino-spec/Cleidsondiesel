@@ -38,9 +38,9 @@ export function coverageLabel(refs: TechnicalReference[], docs: TechnicalDocumen
 }
 export function referenceDescription(r: TechnicalReference): string {
   const notes = r.notes ?? "";
-  const translated = notes.match(/designação traduzida\\s*:\\s*([^.\\n|]+)/i)?.[1]?.trim();
-  const positional = notes.match(/(?:^|\\n)Posição\\s+[^—\\n]+—\\s*([^.;\\n]+)/i)?.[1]?.trim();
-  const sourceDesignation = notes.match(/(?:^|[;\\n])\\s*Designação:\\s*([^;\\n]+)/i)?.[1]?.trim();
+  const translated = notes.match(/designação traduzida\s*:\s*([^.\n|]+)/i)?.[1]?.trim();
+  const positional = notes.match(/(?:^|\n)Posição\s+[^—\n]+—\s*([^.;\n]+)/i)?.[1]?.trim();
+  const sourceDesignation = notes.match(/(?:^|[;\n])\s*Designação:\s*([^;\n]+)/i)?.[1]?.trim();
   // Catalog imports often store the actual part name in notes ("Posição 50 — pistão de avanço").
   // Prefer that per-item designation over source_description, which may only describe the catalog.
   return translated || positional || sourceDesignation || r.source_description || `Peça ${r.reference_code}`;
