@@ -98,6 +98,106 @@ export type Database = {
         }
         Relationships: []
       }
+      material_list_items: {
+        Row: {
+          catalog_position: string | null
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          list_id: string
+          manufacturer: string | null
+          notes: string | null
+          pump_code: string | null
+          quantity_needed: number
+          reference_code: string
+          technical_component_id: string | null
+          technical_reference_id: string | null
+        }
+        Insert: {
+          catalog_position?: string | null
+          created_at?: string
+          created_by?: string
+          description: string
+          id?: string
+          list_id: string
+          manufacturer?: string | null
+          notes?: string | null
+          pump_code?: string | null
+          quantity_needed?: number
+          reference_code: string
+          technical_component_id?: string | null
+          technical_reference_id?: string | null
+        }
+        Update: {
+          catalog_position?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string
+          id?: string
+          list_id?: string
+          manufacturer?: string | null
+          notes?: string | null
+          pump_code?: string | null
+          quantity_needed?: number
+          reference_code?: string
+          technical_component_id?: string | null
+          technical_reference_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_list_items_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "material_lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_list_items_technical_component_id_fkey"
+            columns: ["technical_component_id"]
+            isOneToOne: false
+            referencedRelation: "technical_components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_list_items_technical_reference_id_fkey"
+            columns: ["technical_reference_id"]
+            isOneToOne: false
+            referencedRelation: "technical_references"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_lists: {
+        Row: {
+          created_at: string
+          created_by: string
+          finalized_at: string | null
+          id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          finalized_at?: string | null
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          finalized_at?: string | null
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       quote_approvals: {
         Row: {
           approved_at: string | null
@@ -1532,6 +1632,19 @@ export type Database = {
         Args: { p_token: string }
         Returns: undefined
       }
+      add_material_list_item: {
+        Args: {
+          _catalog_position: string
+          _description: string
+          _manufacturer: string
+          _pump_code: string
+          _quantity: number
+          _reference_code: string
+          _technical_component_id: string
+          _technical_reference_id: string
+        }
+        Returns: string
+      }
       admin_get_financial_overview: {
         Args: never
         Returns: {
@@ -1577,6 +1690,7 @@ export type Database = {
         Args: { _amount: number; _note?: string; _order_id: string }
         Returns: Json
       }
+      finalize_material_list: { Args: { _list_id: string }; Returns: undefined }
       get_approved_inspection_report_for_pdf: {
         Args: { _service_order_id: string }
         Returns: Json
@@ -1685,6 +1799,7 @@ export type Database = {
           vehicle_year: string
         }[]
       }
+      material_list_staff_access: { Args: never; Returns: boolean }
       mechanic_add_technical_log: {
         Args: {
           _description: string
