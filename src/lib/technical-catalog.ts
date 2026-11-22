@@ -1,5 +1,6 @@
 import type { Database } from "@/integrations/supabase/types";
 import { readPartMetadata, type PartDraft } from "./parts";
+import { matchesTechnicalSearch } from "./technical-reference";
 type Tables = Database["public"]["Tables"];
 export type TechnicalComponent = Tables["technical_components"]["Row"] & { technical_manufacturers?: { name: string } | null; technical_categories?: { name: string } | null };
 export type TechnicalReference = Tables["technical_references"]["Row"] & { technical_manufacturers?: { name: string } | null };
@@ -45,6 +46,36 @@ export function referenceDescription(r: TechnicalReference): string {
   // Prefer that per-item designation over source_description, which may only describe the catalog.
   return translated || positional || sourceDesignation || r.source_description || `Peça ${r.reference_code}`;
 }
+/** Tipos que representam bombas completas; componentes avulsos nunca lideram a busca inicial. */
+export const COMPLETE_PUMP_TYPES = new Set([
+  "bomba_rotativa_ve", "bomba_injetora_np_ve", "bomba_rotativa_delphi_dp210",
+  "bomba_injetora_ve", "injection_pump", "bomba_em_linha_p7100",
+  "bomba_injetora_np_vrz", "bomba_rotativa_ve_modelo",
+  "bomba_injetora_completa_hyundai", "denso_hp3",
+]);
+export function isCompletePumpType(type: string): boolean { return COMPLETE_PUMP_TYPES.has(type); }
+/**
+ * Busca global da Central Técnica: bombas completas primeiro, depois registros
+ * localizados por código de peça (referência), depois componentes avulsos.
+ * Sem duplicatas e ordenada por código do componente.
+ */
+export function searchCatalog(
+  components: TechnicalComponent[],
+  references: TechnicalReference[],
+  search: string,
+  componentFields: (c: TechnicalComponent) => (string | null | undefined)[],
+): TechnicalComponent[] {
+  if (!search.trim()) return [];
+  const direct = components.filter(c => matchesTechnicalSearch(componentFields(c), search));
+  const refHitIds = new Set(references
+    .filter(r => matchesTechnicalSearch([referenceDescription(r), r.reference_code, r.catalog_position, r.technical_manufacturers?.name], search))
+    .map(r => r.component_id));
+  const viaReference = components.filter(c => refHitIds.has(c.id) && !direct.includes(c));
+  const all = [...direct, ...viaReference];
+  const rank = (c: TechnicalComponent) => (isCompletePumpType(c.component_type) ? 0 : refHitIds.has(c.id) && !direct.includes(c) ? 1 : 2);
+  return all.sort((a, b) => rank(a) - rank(b) || (a.component_code ?? "").localeCompare(b.component_code ?? "", "pt-BR", { numeric: true }));
+}
+
 export function referencePart(r: TechnicalReference, component: TechnicalComponent, document?: TechnicalDocument): PartDraft {
   const quantity = r.information_status === "documented" && Number.isInteger(r.catalog_quantity) && Number(r.catalog_quantity) > 0 ? String(r.catalog_quantity) : "1";
   return { description: referenceDescription(r), quantity, unit_value: "", ...readPartMetadata({ code: r.reference_code,

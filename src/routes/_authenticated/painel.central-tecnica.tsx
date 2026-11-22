@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { TechnicalCatalogBrowser } from '@/components/painel/technical-catalog-browser';
 import { technicalCatalogQuery } from '@/lib/technical-queries';
 import { addPartToMaterialList } from '@/lib/material-lists';
+import type { PartDraft } from '@/lib/parts';
 export const Route = createFileRoute('/_authenticated/painel/central-tecnica')({
   head: () => ({meta:[
     {title:'Central Técnica — Cleidson Diesel'},
@@ -14,4 +15,4 @@ export const Route = createFileRoute('/_authenticated/painel/central-tecnica')({
   loader: async ({context}) => {await context.queryClient.ensureQueryData(technicalCatalogQuery(context.user.id));},
   component: Page,
 });
-function Page() {const {user,isAdmin,isSecretary}=Route.useRouteContext();return <TechnicalCatalogBrowser userId={user.id} isAdmin={isAdmin} onAddToMaterialList={isAdmin||isSecretary?async (part,quantity,pumpCode)=>{try{await addPartToMaterialList(part,pumpCode,quantity);toast.success('Peça salva na lista de materiais.');}catch(error){toast.error(error instanceof Error?error.message:'Não foi possível adicionar a peça.');}}:undefined}/>;}
+function Page() {const {user,isAdmin,isSecretary}=Route.useRouteContext();const canAdd=isAdmin||isSecretary;const onAddToMaterialList=canAdd?async (part:PartDraft,quantity:number,pumpCode:string)=>{try{await addPartToMaterialList(part,pumpCode,quantity);toast.success('Peça salva na lista de materiais.');}catch(error){toast.error(error instanceof Error?error.message:'Não foi possível adicionar a peça.');}}:undefined;return <TechnicalCatalogBrowser userId={user.id} isAdmin={isAdmin} {...(onAddToMaterialList?{onAddToMaterialList}:{})}/>;}

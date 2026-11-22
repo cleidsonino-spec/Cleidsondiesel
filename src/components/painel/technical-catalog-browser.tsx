@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { technicalCatalogQuery } from '@/lib/technical-queries';
 import { matchesTechnicalSearch } from '@/lib/technical-reference';
-import { canEmbedDocument, consultableHotspot, coverageLabel, referenceDescription, referencePart, safeSource, type TechnicalHotspot } from '@/lib/technical-catalog';
+import { COMPLETE_PUMP_TYPES, canEmbedDocument, consultableHotspot, coverageLabel, referenceDescription, referencePart, safeSource, searchCatalog, type TechnicalHotspot } from '@/lib/technical-catalog';
 import type { PartDraft } from '@/lib/parts';
 import { TechnicalFigureViewer } from './technical-figure-viewer';
 import { TechnicalHotspotEditor } from './technical-hotspot-editor';
@@ -32,16 +32,9 @@ export function TechnicalCatalogBrowser({userId,isAdmin=false,onAdd,onAddToMater
     data.applications.forEach(a=>add(a.component_id,[a.equipment_model,a.equipment_manufacturer,a.technical_engines?.model,a.technical_engines?.family,a.technical_engines?.engine_code]));
     return map;
   },[data]);
-  // A consulta começa exclusivamente por bombas completas; componentes avulsos nunca aparecem na busca inicial.
-  const completePumpTypes = new Set([
-    "bomba_rotativa_ve", "bomba_injetora_np_ve", "bomba_rotativa_delphi_dp210",
-    "bomba_injetora_ve", "injection_pump", "bomba_em_linha_p7100",
-    "bomba_injetora_np_vrz", "bomba_rotativa_ve_modelo",
-    "bomba_injetora_completa_hyundai", "denso_hp3",
-  ]);
+  const completePumpTypes = COMPLETE_PUMP_TYPES;
   const isCompletePump = (type: string) => completePumpTypes.has(type);
-  const pumpRecords = data.components.filter(c => isCompletePump(c.component_type));
-  const matches = pumpRecords.filter(c=>search.trim() && matchesTechnicalSearch([c.name,c.model,c.component_code,c.description,c.component_type,c.technical_manufacturers?.name,c.technical_categories?.name,...(extras.get(c.id)??[])],search));
+  const matches = searchCatalog(data.components,data.references,search,c=>[c.name,c.model,c.component_code,c.description,c.component_type,c.technical_manufacturers?.name,c.technical_categories?.name,...(extras.get(c.id)??[])]);
   const component = data.components.find(c=>c.id===componentId);
   const refs = data.references.filter(r=>r.component_id===componentId);
   const rawHotspots = data.hotspots.filter(h=>h.component_id===componentId);
@@ -107,8 +100,8 @@ export function TechnicalCatalogBrowser({userId,isAdmin=false,onAdd,onAddToMater
       {isAdmin&&review&&<TechnicalHotspotEditor key={componentId} componentId={componentId} references={refs} documents={docs} hotspots={rawHotspots} onSaved={()=>{void qc.invalidateQueries({queryKey:query.queryKey});}}/>}
     </section> : <>
       {!search.trim() ? <p className="text-sm text-muted-foreground">Aguardando o número ou código da bomba.</p> : <>
-        <p className="text-sm text-muted-foreground">{matches.length} bombas encontradas</p>
-        {!matches.length&&<p role="status">Nenhuma bomba encontrada para esse número ou código.</p>}
+         <p className="text-sm text-muted-foreground">{matches.length} {matches.some(c=>!isCompletePump(c.component_type))?'registros encontrados':'bombas encontradas'}</p>
+        {!matches.length&&<p role="status">Nenhuma bomba ou peça encontrada para esse número ou código.</p>}
         <div className="grid gap-3 md:grid-cols-2">{matches.map(c=><Button key={c.id} variant="outline" onClick={()=>open(c.id)} className="h-auto min-h-28 flex-col items-start whitespace-normal text-left p-4"><strong>{c.name}</strong><span className="text-sm text-muted-foreground">{[c.component_code,c.model,c.technical_manufacturers?.name,c.component_type.replaceAll('_',' ')].filter(Boolean).join(' · ')}</span><span className="text-xs text-warning">{coverageLabel(data.references.filter(r=>r.component_id===c.id),data.documents.filter(d=>d.component_id===c.id),data.hotspots.filter(h=>h.component_id===c.id))}</span></Button>)}</div>
       </>}
     </>}
